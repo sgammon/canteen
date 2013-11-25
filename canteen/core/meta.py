@@ -23,27 +23,25 @@ class MetaFactory(type):
 
   '''  '''
 
-  __owner__, __metachain__, __chain__ = "BaseMeta", [], {}
+  __owner__, __metachain__, __chain__, __root__ = "BaseMeta", [], {}, True
 
   def __new__(cls, name, bases, properties):
 
     '''  '''
 
-    # get ready to construct, do so immediately for ``MetaFactory`` itself
-    if name is "MetaFactory": return type.__new__(cls, name, bases, properties)
-
+    # get ready to construct, do so immediately for ``MetaFactory`` itself and other explicit roots
     if '__root__' in properties and properties['__root__']:
       del properties['__root__']  # treat as a root - init directly and continue
       return type.__new__(cls, name, bases, properties)
 
-    if 'initialize' in properties or any((hasattr(b, 'initialize') for b in bases)):
-
-      return (grab(properties['initialize'] if 'initialize' in properties else
-                getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
-                  cls, name, bases, properties))
-
     # construct, yo. then unconditionally apply it to the metachain and return
-    return cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1]
+    #  also, defer to the class' ``initialize``, or any of its bases if they
+    #  have ``initialize`, for constructing the actual class.
+    return ((grab(properties['initialize'] if 'initialize' in properties else
+              getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
+                cls, name, bases, properties))) if (
+                  'initialize' in properties or any((hasattr(b, 'initialize') for b in bases))
+                ) else (cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1])
 
   def mro(cls):
 
@@ -60,11 +58,7 @@ class MetaFactory(type):
         if base not in seen: seen.add(base), tree.append(base)
     return tuple(tree)
 
-  def __repr__(cls):
-
-    '''  '''
-
-    return "<meta '%s.%s'>" % (cls.__owner__, cls.__name__)
+  __repr__ = lambda cls: "<meta '%s.%s'>" % (cls.__owner__, cls.__name__)
 
 
 class Base(type):
@@ -92,6 +86,9 @@ class Proxy(object):
 
         '''  '''
 
+        # if this metaclass implements the ``Proxy.Register``
+        #  class, defer to _cls.register directly after
+        #  construction
         if issubclass(_cls, Proxy.Registry):
           return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
         return type.__new__(_cls, _name, _bases, _properties)

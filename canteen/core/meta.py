@@ -16,6 +16,9 @@
 '''
 
 
+grab = lambda x: x.__func__ if hasattr(x, '__func__') else x
+
+
 class MetaFactory(type):
 
   '''  '''
@@ -26,41 +29,21 @@ class MetaFactory(type):
 
     '''  '''
 
-    ## @TODO(sgammon): split this out into the class structure expressed in `Proxy`
-
     # get ready to construct, do so immediately for ``MetaFactory`` itself
     if name is "MetaFactory": return type.__new__(cls, name, bases, properties)
 
-    def metanew(_cls, _name, _bases, _properties):
+    if '__root__' in properties and properties['__root__']:
+      del properties['__root__']  # treat as a root - init directly and continue
+      return type.__new__(cls, name, bases, properties)
 
-      '''  '''
+    if 'initialize' in properties or any((hasattr(b, 'initialize') for b in bases)):
 
-      klass = type.__new__(_cls, _name, _bases, _properties)
-
-      # check to see if bases are only roots, if it is a root create a new metabucket
-      if not any(((False if x in (object, type) else True) for x in _bases)):
-        cls.__chain__[intern(klass.__owner__ if hasattr(klass, '__owner__') else klass.__name__)] = []
-        return klass
-
-      # resolve owner and construct
-      for base in _bases:
-        if base in (object, type):
-          continue
-
-        owner = intern(base.__owner__ if hasattr(base, '__owner__') else base.__name__)
-        if owner not in cls.__chain__: cls.__chain__[owner] = []
-
-        # there can only be one owner
-        cls.__chain__[owner].append(klass)
-
-      return klass
-
-    # drop down if we already have a metachain for this tree
-    if cls.__metachain__: properties['__new__'] = metanew
+      return (grab(properties['initialize'] if 'initialize' in properties else
+                getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
+                  cls, name, bases, properties))
 
     # construct, yo. then unconditionally apply it to the metachain and return
-    klass = type.__new__(cls, name, bases, properties)
-    return cls.__metachain__.append(klass) or klass
+    return cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1]
 
   def mro(cls):
 
@@ -88,7 +71,7 @@ class Base(type):
 
   '''  '''
 
-  __owner__, __metaclass__ = "Base", MetaFactory
+  __owner__, __metaclass__, __root__ = "Base", MetaFactory, True
 
 
 class Proxy(object):
@@ -100,28 +83,57 @@ class Proxy(object):
 
     '''  '''
 
-    def initialize(cls):
+    @staticmethod
+    def initialize(cls, name, bases, properties):
 
       '''  '''
 
-      pass
+      def metanew(_cls, _name, _bases, _properties):
+
+        '''  '''
+
+        if issubclass(_cls, Proxy.Registry):
+          return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
+        return type.__new__(_cls, _name, _bases, _properties)
+
+      # drop down if we already have a metachain for this tree
+      if cls.__metachain__: properties['__new__'] = metanew
+
+      # construct, yo. then unconditionally apply it to the metachain and return
+      return cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1]
 
 
   class Registry(Factory):
 
     '''  '''
 
-    def register(cls):
+    @staticmethod
+    def register(meta, target):
 
       '''  '''
 
-      pass
+      # check to see if bases are only roots, if it is a root create a new metabucket
+      if not any(((False if x in (object, type) else True) for x in target.__bases__)):
+        meta.__chain__[intern(target.__owner__ if hasattr(target, '__owner__') else target.__name__)] = []
+        return target
+
+      # resolve owner and construct
+      for base in target.__bases__:
+        if base in (object, type):
+          continue
+
+        owner = intern(base.__owner__ if hasattr(base, '__owner__') else base.__name__)
+        if owner not in meta.__chain__: meta.__chain__[owner] = []
+
+        meta.__chain__[owner].append(target)
+      return target
 
 
   class Component(Registry):
 
     '''  '''
 
+    @staticmethod
     def inject(cls, requestor):
 
       '''  '''

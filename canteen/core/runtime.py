@@ -16,7 +16,7 @@
 '''
 
 # core API
-from core.api import Proxy
+from .meta import Proxy
 
 
 class Runtime(object):

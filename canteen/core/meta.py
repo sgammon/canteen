@@ -16,10 +16,6 @@
 '''
 
 
-# stdlib
-import abc
-
-
 class MetaFactory(type):
 
   '''  '''

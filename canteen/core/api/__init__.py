@@ -17,3 +17,16 @@
               the root of the project.
 
 '''
+
+# core API
+from ..meta import Proxy
+
+
+class CoreAPI(object):
+
+  '''  '''
+
+  __owner__, __metaclass__ = "CoreAPI", Proxy.Component
+
+
+__all__ = ['CoreAPI']

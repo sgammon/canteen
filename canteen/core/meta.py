@@ -26,6 +26,8 @@ class MetaFactory(type):
 
     '''  '''
 
+    ## @TODO(sgammon): split this out into the class structure expressed in `Proxy`
+
     # get ready to construct, do so immediately for ``MetaFactory`` itself
     if name is "MetaFactory": return type.__new__(cls, name, bases, properties)
 

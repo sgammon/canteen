@@ -86,8 +86,7 @@ class Base(type):
 
   '''  '''
 
-  __owner__ = "Base"
-  __metaclass__ = MetaFactory
+  __owner__, __metaclass__ = "Base", MetaFactory
 
 
 class Proxy(object):

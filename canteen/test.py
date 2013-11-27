@@ -26,13 +26,6 @@ if __debug__:
   # registry magic
   from .core import meta
 
-  # just-in-case...
-  try:
-    import canteen_tests
-    from canteen_tests import *
-  except:
-    pass
-
 
   class AppTest(unittest.TestCase):
 
@@ -48,7 +41,7 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):
+  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):  # pragma: nocover
 
     '''  '''
 
@@ -109,7 +102,7 @@ if __debug__:
     return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
 
 
-def clirunner(arguments, root=os.getcwd()):
+def clirunner(arguments, root=os.getcwd()):  # pragma: nocover
 
   '''  '''
 
@@ -135,15 +128,3 @@ def clirunner(arguments, root=os.getcwd()):
     sys.exit(1)
   else:
     sys.exit(0)
-
-
-if __name__ == '__main__':
-  try:
-    import canteen_tests
-  except ImportError:
-    print "Failed to find canteen's tests. Is `canteen_tests` installed?"
-    sys.exit(1)
-  except Exception as e:
-    print e
-    sys.exit(1)
-  run(root=os.path.dirname(canteen_tests.__file__))

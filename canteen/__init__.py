@@ -15,10 +15,14 @@
 
 '''
 
+# canteen :)
 from .rpc import *
 from .core import *
 from .util import *
 from .test import *
 from .model import *
+from .__main__ import *
 from .dispatch import *
 from .exceptions import *
+
+walk()  # kick off deep-import

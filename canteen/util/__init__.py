@@ -16,13 +16,14 @@
 
 '''
 
+# stdlib
 import pkgutil
 import importlib
 
 
 def walk(root=None):
 
-	'''  '''
+  '''  '''
 
-	return map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
-		else name, pkgutil.walk_packages(root or '.'))
+  return map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
+    else name, pkgutil.walk_packages(root or '.'))

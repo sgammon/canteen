@@ -2,27 +2,19 @@
 
 '''
 
-  apptools util: decorators
+  canteen decorators
+  ~~~~~~~~~~~~~~~~~~
 
-  this package provides useful decorators that crosscut the regular
-  functional bounds of apptools' main packages. stuff in here is
-  generally used everywhere.
+  useful (and sometimes critical) decorators, for use inside and
+  outside :py:mod:`canteen`.
 
-  :author: Sam Gammon <sam@momentum.io>
-  :copyright: (c) momentum labs, 2013
-  :license: The inspection, use, distribution, modification or implementation
-            of this source code is governed by a private license - all rights
-            are reserved by the Authors (collectively, "momentum labs, ltd")
-            and held under relevant California and US Federal Copyright laws.
-            For full details, see ``LICENSE.md`` at the root of this project.
-            Continued inspection of this source code demands agreement with
-            the included license and explicitly means acceptance to these terms.
+  :author: Sam Gammon <sam@keen.io>
+  :copyright: (c) Keen IO, 2013
+  :license: This software makes use of the MIT Open Source License.
+            A copy of this library is included as ``LICENSE.md`` in
+            the root of the project.
 
 '''
-
-
-# stdlib
-import inspect
 
 
 ## ``classproperty`` - use like ``@property``, but at the class-level.

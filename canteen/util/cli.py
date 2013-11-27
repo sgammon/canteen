@@ -2,23 +2,25 @@
 
 '''
 
-  apptools util: CLI utilities
+  canteen CLI tools
+  ~~~~~~~~~~~~~~~~~
 
-  :author: Sam Gammon <sam@momentum.io>
-  :copyright: (c) momentum labs, 2013
-  :license: The inspection, use, distribution, modification or implementation
-            of this source code is governed by a private license - all rights
-            are reserved by the Authors (collectively, "momentum labs, ltd")
-            and held under relevant California and US Federal Copyright laws.
-            For full details, see ``LICENSE.md`` at the root of this project.
-            Continued inspection of this source code demands agreement with
-            the included license and explicitly means acceptance to these terms.
+  toolset for making command-line based tools. useful in general,
+  particularly useful in making app management utilities.
+
+  :author: Sam Gammon <sam@keen.io>
+  :copyright: (c) Keen IO, 2013
+  :license: This software makes use of the MIT Open Source License.
+            A copy of this library is included as ``LICENSE.md`` in
+            the root of the project.
 
 '''
 
 
 # stdlib
-import sys, os, argparse, textwrap, inspect
+import inspect
+import argparse
+import textwrap
 
 
 ## Globals

@@ -88,7 +88,6 @@ class Proxy(object):
 
       return cls.__hooks__.append(hook) or cls
 
-    @staticmethod
     def initialize(cls, name, bases, properties):
 
       '''  '''

@@ -125,6 +125,12 @@ class Proxy(object):
 
       return [child for child in cls.iter_children()]
 
+    def mro(cls):
+
+      '''  '''
+
+      return type.mro(cls)
+
     @staticmethod
     def register(meta, target):
 
@@ -152,4 +158,5 @@ class Proxy(object):
 
       '''  '''
 
-      pass
+      # @TODO(sgammon): injection protocol
+      pass  # pragma: nocover

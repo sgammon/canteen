@@ -43,3 +43,55 @@ class CoreMetaTest(test.FrameworkTest):
     assert hasattr(Proxy, 'Factory')
     assert hasattr(Proxy, 'Registry')
     assert hasattr(Proxy, 'Component')
+
+
+class MetaFactoryTest(test.FrameworkTest):
+
+  '''  '''
+
+  def test_new_concrete_metafactory(self):
+
+    '''  '''
+
+    with self.assertRaises(NotImplementedError):
+      meta.MetaFactory()
+
+    with self.assertRaises(NotImplementedError):
+      meta.MetaFactory('hi')
+
+    with self.assertRaises(NotImplementedError):
+      meta.MetaFactory('hi', (object,))
+
+  def test_new_meta_metafactory(self):
+
+    '''  '''
+
+    assert isinstance(meta.Proxy.Factory('TargetMeta', (object,), {}), type)
+
+  def test_meta_mro(self):
+
+    '''  '''
+
+    klass = meta.Proxy.Factory('TargetMeta', (object,), {'__metaclass__': meta.Proxy.Factory})
+    assert klass.__mro__ == (klass, object)
+
+
+class ClassFactoryTest(test.FrameworkTest):
+
+  '''  '''
+
+  pass
+
+
+class ClassRegistryTest(test.FrameworkTest):
+
+  '''  '''
+
+  pass
+
+
+class ClassComponentTest(test.FrameworkTest):
+
+  '''  '''
+
+  pass

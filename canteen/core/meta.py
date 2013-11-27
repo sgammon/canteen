@@ -28,9 +28,12 @@ class MetaFactory(type):
 
   __owner__, __metachain__, __root__ = "BaseMeta", [], True
 
-  def __new__(cls, name, bases, properties):
+  def __new__(cls, name=None, bases=None, properties=None):
 
     '''  '''
+
+    if not name or not bases or not isinstance(properties, dict):
+      raise NotImplementedError('`MetaFactory` is meta-abstract and cannot be constructed directly.')
 
     # get ready to construct, do so immediately for ``MetaFactory`` itself and other explicit roots
     if '__root__' in properties and properties['__root__']:
@@ -81,13 +84,6 @@ class Proxy(object):
 
     __hooks__ = []
 
-    @classmethod
-    def add_hook(cls, hook):
-
-      '''  '''
-
-      return cls.__hooks__.append(hook) or cls
-
     def initialize(cls, name, bases, properties):
 
       '''  '''
@@ -100,7 +96,7 @@ class Proxy(object):
         #  defer to _cls.register directly after construction
         if issubclass(_cls, Proxy.Registry):
           return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
-        return type.__new__(_cls, _name, _bases, _properties)
+        return type.__new__(_cls, _name, _bases, _properties)  # pragma: nocover
 
       # drop down if we already have a metachain for this tree
       if cls.__metachain__: properties['__new__'] = metanew
@@ -141,11 +137,9 @@ class Proxy(object):
 
       # resolve owner and construct
       for base in target.__bases__:
-        if base in (object, type):
-          continue
-
-        if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
-        meta.__chain__[owner(target)].append(target)
+        if not base in (object, type):
+          if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
+          meta.__chain__[owner(target)].append(target)
       return target
 
 

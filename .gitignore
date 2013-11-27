@@ -1,3 +1,7 @@
 *.pyc
 *.pyo
 .develop/*
+bin/*
+lib/*
+include/*
+.Python

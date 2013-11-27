@@ -121,6 +121,7 @@ class Proxy(object):
       '''  '''
 
       for child in cls.__chain__[owner(cls)]:
+        if child is cls: continue
         yield child
 
     def children(cls):

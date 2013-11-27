@@ -47,23 +47,54 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):
+  def run(output=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):
 
     '''  '''
 
     # fill testsuite with found testcases
-    suite = unittest.TestSuite()
+    master_suite, loader = [], unittest.TestLoader()
+
     for bucket in scope:
+      suite = unittest.TestSuite()
+
       for child in bucket.iter_children():
-        suite.loadTestsFromTestCase(child)
+        suite.addTests(loader.loadTestsFromTestCase(child))
+
+      master_suite.append(suite)
+    master_suite = unittest.TestSuite(master_suite)
 
     # allow for XML format
-    if format is 'xml':
+    if format == 'xml':
+      if output is None:
+        output = ".develop/tests"
       try:
         import xmlrunner
       except ImportError:
         raise RuntimeError('Cannot generate XML output without `xmlrunner`.')
         sys.exit(1)
       else:
-        return xmlrunner.XMLTestRunner(output=output).run(suite)
-    return unittest.TestRunner(output=output, verbosity=verbosity, **kwargs).run(suite)
+        return xmlrunner.XMLTestRunner(output=output).run(master_suite)
+    return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
+
+
+def clirunner(arguments):
+
+  '''  '''
+
+  output, format = None, 'text'
+
+  if arguments:
+    if len(arguments) > 2:
+      print "Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT."
+      sys.exit(1)
+    if len(arguments) == 2:
+      format, output = tuple(arguments)
+    else:
+      format = arguments[0]
+
+  try:
+    run(output=output or (sys.stdout if format is 'text' else None), format=format)
+  except:
+    sys.exit(1)
+  else:
+    sys.exit(0)

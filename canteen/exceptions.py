@@ -2,11 +2,10 @@
 
 '''
 
-  canteen core tests
+  canteen exceptions
   ~~~~~~~~~~~~~~~~~~
 
-  tests canteen's core, which contains abstract/meta code for constructing
-  and gluing together the rest of canteen.
+  contains exceptions exported by :py:mod:`canteen`.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -16,5 +15,7 @@
 
 '''
 
-# core testsuites
-from . import meta
+
+class Error(Exception):
+
+	''' Top-level error for all of :py:mod:`canteen`. '''

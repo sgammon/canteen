@@ -2,10 +2,10 @@
 
 '''
 
-  canteen
-  ~~~~~~~
+  canteen tests
+  ~~~~~~~~~~~~~
 
-  a minimal web framework for the modern web
+  utilities for providing unittest functionality.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -15,7 +15,21 @@
 
 '''
 
-from .rpc import *
-from .util import *
-from .core import *
-from .model import *
+# stdlib
+import sys
+import unittest
+
+
+class BaseTest(unittest.TestCase):
+
+  '''  '''
+
+
+class FrameworkTest(BaseTest):
+
+  '''  '''
+
+
+class AppTest(BaseTest):
+
+  '''  '''

@@ -25,6 +25,13 @@ if __debug__:
   # registry magic
   from .core import meta
 
+  # just-in-case...
+  try:
+    import canteen_tests
+    from canteen_tests import *
+  except:
+    pass
+
 
   class AppTest(unittest.TestCase):
 

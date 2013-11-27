@@ -17,5 +17,33 @@
 '''
 
 
-# test tools
-from canteen import test
+if __debug__:
+
+  # test tools
+  from canteen import test
+
+
+  class SanityTest(test.FrameworkTest):
+
+    '''  '''
+
+    def test_math_sanity(self):
+
+      '''  '''
+
+      self.assertEqual(1 + 1, 2)
+      self.assertEqual(2 - 1, 1)
+
+      assert (10 / 5) == 2
+      assert (10 % 6) == 4
+
+    def test_assert_sanity(self):
+
+      '''  '''
+
+      try:
+        assert 1 == 2
+      except AssertionError:
+        pass
+      else:
+        raise RuntimeError('Assertions are disabled. Something is wrong, as `__debug__` is truthy.')

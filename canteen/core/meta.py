@@ -16,7 +16,10 @@
 '''
 
 
+## Globals
+_owner_map = {}
 grab = lambda x: x.__func__ if hasattr(x, '__func__') else x
+owner = lambda x: intern(x.__owner__ if hasattr(x, '__owner__') else x.__name__)
 
 
 class MetaFactory(type):
@@ -34,9 +37,8 @@ class MetaFactory(type):
       del properties['__root__']  # treat as a root - init directly and continue
       return type.__new__(cls, name, bases, properties)
 
-    # construct, yo. then unconditionally apply it to the metachain and return
-    #  also, defer to the class' ``initialize``, or any of its bases if they
-    #  have ``initialize`, for constructing the actual class.
+    # construct, yo. then unconditionally apply it to the metachain and return also, defer to the class'
+    #  ``initialize``, or any of its bases if they have ``initialize`, for constructing the actual class.
     return ((grab(properties['initialize'] if 'initialize' in properties else
               getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
                 cls, name, bases, properties))) if (
@@ -86,9 +88,8 @@ class Proxy(object):
 
         '''  '''
 
-        # if this metaclass implements the ``Proxy.Register``
-        #  class, defer to _cls.register directly after
-        #  construction
+        # if this metaclass implements the ``Proxy.Register`` class,
+        #  defer to _cls.register directly after construction
         if issubclass(_cls, Proxy.Registry):
           return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
         return type.__new__(_cls, _name, _bases, _properties)
@@ -111,7 +112,7 @@ class Proxy(object):
 
       # check to see if bases are only roots, if it is a root create a new metabucket
       if not any(((False if x in (object, type) else True) for x in target.__bases__)):
-        meta.__chain__[intern(target.__owner__ if hasattr(target, '__owner__') else target.__name__)] = []
+        meta.__chain__[owner(target)] = []
         return target
 
       # resolve owner and construct
@@ -119,9 +120,7 @@ class Proxy(object):
         if base in (object, type):
           continue
 
-        owner = intern(base.__owner__ if hasattr(base, '__owner__') else base.__name__)
         if owner not in meta.__chain__: meta.__chain__[owner] = []
-
         meta.__chain__[owner].append(target)
       return target
 

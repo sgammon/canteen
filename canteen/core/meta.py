@@ -32,7 +32,7 @@ class MetaFactory(type):
 
     '''  '''
 
-    if not name or not bases or not isinstance(properties, dict):
+    if not name or not bases or not isinstance(properties, dict):  # pragma: nocover
       raise NotImplementedError('`MetaFactory` is meta-abstract and cannot be constructed directly.')
 
     # get ready to construct, do so immediately for ``MetaFactory`` itself and other explicit roots

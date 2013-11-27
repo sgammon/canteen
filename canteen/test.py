@@ -48,7 +48,7 @@ if __debug__:
     # fill testsuite with found testcases
     suite = unittest.TestSuite()
     for bucket in scope:
-      for child in meta.Proxy.Registry.children(bucket):
+      for child in bucket.iter_children():
         suite.loadTestsFromTestCase(child)
 
     # allow for XML format

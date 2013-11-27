@@ -26,7 +26,7 @@ class MetaFactory(type):
 
   '''  '''
 
-  __owner__, __metachain__, __chain__, __root__ = "BaseMeta", [], {}, True
+  __owner__, __metachain__, __root__ = "BaseMeta", [], True
 
   def __new__(cls, name, bases, properties):
 
@@ -79,6 +79,15 @@ class Proxy(object):
 
     '''  '''
 
+    __hooks__ = []
+
+    @classmethod
+    def add_hook(cls, hook):
+
+      '''  '''
+
+      return cls.__hooks__.append(hook) or cls
+
     @staticmethod
     def initialize(cls, name, bases, properties):
 
@@ -105,6 +114,21 @@ class Proxy(object):
 
     '''  '''
 
+    __chain__ = {}
+
+    def iter_children(cls):
+
+      '''  '''
+
+      for child in cls.__chain__[owner(cls)]:
+        yield child
+
+    def children(cls):
+
+      '''  '''
+
+      return [child for child in cls.iter_children()]
+
     @staticmethod
     def register(meta, target):
 
@@ -120,8 +144,8 @@ class Proxy(object):
         if base in (object, type):
           continue
 
-        if owner not in meta.__chain__: meta.__chain__[owner] = []
-        meta.__chain__[owner].append(target)
+        if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
+        meta.__chain__[owner(target)].append(target)
       return target
 
 

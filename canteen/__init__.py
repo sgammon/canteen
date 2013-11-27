@@ -15,7 +15,6 @@
 
 '''
 
-from .rpc import *
-from .util import *
-from .core import *
-from .model import *
+# import ALL THE THINGS
+import os, sys, pkgutil, importlib
+map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package else name, pkgutil.walk_packages('.'))

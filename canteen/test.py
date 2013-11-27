@@ -19,6 +19,7 @@ if __debug__:
 
 
   # stdlib
+  import os
   import sys
   import unittest
 
@@ -47,7 +48,7 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):
+  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):
 
     '''  '''
 
@@ -61,7 +62,38 @@ if __debug__:
         suite.addTests(loader.loadTestsFromTestCase(child))
 
       master_suite.append(suite)
-    master_suite = unittest.TestSuite(master_suite)
+
+    if suites:
+      for _suite in suites:
+        master_suite.append(_suite)
+
+    def filter_suite(suite):
+
+      '''  '''
+
+      if not suite.countTestCases():
+        return False
+      return True
+
+    _seen_tests = set()
+    def merge_suite(left, right):
+
+      '''  '''
+
+      _master = []
+      for case in [test for test in left] + [test for test in right]:
+        if isinstance(case, unittest.TestSuite):
+          for _case in case:
+            _master.append(_case)
+            _seen_tests.add(_case)
+          continue
+        if case not in _seen_tests:
+          _master.append(case)
+          _seen_tests.add(case)
+        continue
+      return set(unittest.TestSuite(_master))
+
+    master_suite = unittest.TestSuite(reduce(merge_suite, filter(filter_suite, master_suite)))
 
     # allow for XML format
     if format == 'xml':
@@ -77,7 +109,7 @@ if __debug__:
     return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
 
 
-def clirunner(arguments):
+def clirunner(arguments, root=os.getcwd()):
 
   '''  '''
 
@@ -92,8 +124,13 @@ def clirunner(arguments):
     else:
       format = arguments[0]
 
+  discovered = None
+  if root:
+    loader = unittest.TestLoader()
+    discovered = loader.discover(root)
+
   try:
-    run(output=output or (sys.stdout if format is 'text' else None), format=format)
+    run(output=output or (sys.stdout if format is 'text' else None), suites=discovered, format=format)
   except:
     sys.exit(1)
   else:
@@ -101,4 +138,12 @@ def clirunner(arguments):
 
 
 if __name__ == '__main__':
-  run()
+  try:
+    import canteen_tests
+  except ImportError:
+    print "Failed to find canteen's tests. Is `canteen_tests` installed?"
+    sys.exit(1)
+  except Exception as e:
+    print e
+    sys.exit(1)
+  run(root=os.path.dirname(canteen_tests.__file__))

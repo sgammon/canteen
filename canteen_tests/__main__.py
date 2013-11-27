@@ -19,6 +19,7 @@
 if __debug__:
 
   # stdlib & canteen
+  import os
   import sys
   import canteen
   import canteen.test
@@ -31,4 +32,4 @@ if __debug__:
     sys.exit(1)
 
   # run 'em yo
-  canteen.test.clirunner(sys.argv[1:])
+  canteen.test.clirunner(sys.argv[1:], root=os.path.dirname(__file__))

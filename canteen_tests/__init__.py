@@ -24,14 +24,14 @@ if __debug__:
   from canteen import test
 
   # build the testsuite
-  from . import test_rpc
-  from . import test_core
-  from . import test_util
-  from . import test_test
-  from . import test_model
-  from . import test__init__
-  from . import test__main__
-  from . import test_dispatch
+  from .test_rpc import *
+  from .test_core import *
+  from .test_util import *
+  from .test_test import *
+  from .test_model import *
+  from .test__init__ import *
+  from .test__main__ import *
+  from .test_dispatch import *
 
 
   class SanityTest(test.FrameworkTest):

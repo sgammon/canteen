@@ -23,16 +23,6 @@ if __debug__:
   from canteen import util
   from canteen import test
 
-  # build the testsuite
-  from .test_rpc import *
-  from .test_core import *
-  from .test_util import *
-  from .test_test import *
-  from .test_model import *
-  from .test__init__ import *
-  from .test__main__ import *
-  from .test_dispatch import *
-
 
   class SanityTest(test.FrameworkTest):
 

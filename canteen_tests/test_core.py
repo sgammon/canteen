@@ -2,11 +2,11 @@
 
 '''
 
-  canteen core meta tests
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  canteen core tests
+  ~~~~~~~~~~~~~~~~~~
 
-  tests the metaclass tools in canteen's core, which are responsible
-  for metatools that generate factories/registries/components, etc.
+  tests canteen's core, which contains abstract/meta code for constructing
+  and gluing together the rest of canteen.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -25,7 +25,7 @@ from canteen.core.meta import Proxy
 from canteen.core.meta import MetaFactory
 
 
-class CoreMeta(test.FrameworkTest):
+class CoreMetaTest(test.FrameworkTest):
 
   '''  '''
 

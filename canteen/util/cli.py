@@ -33,7 +33,9 @@ class Tool(object):
   ''' Meta parent class that applies an embedded metaclass to enforce/
       transform encapsulated objects into :py:mod:`argparse` directives. '''
 
+  safe = False  # parse only known arguments
   parser = None  # local parser for this tool
+  autorun = False  # should we auto-run parse?
   commands = None  # subcommands to this tool
   arguments = None  # arguments for this tool
 
@@ -142,7 +144,7 @@ class Tool(object):
       self.tree[parent].append(self)
       return parser
 
-  def __init__(self, parser=None, autorun=False):
+  def __init__(self, parser=None, autorun=False, safe=False):
 
     ''' This initializer method is called at the tip of the toolchain
         tree (composed of :py:class:`Tool` classes) to start the process
@@ -154,6 +156,8 @@ class Tool(object):
         :returns: ``None``, as this is an initializer method. '''
 
     global _root_tool
+
+    self.autorun, self.safe = autorun, safe
 
     # lookup local config
     config = self.__metaclass__.parsers[self.__class__.__name__]
@@ -176,9 +180,13 @@ class Tool(object):
         subparser = callable(_root_tool, impl, commands)  # initialize each subtool
         setattr(self, (impl.name if hasattr(impl, 'name') else impl.__name__).lower(), impl(subparser))
 
-    if autorun: self(_root_tool.parse_args())
+    if autorun:
+      if safe:
+        self(*_root_tool.parse_known_args())
+      else:
+        self(_root_tool.parse_args())
 
-  def __call__(self, arguments):
+  def __call__(self, arguments, unknown=None):
 
     ''' Begins dispatching execution from a set of parsed arguments,
         as the product of a :py:meth:`parser.parse_args()` call.
@@ -193,10 +201,16 @@ class Tool(object):
       # is it a subtool?
       if hasattr(arguments, 'func'):
         ## dispatch and return
-        return_value = arguments.func(arguments)
+        if self.safe:
+          return_value = arguments.func(arguments, unknown)
+        else:
+          return_value = arguments.func(arguments)
       else:
         # no? ok
-        return_value = self.execute(arguments)
+        if self.safe:
+          return_value = self.execute(arguments, unknown)
+        else:
+          return_value = arguments.func(arguments)
 
     except Exception as exc:
       raise

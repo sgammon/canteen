@@ -34,7 +34,7 @@ try:
 except ImportError as e:  # pragma: no cover
   _APPCONFIG = False
 else:
-  _APPCONFIG = True
+  _APPCONFIG = True  # pragma: nocover
 
 
 # Globals

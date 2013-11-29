@@ -14,7 +14,7 @@
 '''
 
 # module constants
-__version__ = (0, 6)  # module version-string
+__version__ = (0, 7)  # module version-string
 __doc__ = "Contains modules that adapt apptools models to various storage backends."
 
 

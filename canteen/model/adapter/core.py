@@ -29,7 +29,6 @@ from abstract import IndexedModelAdapter
 
 
 ## AdaptedKey
-# Provides bridging between `Key` and the Adapter API.
 class AdaptedKey(KeyMixin):
 
   ''' Provides bridged methods between `model.Key` and the Adapter API. '''
@@ -141,7 +140,6 @@ class AdaptedModel(ModelMixin):
 
 
 ## DictMixin
-# Provides native `to_dict`-type methods to `model.Model` and `model.Key`.
 class DictMixin(KeyMixin, ModelMixin):
 
   ''' Provides `to_dict`-type methods for first-class Model API classes. '''
@@ -211,7 +209,6 @@ class DictMixin(KeyMixin, ModelMixin):
 
 
 ## JSONMixin
-# Provides JSON integration to `model.Model` and `model.Key`.
 class JSONMixin(KeyMixin, ModelMixin):
 
   ''' Provides JSON serialization/deserialization support to `model.Model` and `model.Key`. '''
@@ -239,7 +236,6 @@ except ImportError as e:  # pragma: no cover
 else:
 
   ## MsgpackMixin
-  # Provides Msgpack integration to `model.Model` and `model.Key`.
   class MsgpackMixin(KeyMixin, ModelMixin):
 
     ''' Provides Msgpack serialization/deserialization support to `model.Model` and `model.Key`. '''

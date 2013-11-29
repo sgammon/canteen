@@ -28,7 +28,6 @@ _datastore = {}
 
 
 ## InMemoryAdapter
-# Adapt apptools models to Python RAM.
 class InMemoryAdapter(IndexedModelAdapter):
 
   ''' Adapt model classes to RAM. '''

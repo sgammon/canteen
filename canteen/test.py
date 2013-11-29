@@ -124,7 +124,8 @@ def clirunner(arguments, root=os.getcwd()):  # pragma: nocover
 
   try:
     run(output=output or (sys.stdout if format is 'text' else None), suites=discovered, format=format)
-  except:
+  except Exception as e:
+    print e
     sys.exit(1)
   else:
     sys.exit(0)

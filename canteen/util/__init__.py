@@ -20,10 +20,22 @@
 import pkgutil
 import importlib
 
+# local subpackages
+from . import cli
+from . import struct
+from . import decorators
+
+
+def say(*args):
+
+  '''  '''
+
+  print ' '.join(map(lambda x: str(x), args))
+
 
 def walk(root=None):
 
   '''  '''
 
-  return map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
-    else name, pkgutil.walk_packages(root or '.'))
+  return map(lambda x: say('preloaded:', x), map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
+          else name, pkgutil.walk_packages(root or '.')))

@@ -114,3 +114,34 @@ class cached(object):
     '''  '''
 
     return self.wrap(instance)
+
+
+## `` ``
+class bind(object):
+
+  '''  '''
+
+  __alias__ = None
+  __target__ = None
+
+  def __init__(self, alias):
+
+    '''  '''
+
+    assert isinstance(alias, basestring)
+    self.__alias__ = alias
+
+  def __call__(self, target):
+
+    '''  '''
+
+    from ..core import meta  # _no deps in util. ever. :)_
+
+    if not issubclass(target.__class__, meta.Proxy.Registry):
+      raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
+                      ' (anything meta-deriving from `Registry` or `Component`'
+                      ' can be bound to injection names.')
+
+    # bind locally, and internally
+    target.__target__, self.__target__ = self.__alias__, target
+    return target

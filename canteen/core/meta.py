@@ -15,6 +15,9 @@
 
 '''
 
+# stdlib
+import weakref
+
 
 ## Globals
 _owner_map = {}
@@ -116,13 +119,16 @@ class Proxy(object):
       '''  '''
 
       for child in cls.__chain__[owner(cls)]:
-        if child is cls: continue
-        yield child
+        obj = child()
+        if not obj: continue  # watch out for dead refs
+        if obj is cls: continue  # skip the parent class
+        yield obj
 
     def children(cls):
 
       '''  '''
 
+      # remember to filter-out weakrefs that have died
       return [child for child in cls.iter_children()]
 
     def mro(cls):
@@ -131,27 +137,72 @@ class Proxy(object):
 
       return type.mro(cls)
 
+    @classmethod
+    def trim(cls, owner, target):
+
+      '''  '''
+
+      # never trim `Registry`
+      if cls is Proxy.Registry: return
+
+      _owner_map, _new_map = cls.__chain__.get(owner), []
+      if _owner_map:
+        for child in _owner_map:
+          obj = child()
+          if obj is child or obj is None:
+            continue
+          _new_map.append(obj)
+
+        cls.__chain__ = _new_map
+        return cls.__chain__
+      raise RuntimeError('Attempted to trim target `%s` '
+                         'from non-existent parent `%s`.' % (target, parent))
+
     @staticmethod
     def register(meta, target):
 
       '''  '''
 
+      _owner = owner(target)
+
       # check to see if bases are only roots, if it is a root create a new metabucket
       if not any(((False if x in (object, type) else True) for x in target.__bases__)):
-        meta.__chain__[owner(target)] = []
+        meta.__chain__[_owner] = []
         return target
 
       # resolve owner and construct
       for base in target.__bases__:
         if not base in (object, type):
-          if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
-          meta.__chain__[owner(target)].append(target)
+          if _owner not in meta.__chain__: meta.__chain__[_owner] = []
+          meta.__chain__[_owner].append(weakref.ref(target, lambda ref: Proxy.Registry.trim(_owner, ref)))
       return target
 
 
   class Component(Registry):
 
     '''  '''
+
+    __target__ = None
+
+    #@staticmethod
+    #def register(meta, target):
+    #
+    #  '''  '''
+    #
+    #  # register class via `Registry`
+    #  Proxy.Registry.register(meta, target)
+    #
+    #  # check to see if bases are only roots, if it is a root create a new metabucket
+    #  if not any(((False if x in (object, type) else True) for x in target.__bases__)):
+    #    meta.__chain__[owner(target)] = []
+    #    return target
+    #
+    #  # resolve owner and construct
+    #  for base in target.__bases__:
+    #    if not base in (object, type):
+    #      if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
+    #      meta.__chain__[owner(target)].append(target)
+    #  return target
 
     @staticmethod
     def inject(cls, requestor):

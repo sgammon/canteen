@@ -24,13 +24,6 @@ if __debug__:
   import canteen
   import canteen.test
 
-  if __name__ == '__main__':
-    # canteen's tests
-    try:
-      from canteen_tests import *
-    except ImportError:
-      print "Couldn't load tests. Make sure `canteen_tests` is installed."
-      sys.exit(1)
-
+  if __name__ == '__main__' or __name__ == 'canteen_tests.__main__':
     # run 'em yo
     canteen.test.clirunner(sys.argv[1:], root=os.path.dirname(__file__))

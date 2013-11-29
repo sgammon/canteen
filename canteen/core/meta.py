@@ -119,7 +119,7 @@ class Proxy(object):
       '''  '''
 
       for child in cls.__chain__[owner(cls)]:
-        obj = child()
+        obj = child()  # dereference weakref
         if not obj: continue  # watch out for dead refs
         if obj is cls: continue  # skip the parent class
         yield obj

@@ -73,7 +73,7 @@ class Tool(object):
           def _add_argument(_parser, _flag, _config):
             if isinstance(_flag, tuple):
               return _parser.add_argument(*_flag, **_config)
-            return _parser.add_argument(_flag, **_config)
+            return _parser.add_argument(_flag, **_config)  # pragma: nocover
 
           for bundle in value:
             if len(bundle) == 2:
@@ -190,9 +190,13 @@ class Tool(object):
         to ``sys.exit()``. '''
 
     try:
+      # is it a subtool?
       if hasattr(arguments, 'func'):
         ## dispatch and return
         return_value = arguments.func(arguments)
+      else:
+        # no? ok
+        return_value = self.execute(arguments)
 
     except Exception as exc:
       raise

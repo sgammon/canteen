@@ -21,8 +21,15 @@ from .core import *
 from .util import *
 from .test import *
 from .model import *
+from .runtime import *
 from .__main__ import *
 from .dispatch import *
 from .exceptions import *
+
+# specific exports
+from .core.meta import Proxy
+from .core.runtime import Library
+from .core.runtime import Runtime
+from .core.platform import Platform
 
 walk()  # kick off deep-import

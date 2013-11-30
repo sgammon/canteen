@@ -26,4 +26,5 @@ if __debug__:
 
   if __name__ == '__main__':
     # run 'em yo
+    os.environ['TEST_REIMPORT'] = '1'
     canteen.test.clirunner(sys.argv[1:], root=os.path.dirname(__file__))

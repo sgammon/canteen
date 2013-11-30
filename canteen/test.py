@@ -123,7 +123,12 @@ def clirunner(arguments, root=os.getcwd()):  # pragma: nocover
     discovered = loader.discover(root)
 
   try:
-    run(output=output or (sys.stdout if format is 'text' else None), suites=discovered, format=format)
+    run(**{
+      'output': output or (sys.stdout if format is 'text' else None),
+      'suites': discovered,
+      'format': format,
+      'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
+    })
   except Exception as e:
     print e
     sys.exit(1)

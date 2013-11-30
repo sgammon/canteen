@@ -19,6 +19,9 @@
 
 if __debug__:
 
+  # stdlib
+  import os
+
   # test tools
   from canteen import util
   from canteen import test

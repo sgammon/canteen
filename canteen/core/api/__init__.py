@@ -9,7 +9,6 @@
   apps. includes stuff like ``output``, ``transport``, ``caching``,
   ``assets`` and other important junk.
 
-
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
   :license: This software makes use of the MIT Open Source License.
@@ -29,4 +28,4 @@ class CoreAPI(object):
   __owner__, __metaclass__ = "CoreAPI", Proxy.Component
 
 
-__all__ = ['CoreAPI']
+__all__ = ['CoreAPI', 'assets', 'cache', 'output']

@@ -18,7 +18,9 @@
 import abc
 import zlib
 import time
+import json
 import base64
+import logging
 import datetime
 
 # canteen utils
@@ -78,9 +80,10 @@ class ModelAdapter(object):
             with a proper ``name``/``path``/``condition``. '''
 
     psplit = cls._config_path.split('.')
-    return debug.AppToolsLogger(**{
-      'path': '.'.join(psplit[0:-1]),
-      'name': psplit[-1]})._setcondition(cls.config.get('debug', True))
+    #return debug.AppToolsLogger(**{
+    #  'path': '.'.join(psplit[0:-1]),
+    #  'name': psplit[-1]})._setcondition(cls.config.get('debug', True))
+    return logging.Logger('.'.join(psplit))
 
   @decorators.classproperty
   def serializer(cls):

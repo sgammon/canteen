@@ -26,11 +26,11 @@ if __debug__:
 
   class SanityTest(test.FrameworkTest):
 
-    '''  '''
+    ''' Run some basic sanity tests. '''
 
     def test_math_sanity(self):
 
-      '''  '''
+      ''' Make sure that math still works (lol). '''
 
       self.assertEqual(1 + 1, 2)
       self.assertEqual(2 - 1, 1)
@@ -40,7 +40,7 @@ if __debug__:
 
     def test_assert_sanity(self):
 
-      '''  '''
+      ''' Make sure ``assert`` statements are working as expected. '''
 
       try:
         assert 1 == 2

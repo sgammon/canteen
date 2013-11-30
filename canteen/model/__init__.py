@@ -32,20 +32,9 @@ from .adapter import KeyMixin, ModelMixin
 # datastructures
 from canteen.util.struct import _EMPTY
 
-# === appengine NDB support === #
-try:
-  from google.appengine.ext import ndb as nndb; _NDB = True
-
-# if it's not available, redirect key/model parents to native <object>
-except ImportError as e:
-  _NDB, _key_parent, _model_parent = False, lambda: object, lambda: object
-
-# if it *is* available, we need to inherit from NDB's key and model classes
-else:  # pragma: no cover
-  _key_parent, _model_parent = lambda: nndb.Key, lambda: nndb.MetaModel
-
 
 # Globals / Sentinels
+_NDB = False  # `canteen.model` no longer supports NDB
 _MULTITENANCY = False  # toggle multitenant key namespaces
 _DEFAULT_KEY_SCHEMA = tuple(['id', 'kind', 'parent'])  # default key schema
 _MULTITENANT_KEY_SCHEMA = tuple(['id', 'kind', 'parent', 'namespace', 'app'])
@@ -54,7 +43,6 @@ _MULTITENANT_KEY_SCHEMA = tuple(['id', 'kind', 'parent', 'namespace', 'app'])
 ## == Metaclasses == ##
 
 ## MetaFactory
-# Abstract metaclass parent that provides common construction methods.
 class MetaFactory(type):
 
   ''' Abstract parent for Model API primitive metaclasses,
@@ -189,8 +177,7 @@ class MetaFactory(type):
 ## == Abstract Classes == ##
 
 ## AbstractKey
-# Metaclass for a datamodel key class.
-class AbstractKey(_key_parent()):
+class AbstractKey(object):
 
   ''' Abstract Key class. '''
 
@@ -334,8 +321,7 @@ class AbstractKey(_key_parent()):
 
 
 ## AbstractModel
-# Metaclass for a datamodel class.
-class AbstractModel(_model_parent()):
+class AbstractModel(object):
 
   ''' Abstract Model class. '''
 
@@ -651,7 +637,6 @@ class AbstractModel(_model_parent()):
 ## == Concrete Classes == ##
 
 ## Key
-# Model datastore key concrete class.
 class Key(AbstractKey):
 
   ''' Concrete Key class. '''
@@ -712,7 +697,6 @@ class Key(AbstractKey):
 
 
 ## Property
-# Data-descriptor property class.
 class Property(object):
 
   ''' Concrete Property class. '''
@@ -824,7 +808,6 @@ class Property(object):
 
 
 ## Model
-# Concrete class for a data model.
 class Model(AbstractModel):
 
   ''' Concrete Model class. '''

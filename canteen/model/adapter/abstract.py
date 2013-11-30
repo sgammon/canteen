@@ -83,7 +83,7 @@ class ModelAdapter(object):
     #return debug.AppToolsLogger(**{
     #  'path': '.'.join(psplit[0:-1]),
     #  'name': psplit[-1]})._setcondition(cls.config.get('debug', True))
-    return logging.Logger('.'.join(psplit))
+    return logging
 
   @decorators.classproperty
   def serializer(cls):

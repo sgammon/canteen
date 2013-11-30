@@ -41,7 +41,7 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=5, **kwargs):  # pragma: nocover
+  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
 
     '''  '''
 

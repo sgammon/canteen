@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core runtime
-  ~~~~~~~~~~~~~~~~~~~~~
+  canteen runtime core
+  ~~~~~~~~~~~~~~~~~~~~
 
   platform internals and logic to discover/load/inject.
 

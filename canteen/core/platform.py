@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core platform
-  ~~~~~~~~~~~~~~~~~~~~~~
+  canteen platform core
+  ~~~~~~~~~~~~~~~~~~~~~
 
   platform internals and logic to discover/load/inject.
 

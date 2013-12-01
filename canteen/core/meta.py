@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core meta
-  ~~~~~~~~~~~~~~~~~~
+  canteen meta core
+  ~~~~~~~~~~~~~~~~~
 
   metaclass tools and APIs.
 
@@ -99,7 +99,7 @@ class Proxy(object):
         #  defer to _cls.register directly after construction
         if issubclass(_cls, Proxy.Registry):
           return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
-        return type.__new__(_cls, _name, _bases, _properties)  # pragma: nocover
+        return type.__new__(_cls, _name, _bases, _properties)
 
       # drop down if we already have a metachain for this tree
       if cls.__metachain__: properties['__new__'] = metanew
@@ -119,7 +119,8 @@ class Proxy(object):
       '''  '''
 
       for child in cls.__chain__[owner(cls)]:
-        obj = child()  # dereference weakref
+        #obj = child()  # dereference weakref
+        obj = child
         if not obj: continue  # watch out for dead refs
         if obj is cls: continue  # skip the parent class
         yield obj
@@ -156,7 +157,7 @@ class Proxy(object):
         cls.__chain__ = _new_map
         return cls.__chain__
       raise RuntimeError('Attempted to trim target `%s` '
-                         'from non-existent parent `%s`.' % (target, parent))
+                         'from non-existent parent `%s`.' % (target, owner))
 
     @staticmethod
     def register(meta, target):
@@ -174,7 +175,8 @@ class Proxy(object):
       for base in target.__bases__:
         if not base in (object, type):
           if _owner not in meta.__chain__: meta.__chain__[_owner] = []
-          meta.__chain__[_owner].append(weakref.ref(target, lambda ref: Proxy.Registry.trim(_owner, ref)))
+          #meta.__chain__[_owner].append(weakref.ref(target, lambda ref: Proxy.Registry.trim(_owner, ref)))
+          meta.__chain__[_owner].append(target)
       return target
 
 
@@ -183,31 +185,38 @@ class Proxy(object):
     '''  '''
 
     __target__ = None
-
-    #@staticmethod
-    #def register(meta, target):
-    #
-    #  '''  '''
-    #
-    #  # register class via `Registry`
-    #  Proxy.Registry.register(meta, target)
-    #
-    #  # check to see if bases are only roots, if it is a root create a new metabucket
-    #  if not any(((False if x in (object, type) else True) for x in target.__bases__)):
-    #    meta.__chain__[owner(target)] = []
-    #    return target
-    #
-    #  # resolve owner and construct
-    #  for base in target.__bases__:
-    #    if not base in (object, type):
-    #      if owner(target) not in meta.__chain__: meta.__chain__[owner(target)] = []
-    #      meta.__chain__[owner(target)].append(target)
-    #  return target
+    __injector_cache__ = {}
 
     @staticmethod
-    def inject(cls, requestor):
+    def collapse(cls, spec=None):
 
       '''  '''
+
+      # try the injector cache
+      if (cls, spec) not in Proxy.Component.__injector_cache__:
+
+        # otherwise, collapse and build one
+        property_bucket = {}
+        for metabucket in Proxy.Registry.__chain__.iterkeys():
+          for concrete in filter(lambda x: issubclass(x, Proxy.Component), Proxy.Component.__chain__[metabucket]):
+            property_bucket.update(concrete.inject(concrete, cls.__target__, cls.__delegate__) or {})
+
+        # if it's empty, don't cache
+        if not property_bucket:
+          return {}
+
+        # set in cache, unless empty
+        Proxy.Component.__injector_cache__[(cls, spec)] = property_bucket
+
+      # return from cache
+      return Proxy.Component.__injector_cache__[(cls, spec)]
+
+    @staticmethod
+    def inject(cls, requestor, delegate):
+
+      '''  '''
+
+      import pdb; pdb.set_trace()
 
       # @TODO(sgammon): injection protocol
       pass  # pragma: nocover

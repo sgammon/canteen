@@ -18,7 +18,7 @@
 
 # core API & util
 from . import CoreAPI
-from ..util import decorators
+from canteen.util import decorators
 
 
 @decorators.bind('cache')

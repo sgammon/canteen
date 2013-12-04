@@ -151,8 +151,8 @@ class ClassRegistryTest(test.FrameworkTest):
 
     # test chain internals
     assert "RegistryTestRegistry" in RegistryTestRegistry.__metaclass__.__chain__
-    assert RegisteredOne in [i() for i in RegistryTestRegistry.__metaclass__.__chain__["RegistryTestRegistry"]]
-    assert RegisteredTwo in [i() for i in RegistryTestRegistry.__metaclass__.__chain__["RegistryTestRegistry"]]
+    assert RegisteredOne in [i for i in RegistryTestRegistry.__metaclass__.__chain__["RegistryTestRegistry"]]
+    assert RegisteredTwo in [i for i in RegistryTestRegistry.__metaclass__.__chain__["RegistryTestRegistry"]]
 
   def test_iterate_children(self):
 

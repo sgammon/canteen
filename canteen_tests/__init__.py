@@ -26,6 +26,17 @@ if __debug__:
   from canteen import util
   from canteen import test
 
+  # import testsuite
+  from . import test__init__
+  from . import test__main__
+  from . import test_core
+  from . import test_dispatch
+  from . import test_rpc
+  from . import test_test
+  from . import test_util
+  from . import test_model
+  from . import test_adapters
+
 
   class SanityTest(test.FrameworkTest):
 

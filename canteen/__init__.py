@@ -20,9 +20,9 @@ from .rpc import *
 from .core import *
 from .util import *
 from .test import *
+from .base import *
 from .model import *
 from .runtime import *
-from .handlers import *
 from .dispatch import *
 from .exceptions import *
 

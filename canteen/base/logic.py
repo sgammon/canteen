@@ -2,10 +2,8 @@
 
 '''
 
-  canteen platform core
-  ~~~~~~~~~~~~~~~~~~~~~
-
-  platform internals and logic to discover/load/inject.
+  canteen logic base
+  ~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -16,16 +14,16 @@
 '''
 
 # core API
-from .meta import Proxy
+from ..core import meta
 
 
-class Platform(object):
+class Logic(object):
 
   '''  '''
 
-  __owner__, __metaclass__ = "Platform", Proxy.Component
+  __owner__ = "Logic"
 
-  class __metaclass__(Proxy.Component):
+  class __metaclass__(meta.Proxy.Component):
 
     __map__ = {}  # holds map of all platform instances
 

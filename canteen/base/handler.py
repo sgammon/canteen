@@ -2,11 +2,8 @@
 
 '''
 
-  canteen handlers
-  ~~~~~~~~~~~~~~~~
-
-  classes for building handler classes that respond to incoming
-  requests over HTTP, websockets, or similar transport layers.
+  canteen page base
+  ~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -16,8 +13,8 @@
 
 '''
 
-# meta
-from .core import injection
+# injection core
+from ..core import injection
 
 
 class Handler(object):
@@ -31,14 +28,3 @@ class Handler(object):
     '''  '''
 
     import pdb; pdb.set_trace()
-
-
-class WebHandler(Handler):
-
-  '''  '''
-
-  def wuddup(self):
-
-    '''  '''
-
-    return self.sayhello('hi')

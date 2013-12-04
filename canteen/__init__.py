@@ -30,7 +30,11 @@ from .exceptions import *
 from .core.meta import Proxy
 from .core.runtime import Library
 from .core.runtime import Runtime
-from .core.platform import Platform
 from .core.injection import Compound
+
+# bases
+from .base.page import Page
+from .base.logic import Logic
+from .base.handler import Handler
 
 walk()  # kick off deep-import

@@ -11,7 +11,7 @@
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
   :license: This software makes use of the MIT Open Source License.
-            A copy of this library is included as ``LICENSE.md`` in
+            A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
 '''
@@ -202,25 +202,57 @@ class bind(object):
   __alias__ = None  # injection alias (i.e. `source.<alias> == <target>`)
   __target__ = None  # target for injection - i.e. what should be injected
   __config__ = None  # optional *args and **kwargs to wrap ``config`` (above)
+  __namespace__ = True  # do we namespace this property under it's superbind? (methods only)
 
-  def __init__(self, alias, *args, **kwargs):
+  def __init__(self, alias, namespace=True, *args, **kwargs):
 
     '''  '''
 
     assert isinstance(alias, basestring)
-    self.__alias__, self.__config__ = alias, (args, kwargs)  # wrap `decorators.config` (optional)
+    self.__alias__, self.__config__, self.__namespace__ = (
+      alias,
+      (args, kwargs) if (args or kwargs) else None,
+      namespace  # wrap `decorators.config` (optional)
+    )
+
+  def __repr__(self):
+
+    '''  '''
+
+    return "<binding '%s'>" % self.__alias__ or self.__target__.__name__
 
   def __call__(self, target):
 
     '''  '''
 
-    from ..core import meta  # _no deps in util. ever. :)_
+    from ..core import meta  # no deps in util. ever. :)
 
-    if not issubclass(target.__class__, meta.Proxy.Registry):
+    # install aliases
+    target.__binding__, target.__target__, self.__target__ = self, self.__alias__, target
+
+    # are we decorating a class?
+    if isinstance(target, type):
+      if issubclass(target.__class__, meta.Proxy.Registry):
+
+        _bindings, _aliases = set(), {}
+
+        # scan for "bound" methods (bound for DI, not for Python)
+        for k, v in vars(target).iteritems():
+          if hasattr(v, '__binding__'):
+            _bindings.add(k)
+            if v.__binding__.__alias__:
+              _aliases[v.__binding__.__alias__] = k
+
+        # attach bindings to target class
+        target.__aliases__, target.__bindings__ = _aliases, frozenset(_bindings) if _bindings else None
+
+        # bind locally, and internally
+        return config(target, *self.__config__[0], **self.__config__[1]) if self.__config__ else target
+
+      # only registry-enabled class trees can use ``bind``
       raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
                       ' (anything meta-deriving from `Registry` or `Component`'
                       ' can be bound to injection names.')
 
-    # bind locally, and internally
-    target.__target__, self.__target__ = self.__alias__, target
-    return config(target, *self.__config__[0], **self.__config__[1]) if self.__config__ else target
+    # are we decorating a method?
+    return self.__config__[1]['wrap'](target) if (self.__config__ and 'wrap' in self.__config__[1]) else target

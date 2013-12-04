@@ -12,7 +12,7 @@
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
   :license: This software makes use of the MIT Open Source License.
-            A copy of this library is included as ``LICENSE.md`` in
+            A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
 '''
@@ -50,10 +50,19 @@ class Delegate(object):
         if not klass.__bridge__:
           klass.__bridge__ = Proxy.Component.collapse(klass)
         try:
-          return klass.__bridge__[key]
+          if key in klass.__bridge__:
+            if isinstance(klass.__bridge__[key], tuple):
+              responder, attribute = klass.__bridge__[key]
+              return getattr(responder, attribute)  # attribute get + return
+            return klass.__bridge__[key]  # return value directly
+
+          raise AttributeError('Could not resolve attribute \'%s\'.')
         except KeyError:
           raise AttributeError('Could not resolve attribute \'%s\''
                                ' on item \'%s\'.' % (key, klass))
+        except AttributeError:
+          raise AttributeError('Could not resolve injected (but unresolved)'
+                               ' attribute \'%s\' on item \'%s\'.' % (key, klass))
 
       # inject properties onto MRO delegate, then construct
       return type.__new__(cls.__class__, 'Delegate', (object,), {

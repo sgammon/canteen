@@ -10,19 +10,22 @@
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
   :license: This software makes use of the MIT Open Source License.
-            A copy of this library is included as ``LICENSE.md`` in
+            A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
 '''
 
-# stdlib
-import weakref
+
+# utils
+from ..util import struct
 
 
 ## Globals
 _owner_map = {}
 grab = lambda x: x.__func__ if hasattr(x, '__func__') else x
 owner = lambda x: intern(x.__owner__ if hasattr(x, '__owner__') else x.__name__)
+construct = lambda cls, name, bases, properties: type.__new__(cls, name, bases, properties)
+metachain = lambda cls, n, b, p: cls.__metachain__.append(construct(cls, n, b, p)) or cls.__metachain__[-1]
 
 
 class MetaFactory(type):
@@ -41,7 +44,7 @@ class MetaFactory(type):
     # get ready to construct, do so immediately for ``MetaFactory`` itself and other explicit roots
     if '__root__' in properties and properties['__root__']:
       del properties['__root__']  # treat as a root - init directly and continue
-      return type.__new__(cls, name, bases, properties)
+      return construct(cls, name, bases, properties)
 
     # construct, yo. then unconditionally apply it to the metachain and return also, defer to the class'
     #  ``initialize``, or any of its bases if they have ``initialize`, for constructing the actual class.
@@ -49,7 +52,7 @@ class MetaFactory(type):
               getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
                 cls, name, bases, properties))) if (
                   'initialize' in properties or any((hasattr(b, 'initialize') for b in bases))
-                ) else (cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1])
+                ) else metachain(cls, name, bases, properties)
 
   def mro(cls):
 
@@ -98,14 +101,14 @@ class Proxy(object):
         # if this metaclass implements the ``Proxy.Register`` class,
         #  defer to _cls.register directly after construction
         if issubclass(_cls, Proxy.Registry):
-          return grab(_cls.register)(_cls, type.__new__(_cls, _name, _bases, _properties))
-        return type.__new__(_cls, _name, _bases, _properties)
+          return grab(_cls.register)(_cls, construct(_cls, _name, _bases, _properties))
+        return construct(_cls, _name, _bases, _properties)
 
       # drop down if we already have a metachain for this tree
       if cls.__metachain__: properties['__new__'] = metanew
 
       # construct, yo. then unconditionally apply it to the metachain and return
-      return cls.__metachain__.append(type.__new__(cls, name, bases, properties)) or cls.__metachain__[-1]
+      return metachain(cls, name, bases, properties)
 
 
   class Registry(Factory):
@@ -118,10 +121,7 @@ class Proxy(object):
 
       '''  '''
 
-      for child in cls.__chain__[owner(cls)]:
-        #obj = child()  # dereference weakref
-        obj = child
-        if not obj: continue  # watch out for dead refs
+      for obj in cls.__chain__[owner(cls)]:
         if obj is cls: continue  # skip the parent class
         yield obj
 
@@ -175,7 +175,6 @@ class Proxy(object):
       for base in target.__bases__:
         if not base in (object, type):
           if _owner not in meta.__chain__: meta.__chain__[_owner] = []
-          #meta.__chain__[_owner].append(weakref.ref(target, lambda ref: Proxy.Registry.trim(_owner, ref)))
           meta.__chain__[_owner].append(target)
       return target
 
@@ -185,6 +184,7 @@ class Proxy(object):
     '''  '''
 
     __target__ = None
+    __binding__ = None
     __injector_cache__ = {}
 
     @staticmethod
@@ -198,12 +198,40 @@ class Proxy(object):
         # otherwise, collapse and build one
         property_bucket = {}
         for metabucket in Proxy.Registry.__chain__.iterkeys():
-          for concrete in filter(lambda x: issubclass(x, Proxy.Component), Proxy.Component.__chain__[metabucket]):
-            property_bucket.update(concrete.inject(concrete, cls.__target__, cls.__delegate__) or {})
+          for concrete in filter(lambda x: issubclass(x.__class__, Proxy.Component), Proxy.Component.__chain__[metabucket]):
+
+            responder, properties = concrete.inject(concrete, cls.__target__, cls.__delegate__) or {}
+
+            if hasattr(concrete, '__binding__'):
+
+              def pluck(property_name):
+
+                '''  '''
+
+                # dereference property aliases
+                if concrete.__aliases__:
+                  if property_name in concrete.__aliases__:
+                    return getattr(responder, concrete.__aliases__[property_name])
+                return getattr(responder, property_name)
+
+              property_bucket[concrete.__binding__.__alias__] = struct.CallbackProxy(pluck)
+              namespace = concrete.__binding__.__alias__
+            else:
+              namespace = ''
+
+            for bundle in properties:
+              if not isinstance(bundle, tuple):
+                property_bucket['.'.join((namespace, alias))] = (responder, bundle)
+                continue
+
+              prop, alias, _global = bundle
+              if _global:
+                property_bucket['.'.join((namespace, alias))] = (responder, prop)
+                continue
+              property_bucket[alias] = (responder, prop)
 
         # if it's empty, don't cache
-        if not property_bucket:
-          return {}
+        if not property_bucket: return {}
 
         # set in cache, unless empty
         Proxy.Component.__injector_cache__[(cls, spec)] = property_bucket
@@ -216,7 +244,25 @@ class Proxy(object):
 
       '''  '''
 
-      import pdb; pdb.set_trace()
+      # allow class to "prepare" itself (potentially instantiating a singleton)
+      if hasattr(cls.__class__, 'prepare'):
+        concrete = cls.__class__.prepare(cls)
 
-      # @TODO(sgammon): injection protocol
-      pass  # pragma: nocover
+      # gather injectable attributes
+      _injectable = set()
+      if hasattr(cls, '__bindings__'):
+        for iterator in (cls.__dict__.iteritems(), cls.__class__.__dict__.iteritems()):
+          for prop, value in iterator:
+            if cls.__bindings__:
+              if prop in cls.__bindings__:
+                if cls.__dict__[prop].__binding__.__alias__ and cls.__dict__[prop].__binding__.__alias__ != prop:
+                  _injectable.add((prop, cls.__dict__[prop].__binding__.__alias__, cls.__dict__[prop].__binding__.__namespace__))
+                  continue
+                _injectable[prop] = value
+            else:
+              # if no bindings are in use, bind all non-special stuff
+              if not prop.startswith('__'):
+                _injectable[prop] = value
+
+      # return bound injectables or the whole set
+      return concrete, _injectable or set(concrete.__dict__.iterkeys())

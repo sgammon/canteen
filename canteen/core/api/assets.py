@@ -26,4 +26,27 @@ class AssetsAPI(CoreAPI):
 
   '''  '''
 
-  pass
+  __config__ = None  # asset configuration, if any
+
+  @property
+  def config(self):
+
+    '''  '''
+
+  def style_url(self):
+
+    '''  '''
+
+    pass
+
+  def script_url(self):
+
+    '''  '''
+
+    pass
+
+  def image_url(self):
+
+    '''  '''
+
+    pass

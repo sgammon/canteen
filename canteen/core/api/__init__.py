@@ -28,4 +28,4 @@ class CoreAPI(object):
   __owner__, __metaclass__ = "CoreAPI", Proxy.Component
 
 
-__all__ = ['CoreAPI', 'assets', 'cache', 'output']
+__all__ = ['CoreAPI', 'assets', 'cache', 'template']

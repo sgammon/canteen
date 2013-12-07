@@ -14,3 +14,32 @@
             the root of the project.
 
 '''
+
+
+def spawn(app,
+	  	  dev,
+	   	  config):
+
+	'''  '''
+
+	# canteen core
+	from canteen.core import runtime
+	return runtime.Runtime.spawn(app).configure(config)
+
+
+def run(app=None,
+		interface='127.0.0.1',
+		port=8080,
+		dev=True,
+		config={}):
+
+	'''  '''
+
+	return spawn(app, dev, config).serve(interface, port)
+
+
+def dispatch():
+
+	'''  '''
+
+	pass

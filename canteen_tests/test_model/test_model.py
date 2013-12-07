@@ -27,6 +27,14 @@ except ImportError as e:  # pragma: no cover
   _APPCONFIG = False
 else:
   # set debug mode for all model-related stuff
+  class Config(object):
+    config = {}
+    debug = True
+  config = Config()
+  config.config = {}
+
+  if 'apptools.model' not in config.config:
+    config.config['apptools.model'] = {}
   config.config['apptools.model']['debug'] = True
   for k in filter(lambda x: x.startswith('apptools.model'), config.config.iterkeys()):
     config.config[k]['debug'] = True

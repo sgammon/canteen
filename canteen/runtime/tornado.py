@@ -2,8 +2,10 @@
 
 '''
 
-  canteen page base
-  ~~~~~~~~~~~~~~~~~
+  canteen tornado runtime
+  ~~~~~~~~~~~~~~~~~~~~~~~
+
+  integrates :py:mod:`canteen` with :py:mod:`tornado`.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -13,12 +15,9 @@
 
 '''
 
-# DI & util
-from . import handler
+# core
+from ..core import runtime
 
 
-class Page(handler.Handler):
-
-  '''  '''
-
-  __owner__ = "Page"
+with runtime.Library('tornado'):
+  raise NotImplementedError('tornado is stubbed.')

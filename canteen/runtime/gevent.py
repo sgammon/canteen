@@ -14,3 +14,10 @@
             the root of the project.
 
 '''
+
+# core
+from ..core import runtime
+
+
+with runtime.Library('gevent'):
+  raise NotImplementedError('gevent is stubbed.')

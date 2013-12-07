@@ -200,33 +200,44 @@ class Proxy(object):
         for metabucket in Proxy.Registry.__chain__.iterkeys():
           for concrete in filter(lambda x: issubclass(x.__class__, Proxy.Component), Proxy.Component.__chain__[metabucket]):
 
+            namespace = ''
             responder, properties = concrete.inject(concrete, cls.__target__, cls.__delegate__) or {}
 
             if hasattr(concrete, '__binding__'):
 
-              def pluck(property_name):
+              def do_pluck(klass, obj):
 
                 '''  '''
 
-                # dereference property aliases
-                if concrete.__aliases__:
-                  if property_name in concrete.__aliases__:
-                    return getattr(responder, concrete.__aliases__[property_name])
-                return getattr(responder, property_name)
+                def pluck(property_name):
 
-              property_bucket[concrete.__binding__.__alias__] = struct.CallbackProxy(pluck)
-              namespace = concrete.__binding__.__alias__
-            else:
-              namespace = ''
+                  '''  '''
+
+                  # dereference property aliases
+                  if hasattr(klass, '__aliases__') and property_name in klass.__aliases__:
+                    return getattr(obj, klass.__aliases__[property_name])
+                  return getattr(obj, property_name)
+
+                return pluck
+
+              if concrete.__binding__:
+                property_bucket[concrete.__binding__.__alias__] = struct.CallbackProxy(do_pluck(concrete, responder))
+
+                if concrete.__binding__.__namespace__:
+                  namespace = concrete.__binding__.__alias__
 
             for bundle in properties:
+
+              # clear vars
+              prop, alias, _global = None, None, False
+
               if not isinstance(bundle, tuple):
-                property_bucket['.'.join((namespace, alias))] = (responder, bundle)
+                property_bucket['.'.join((namespace, bundle)) if namespace else bundle] = (responder, bundle)
                 continue
 
               prop, alias, _global = bundle
               if _global:
-                property_bucket['.'.join((namespace, alias))] = (responder, prop)
+                property_bucket['.'.join((namespace, alias)) if namespace else alias] = (responder, prop)
                 continue
               property_bucket[alias] = (responder, prop)
 
@@ -245,8 +256,7 @@ class Proxy(object):
       '''  '''
 
       # allow class to "prepare" itself (potentially instantiating a singleton)
-      if hasattr(cls.__class__, 'prepare'):
-        concrete = cls.__class__.prepare(cls)
+      concrete = cls.__class__.prepare(cls) if hasattr(cls.__class__, 'prepare') else cls
 
       # gather injectable attributes
       _injectable = set()
@@ -255,14 +265,14 @@ class Proxy(object):
           for prop, value in iterator:
             if cls.__bindings__:
               if prop in cls.__bindings__:
-                if cls.__dict__[prop].__binding__.__alias__ and cls.__dict__[prop].__binding__.__alias__ != prop:
-                  _injectable.add((prop, cls.__dict__[prop].__binding__.__alias__, cls.__dict__[prop].__binding__.__namespace__))
-                  continue
-                _injectable[prop] = value
+                func = cls.__dict__[prop] if not isinstance(cls.__dict__[prop], (staticmethod, classmethod)) else cls.__dict__[prop].__func__
+                do_namespace = func.__binding__.__namespace__ if cls.__binding__.__namespace__ else False
+                _injectable.add((prop, func.__binding__.__alias__ or prop, do_namespace))
+                continue
             else:
               # if no bindings are in use, bind all non-special stuff
               if not prop.startswith('__'):
-                _injectable[prop] = value
+                _injectable.add(prop)
 
       # return bound injectables or the whole set
-      return concrete, _injectable or set(concrete.__dict__.iterkeys())
+      return concrete, _injectable or set(filter(lambda x: not x.startswith('__'), concrete.__dict__.iterkeys()))

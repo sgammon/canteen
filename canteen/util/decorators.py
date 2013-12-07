@@ -237,11 +237,16 @@ class bind(object):
         _bindings, _aliases = set(), {}
 
         # scan for "bound" methods (bound for DI, not for Python)
-        for k, v in vars(target).iteritems():
-          if hasattr(v, '__binding__'):
-            _bindings.add(k)
-            if v.__binding__.__alias__:
-              _aliases[v.__binding__.__alias__] = k
+        for mapping in (target.__dict__, target.__class__.__dict__):
+          for k, v in mapping.iteritems():
+
+            if isinstance(v, (staticmethod, classmethod)):
+              v = v.__func__  # unwrap from wrapped class/static decorator
+
+            if hasattr(v, '__binding__'):
+              _bindings.add(k)
+              if v.__binding__.__alias__:
+                _aliases[v.__binding__.__alias__] = k
 
         # attach bindings to target class
         target.__aliases__, target.__bindings__ = _aliases, frozenset(_bindings) if _bindings else None

@@ -25,6 +25,10 @@ if __debug__:
   import canteen.test
 
   if __name__ == '__main__':
+
     # run 'em yo
-    os.environ['TEST_REIMPORT'] = '1'
-    canteen.test.clirunner(sys.argv[1:], root=os.path.dirname(__file__))
+    #os.environ['TEST_REIMPORT'] = '1'
+    #canteen.test.clirunner(sys.argv[1:], root=os.path.dirname(__file__))
+
+    import nose
+    sys.exit(int(nose.run()))

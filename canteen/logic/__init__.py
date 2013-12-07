@@ -2,8 +2,8 @@
 
 '''
 
-  canteen page base
-  ~~~~~~~~~~~~~~~~~
+  canteen logic
+  ~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -13,12 +13,4 @@
 
 '''
 
-# DI & util
-from . import handler
-
-
-class Page(handler.Handler):
-
-  '''  '''
-
-  __owner__ = "Page"
+__all__ = ['http', 'wsgi', 'realtime']

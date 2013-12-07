@@ -13,6 +13,4 @@
 
 '''
 
-from .page import *
-from .logic import *
-from .handler import *
+__all__ = ['page', 'logic', 'handler']

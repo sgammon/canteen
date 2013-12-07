@@ -33,9 +33,11 @@ def say(*args):
   print ' '.join(map(lambda x: str(x), args))
 
 
-def walk(root=None):
+def walk(root=None, debug=True):
 
   '''  '''
 
-  return map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
-          else name, pkgutil.walk_packages(root or '.'))
+  return map((lambda x: say('Preloaded:', x)) if debug else (lambda x: x),
+          map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
+            else name,
+              pkgutil.walk_packages(root or '.')))

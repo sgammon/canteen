@@ -47,22 +47,19 @@ class Delegate(object):
 
         '''  '''
 
-        if not klass.__bridge__:
-          klass.__bridge__ = Proxy.Component.collapse(klass)
+        # @TODO(sgammon): make things not jank here (for instance, don't `collapse` every time)
         try:
-          if key in klass.__bridge__:
-            if isinstance(klass.__bridge__[key], tuple):
-              responder, attribute = klass.__bridge__[key]
+          bridge = Proxy.Component.collapse(klass)
+          if key in bridge:
+            if isinstance(bridge[key], tuple):
+              responder, attribute = bridge[key]
               return getattr(responder, attribute)  # attribute get + return
-            return klass.__bridge__[key]  # return value directly
+            return bridge[key]  # return value directly
 
-          raise AttributeError('Could not resolve attribute \'%s\'.')
+          raise AttributeError('Could not resolve attribute \'%s\'.' % key)
         except KeyError:
           raise AttributeError('Could not resolve attribute \'%s\''
                                ' on item \'%s\'.' % (key, klass))
-        except AttributeError:
-          raise AttributeError('Could not resolve injected (but unresolved)'
-                               ' attribute \'%s\' on item \'%s\'.' % (key, klass))
 
       # inject properties onto MRO delegate, then construct
       return type.__new__(cls.__class__, 'Delegate', (object,), {
@@ -101,7 +98,7 @@ class Compound(type):
 
     for base in cls.__bases__:
       # check if we've seen any of these bases
-      if base not in (object, type) or base in cls.__class__.__seen__:
+      if base not in (object, type) and base in cls.__class__.__seen__:
         break
     else:
       # never seen this before - roll in our delegate
@@ -116,16 +113,11 @@ class Compound(type):
         [delegate]
       )
 
-    # we have seen this class' bases. register it as seen as well to propagate.
-    delegate = Delegate.bind(cls)
+    return type.mro(cls)
 
-    # assign delegate and consider in seen classes
-    cls.__class__.__delegate__ = delegate
-    cls.__class__.__seen__.add(cls)
 
-    return tuple(
-      [cls] +
-      [i for i in cls.__bases__] +
-      [object] +
-      [delegate]
-    )
+class Bridge(object):
+
+  '''  '''
+
+  __metaclass__ = Compound

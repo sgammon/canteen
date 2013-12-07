@@ -15,3 +15,26 @@
             the root of the project.
 
 '''
+
+# core
+from ..core import runtime
+from ..util import decorators
+
+
+with runtime.Library('wsgiref') as (library, wsgiref):
+
+  # stdlib
+  simple_server = library.load('simple_server')
+
+
+  class StandardWSGI(runtime.Runtime):
+
+    '''  '''
+
+    __default__ = True
+
+    def bind(self, interface, port):
+
+      '''  '''
+
+      return simple_server.make_server(interface, port, self.dispatch)

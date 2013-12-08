@@ -20,11 +20,6 @@
 import pkgutil
 import importlib
 
-# local subpackages
-from . import cli
-from . import struct
-from . import decorators
-
 
 def say(*args):
 
@@ -39,5 +34,15 @@ def walk(root=None, debug=True):
 
   return map((lambda x: say('Preloaded:', x)) if debug else (lambda x: x),
           map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
-            else name,
-              pkgutil.walk_packages(root or '.')))
+            else name, pkgutil.walk_packages(root or '.')))
+
+
+__all__ = (
+  'walk',
+  'say',
+  'cli',
+  'config',
+  'debug',
+  'decorators',
+  'struct'
+)

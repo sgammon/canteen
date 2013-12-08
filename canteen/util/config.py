@@ -29,7 +29,7 @@ class Config(object):
 
   seen = set()  # seen config items
   wrap = None  # wrapped config block
-  blocks = {}  # configuration blocks
+  blocks = None  # wrapped config blocks
 
   ## -- Internals -- ##
   def __new__(self, sub=None, **blocks):
@@ -52,11 +52,7 @@ class Config(object):
 
     '''  '''
 
-    for k in blocks:
-      if not k in self.blocks:
-        self.blocks[k] = blocks[k]
-      else:
-        self.merge(blocks[k], self.blocks[k])
+    self.blocks = blocks
     if sub:
       self.wrap = sub
 
@@ -77,7 +73,7 @@ class Config(object):
 
     '''  '''
 
-    return self.__class__(self.blocks.get('app', {}))
+    return self.blocks.get('app', {})
 
   @property
   def config(self):
@@ -87,22 +83,6 @@ class Config(object):
     return self.__class__(self.blocks.get('config', {}))
 
   ### === Public Methods === ###
-  def merge(self, blocks, base):
-
-    '''  '''
-
-    merged = {}
-    for k, v in blocks.iteritems():
-      self.seen.add(k)
-      if isinstance(v, collections.Mapping):
-        if k in base:
-          merged[k] = self.merge(blocks[k], base[k])
-          continue
-        merged[k] = v
-
-    self.blocks.update(merged)
-    return self.blocks
-
   def load(self, path):
 
     '''  '''
@@ -114,33 +94,6 @@ class Config(object):
 
     '''  '''
 
-    for block in self.blocks:
-      if key in self.blocks[block]:
-        return self.blocks[block][key]
-    return {'debug': True}
-
-  ### === Item Protocol === ###
-  def __getitem__(self, key):
-
-    '''  '''
-
-    pass
-
-  def __setitem__(self, key, value):
-
-    '''  '''
-
-    pass
-
-  ### === Attribute Protocol === ###
-  def __getattr__(self, key):
-
-    '''  '''
-
-    pass
-
-  def __setattr__(self, key, value):
-
-    '''  '''
-
-    pass
+    if 'config' in self.blocks:
+      return self.blocks['config'].get(key, {'debug': True})
+    return self.blocks.get(key, default)

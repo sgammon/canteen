@@ -30,14 +30,17 @@ class Handler(object):
 
   '''  '''
 
-  logging  = _logger
+  logging  = _logger  # local logging shim
+  __status__ = 200  # keen is an optimistic bunch ;)
   __config__ = None  # configuration for this handler
   __logging__ = None  # internal logging slot
   __runtime__ = None  # reference up to the runtime
   __environ__ = None  # original WSGI environment
   __request__ = None  # lazy-loaded request object
+  __headers__ = None  # buffer HTTP header access
   __response__ = None  # lazy-loaded response object
   __callback__ = None  # callback to send data (sync or async)
+  __content_type__ = None  # response content type
 
   __owner__, __metaclass__ = "Handler", injection.Compound
 
@@ -45,10 +48,18 @@ class Handler(object):
 
     '''  '''
 
+    # startup/assign internals
     self.__runtime__, self.__environ__, self.__callback__ = (
       runtime,
       environ,
       start_response
+    )
+
+    # setup HTTP/dispatch stuff
+    self.__status__, self.__headers__, self.__content_type__ = (
+      200,
+      {},
+      'text/html'
     )
 
   @property
@@ -68,6 +79,27 @@ class Handler(object):
     return self.__request__
 
   @property
+  def content_type(self):
+
+    '''  '''
+
+    return self.__content_type__
+
+  @property
+  def status(self):
+
+    '''  '''
+
+    return self.__status__
+
+  @property
+  def headers(self):
+
+    '''  '''
+
+    return self.__headers__
+
+  @property
   def config(self):
 
     '''  '''
@@ -75,6 +107,8 @@ class Handler(object):
     if not self.__config__:
       # scan for config, walking up the class chain to fallback
       done, base, config = False, self.__class__, []
+
+      return {'debug': True}
 
       while not done:
 
@@ -115,8 +149,8 @@ class Handler(object):
     return {
 
       # Default Context
-      'self': self,
-      'config': self.config,
+      'handler': self,
+      'config': self.runtime.config,
       'runtime': self.runtime,
 
       # HTTP Context
@@ -149,16 +183,37 @@ class Handler(object):
 
     }
 
-  def render(self, template, context={}, **kwargs):
+  def render(self, template, headers={}, content_type=None, context={}, **kwargs):
 
     '''  '''
 
+    # merge template context
     _merged_context = {}
     for context_block in (self.context, context, kwargs):
       _merged_context.update(context_block)
 
+    # collapse and merge HTTP headers (base headers first)
+    _merged_headers = dict(self.template.base_headers)
+    _config_headers = self.config.get('http', {}).get('headers')
+
+    # config headers second
+    if _config_headers:
+      if isinstance(_config_headers, list):
+        _config_headers = dict(_config_headers)
+      _merged_headers.update(_config_headers)
+
+    # handler-level headers next
+    if self.headers: _merged_headers.update(self.headers)
+
+    # finally, locally-passed headers
+    if headers: _merged_headers.update(headers)
+
     # render template with merged context
-    return self.template.render(self, template, _merged_context)
+    return self.response(self.template.render(self, template, _merged_context), **{
+      'status': self.status,
+      'headers': _merged_headers.items(),
+      'mimetype': content_type or self.content_type
+    })
 
 
   def __call__(self, url_args, direct=False):

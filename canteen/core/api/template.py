@@ -16,6 +16,9 @@
 
 '''
 
+# stdlib
+import os, sys
+
 # core API & util
 from . import CoreAPI
 from .. import runtime
@@ -99,15 +102,27 @@ class TemplateAPI(CoreAPI):
 
       '''  '''
 
-      import pdb; pdb.set_trace()
-
       # grab template path, if any
       output = handler.runtime.config.get('TemplateAPI', {'debug': True})
       path = handler.runtime.config.app.get('paths', {}).get('templates', 'templates/')
+      jinja2_cfg = output.get('jinja2', {
+        'autoescape': True,
+        'extensions': (
+            'jinja2.ext.autoescape',
+            'jinja2.ext.with_',
+        )
+      })
 
-      return self.engine.Environment(**kwargs)
+      if 'loader' not in jinja2_cfg:
+        if ((not __debug__) or output.get('force_compiled', False)) and isinstance(path, dict) and 'compiled' in path:
+          jinja2_cfg['loader'] = ModuleLoader('templates')  # @TODO(sgammon): fix this hard-coded value
+        else:
+          if isinstance(path, dict) and 'source' not in path:
+            raise RuntimeError('No configured template source path.')
+          jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
+      return self.engine.Environment(**jinja2_cfg)
 
-  @decorators.bind('template.base_headers')
+  @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):
 
     '''  '''
@@ -117,11 +132,18 @@ class TemplateAPI(CoreAPI):
     return filter(lambda x: x and x[1], [
 
       ('Cache-Control', 'no-cache; no-store'),
-      ('X-Powered-By', 'canteen/%s' % '.'.join(canteen.__version__)),
       ('X-UA-Compatible', 'IE=edge,chrome=1'),
       ('Access-Control-Allow-Origin', '*'),
       ('X-Debug', '1' if canteen.debug else '0'),
-      ('Vary', 'Accept,Cookie')
+      ('Vary', 'Accept,Cookie'),
+      ('Server', 'canteen/%s Python/%s' % (
+        '.'.join(map(unicode, canteen.__version__)),
+        '.'.join(map(unicode, (
+          sys.version_info.major,
+          sys.version_info.minor,
+          sys.version_info.micro
+        )))
+      )) if __debug__ else ('Server', 'canteen/Python')
 
     ])
 
@@ -130,7 +152,7 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
-    baseContext = {
+    return {
 
       # Python Builtins
       'all': all, 'any': any,
@@ -155,20 +177,15 @@ class TemplateAPI(CoreAPI):
 
     }
 
-    if hasattr(handler, 'context'):
-      baseContext.update(handler.context)
-    return baseContext
-
-  @decorators.bind('template.render', wrap=classmethod)
+  @decorators.bind('template.render')
   def render(self, handler, template, context):
 
     '''  '''
 
     # calculate response headers and send
-    import pdb; pdb.set_trace()
 
     # render template
-    content = self.environment(handler, **handler.config.get('TemplateAPI')).get_template(template).render(**context)
+    content = self.environment(handler, **handler.runtime.config.get('TemplateAPI')).get_template(template).render(**context)
 
     # return content iterator
     return iter([content])

@@ -119,13 +119,13 @@ class Runtime(object):
     handler = http.resolve_route(endpoint)
 
     if not handler:  # `None` for handler means it didn't match
-      http.HTTPSemantics.error(404)
+      http.error(404)
 
     # initialize handler
     flow = handler(self, environ, start_response)
 
     if not hasattr(flow, flow.request.method):
-      http.HTTPSemantics.error(405)
+      http.error(405)
 
     # dispatch
     return flow(arguments)(environ, start_response)
@@ -144,11 +144,11 @@ class Library(object):
 
   '''  '''
 
-  name = None
-  strict = False
-  package = None
-  exception = None
-  supported = None
+  name = None  # string name of the library
+  strict = False  # whether to hard-fail on ImportError
+  package = None  # reference to the actual library package/module
+  exception = None  # captured ImportError or AttributeError exception, if any
+  supported = None  # boolean flag indicating whether this lib is supported or not
 
   __owner__, __metaclass__ = "Library", Proxy.Component
 

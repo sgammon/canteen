@@ -173,12 +173,15 @@ class Handler(object):
 
       # Assets API
       'asset': {
-
+        'image': self.assets.image_url,
+        'style': self.assets.style_url,
+        'script': self.assets.script_url
       },
 
       # Output API
       'output': {
-
+        'render': self.template.render,
+        'environment': self.template.environment
       },
 
     }

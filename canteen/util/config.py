@@ -32,27 +32,15 @@ class Config(object):
   blocks = None  # wrapped config blocks
 
   ## -- Internals -- ##
-  def __new__(self, sub=None, **blocks):
+  def __init__(self, sub=None, **blocks):
 
     '''  '''
 
     global _appconfig
 
-    if not sub:
-      if not _appconfig:
-        _appconfig = super(Config, self).__new__(Config)
-        _appconfig.__init__(**blocks)
-      return _appconfig
-
-    wrapper = super(Config, self).__new__(Config)
-    wrapper.__init__(sub)
-    return wrapper
-
-  def __init__(self, sub=None, **blocks):
-
-    '''  '''
-
-    self.blocks = blocks
+    self.blocks = blocks or _appconfig
+    if not _appconfig:
+      _appconfig = blocks
     if sub:
       self.wrap = sub
 
@@ -65,6 +53,8 @@ class Config(object):
     return any((
       os.environ.get('SERVER_SOFTWARE').startswith('Dev'),
       os.environ.get('CANTEEN_DEBUG', None) in ('1', 'yes', 'on', 'true', 'sure'),
+      self.config.get('debug', False),
+      self.app.get('debug', False),
       __debug__
     ))
 
@@ -73,14 +63,21 @@ class Config(object):
 
     '''  '''
 
-    return self.blocks.get('app', {})
+    return self.blocks.get('app', {'debug': True})
+
+  @property
+  def assets(self):
+
+    '''  '''
+
+    return self.blocks.get('assets', {'debug': True})
 
   @property
   def config(self):
 
     '''  '''
 
-    return self.__class__(self.blocks.get('config', {}))
+    return self.blocks.get('config', {})
 
   ### === Public Methods === ###
   def load(self, path):
@@ -97,3 +94,9 @@ class Config(object):
     if 'config' in self.blocks:
       return self.blocks['config'].get(key, {'debug': True})
     return self.blocks.get(key, default)
+
+  def __get__(self, instance, owner):
+
+    '''  '''
+
+    return self.wrap or self.blocks

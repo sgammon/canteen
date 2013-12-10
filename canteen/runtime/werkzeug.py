@@ -37,6 +37,12 @@ with runtime.Library('werkzeug') as (library, werkzeug):
 
       '''  '''
 
+      # resolve static asset paths
+      if 'assets' in self.config.app.get('paths', {}):
+        if isinstance(self.config.app['paths']['assets'], dict):
+          paths = {k: v for k, v in self.config.app['paths']['assets'].iteritems()}
+        paths = {'/assets': self.config.app['paths']['assets']}
+
       return serving.run_simple(interface, address, self.dispatch, **{
         'use_reloader': True,
         'use_debugger': False,
@@ -45,7 +51,7 @@ with runtime.Library('werkzeug') as (library, werkzeug):
         'reloader_interval': 1,
         'threaded': True,
         'processes': 1,
-        'static_files': None,
         'passthrough_errors': False,
-        'ssl_context': None
+        'ssl_context': None,
+        'static_files': paths
       })

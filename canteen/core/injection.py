@@ -52,9 +52,8 @@ class Delegate(object):
           bridge = Proxy.Component.collapse(klass)
           if key in bridge:
             if isinstance(bridge[key], tuple):
-              responder, attribute = bridge[key]
-              return getattr(responder, attribute)  # attribute get + return
-            return bridge[key]  # return value directly
+              return getattr(*bridge[key])  # bridge key is tuple of (responder, attribute)
+            return bridge[key]  # return value directly if it's not a tuple
 
           raise AttributeError('Could not resolve attribute \'%s\'.' % key)
         except KeyError:

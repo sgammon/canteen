@@ -56,6 +56,6 @@ with runtime.Library('werkzeug') as (library, werkzeug):
         'threaded': False,
         'processes': 1,
         'passthrough_errors': False,
-        'ssl_context': self.config.app.get('ssl', {}).get('certificate', 'adhoc'),
+        'ssl_context': None,
         'static_files': paths
       })

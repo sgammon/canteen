@@ -75,7 +75,7 @@ class AssetsAPI(CoreAPI):
 
     asset_prefix = self.config.get('asset_prefix', 'assets')
 
-    if isinstance(self.path, dict):
+    if isinstance(asset_prefix, dict):
       # allow type-specific asset prefixes
       if isinstance(asset_prefix, dict):
         if asset_type in asset_prefix:
@@ -132,13 +132,13 @@ class AssetsAPI(CoreAPI):
   def style_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
 
   @decorators.bind('assets.script_url')  # JS
-  def script_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
+  def script_url(self, *fragments, **arguments): return self.asset_url('script', fragments, arguments)
 
   @decorators.bind('assets.font_url')  # Fonts
-  def font_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
+  def font_url(self, *fragments, **arguments): return self.asset_url('font', fragments, arguments)
 
   @decorators.bind('assets.image_url')  # Images
-  def image_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
+  def image_url(self, *fragments, **arguments): return self.asset_url('image', fragments, arguments)
 
   @decorators.bind('assets.static_url')  # Other
   def static_url(self, *fragments, **arguments): return self.asset_url('static', fragments, arguments)

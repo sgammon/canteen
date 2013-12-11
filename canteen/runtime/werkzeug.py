@@ -16,10 +16,8 @@
 
 '''
 
-# stdlib
-import importlib
-
-# core
+# stdlib & core
+import os
 from ..core import runtime
 
 
@@ -39,10 +37,16 @@ with runtime.Library('werkzeug') as (library, werkzeug):
 
       # resolve static asset paths
       if 'assets' in self.config.app.get('paths', {}):
-        if isinstance(self.config.app['paths']['assets'], dict):
-          paths = {k: v for k, v in self.config.app['paths']['assets'].iteritems()}
-        paths = {'/assets': self.config.app['paths']['assets']}
+        if isinstance(self.config.app['paths'].get('assets'), dict):
+          paths = dict(((k, v) for k, v in self.config.app['paths']['assets'].iteritems()))
+        paths = {
+          '/assets': self.config.app['paths']['assets'],
+          '/favicon.ico': self.config.app['paths'].get('favicon', False) or os.path.join(
+            self.config.app['paths']['assets'],
+            'favicon.ico'
+        )}
 
+      # run via werkzeug's awesome `run_simple`
       return serving.run_simple(interface, address, self.dispatch, **{
         'use_reloader': True,
         'use_debugger': True,
@@ -52,6 +56,6 @@ with runtime.Library('werkzeug') as (library, werkzeug):
         'threaded': False,
         'processes': 1,
         'passthrough_errors': False,
-        'ssl_context': None,
+        'ssl_context': self.config.app.get('ssl', {}).get('certificate', 'adhoc'),
         'static_files': paths
       })

@@ -123,6 +123,7 @@ class Runtime(object):
 
     # initialize handler
     flow = handler(self, environ, start_response)
+    flow.routes = routes
 
     if not hasattr(flow, flow.request.method):
       http.error(405)

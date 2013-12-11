@@ -133,7 +133,6 @@ class TemplateAPI(CoreAPI):
 
       ('Cache-Control', 'no-cache; no-store'),
       ('X-UA-Compatible', 'IE=edge,chrome=1'),
-      ('Access-Control-Allow-Origin', '*'),
       ('X-Debug', '1' if canteen.debug else '0'),
       ('Vary', 'Accept,Cookie'),
       ('Server', 'canteen/%s Python/%s' % (
@@ -143,12 +142,12 @@ class TemplateAPI(CoreAPI):
           sys.version_info.minor,
           sys.version_info.micro
         )))
-      )) if __debug__ else ('Server', 'canteen/Python')
+      )) if __debug__ else ('Server', 'Canteen/Python')
 
     ])
 
   @decorators.bind('template.base_context')
-  def base_context(self, handler):
+  def base_context(self):
 
     '''  '''
 
@@ -167,13 +166,7 @@ class TemplateAPI(CoreAPI):
       'xrange': xrange, 'filter': filter,
       'reduce': reduce, 'sorted': sorted,
       'unicode': unicode, 'reversed': reversed,
-      'isinstance': isinstance, 'issubclass': issubclass,
-
-      # Routing
-      'routing': {
-        'build': handler.routes.build,
-        'resolve': handler.http.resolve_route
-      }
+      'isinstance': isinstance, 'issubclass': issubclass
 
     }
 

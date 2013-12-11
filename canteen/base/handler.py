@@ -33,6 +33,7 @@ class Handler(object):
   logging  = _logger  # local logging shim
   __status__ = 200  # keen is an optimistic bunch ;)
   __config__ = None  # configuration for this handler
+  __routes__ = None  # route map adapter from werkzeug
   __logging__ = None  # internal logging slot
   __runtime__ = None  # reference up to the runtime
   __environ__ = None  # original WSGI environment
@@ -61,6 +62,22 @@ class Handler(object):
       {},
       'text/html'
     )
+
+  def _set_routes(self, routes):
+
+    '''  '''
+
+    self.__routes__ = routes
+    return self
+
+  def _get_routes(self):
+
+    '''  '''
+
+    return self.__routes__
+
+  # bind route list
+  routes = property(_get_routes, _set_routes)
 
   @property
   def runtime(self):
@@ -183,6 +200,12 @@ class Handler(object):
         'render': self.template.render,
         'environment': self.template.environment
       },
+
+      # Routing
+      'route': {
+        'build': self.routes.build,
+        'resolve': self.http.resolve_route
+      }
 
     }
 

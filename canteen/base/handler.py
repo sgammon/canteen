@@ -201,13 +201,21 @@ class Handler(object):
         'environment': self.template.environment
       },
 
+      'url_for': self.url_for,
+
       # Routing
       'route': {
-        'build': self.routes.build,
+        'build': self.url_for,
         'resolve': self.http.resolve_route
       }
 
     }
+
+  def url_for(self, endpoint, **kwargs):
+
+    '''  '''
+
+    return self.routes.build(endpoint, kwargs)
 
   def render(self, template, headers={}, content_type=None, context={}, **kwargs):
 

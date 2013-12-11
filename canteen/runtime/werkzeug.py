@@ -45,11 +45,11 @@ with runtime.Library('werkzeug') as (library, werkzeug):
 
       return serving.run_simple(interface, address, self.dispatch, **{
         'use_reloader': True,
-        'use_debugger': False,
+        'use_debugger': True,
         'use_evalex': True,
         'extra_files': None,
         'reloader_interval': 1,
-        'threaded': True,
+        'threaded': False,
         'processes': 1,
         'passthrough_errors': False,
         'ssl_context': None,

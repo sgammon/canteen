@@ -15,31 +15,35 @@
 
 '''
 
+app = None
+
 
 def spawn(app,
-	  	  dev,
-	   	  config):
+        dev,
+        config,
+        root=None):
 
-	'''  '''
+  '''  '''
 
-	# canteen core
-	from canteen.core import runtime
-	return runtime.Runtime.spawn(app).configure(config)
+  # canteen core & util
+  from canteen.core import runtime
+  return runtime.Runtime.spawn(app).configure(config)
 
 
 def run(app=None,
-		interface='127.0.0.1',
-		port=8080,
-		dev=True,
-		config={}):
+    root=None,
+    interface='127.0.0.1',
+    port=8080,
+    dev=True,
+    config={}):
 
-	'''  '''
+  '''  '''
 
-	return spawn(app, dev, config).serve(interface, port)
+  return spawn(app, dev, config, root).serve(interface, port)
 
 
 def dispatch():
 
-	'''  '''
+  '''  '''
 
-	pass
+  pass

@@ -44,5 +44,3 @@ from .core.meta import Proxy
 from .core.runtime import Library
 from .core.runtime import Runtime
 from .core.injection import Compound
-
-walk()  # kick off deep-import

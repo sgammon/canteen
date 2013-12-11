@@ -103,11 +103,16 @@ if __debug__:
     return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
 
 
-def clirunner(arguments, root=os.getcwd()):  # pragma: nocover
+def clirunner(arguments, root=None):  # pragma: nocover
 
   '''  '''
 
   output, format = None, 'text'
+
+  if not __debug__:
+    raise RuntimeError('Cannot run tests with -O or -OO.')
+  if not root:
+    root = os.getcwd()
 
   if arguments:
     if len(arguments) > 2:

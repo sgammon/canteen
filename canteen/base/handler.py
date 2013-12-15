@@ -204,6 +204,8 @@ class Handler(object):
       'url_for': self.url_for,
 
       # Routing
+      'link': self.url_for,
+
       'route': {
         'build': self.url_for,
         'resolve': self.http.resolve_route

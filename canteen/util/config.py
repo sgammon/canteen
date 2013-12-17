@@ -51,7 +51,7 @@ class Config(object):
     '''  '''
 
     return any((
-      os.environ.get('SERVER_SOFTWARE').startswith('Dev'),
+      os.environ.get('SERVER_SOFTWARE', 'Not Dev').startswith('Dev'),
       os.environ.get('CANTEEN_DEBUG', None) in ('1', 'yes', 'on', 'true', 'sure'),
       self.config.get('debug', False),
       self.app.get('debug', False),

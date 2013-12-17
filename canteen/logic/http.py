@@ -32,15 +32,16 @@ def url(name_or_route, route=None, **kwargs):
   # extract route and name (optional, but first arg if specified)
   name, route = (None, name_or_route) if not route else (name_or_route, route)
 
-  if not route:
-    raise ValueError('Cannot bind to a URL with an empty route.')
+  # must provide at least a route
+  if not route: raise ValueError('Cannot bind to a URL with an empty route.')
 
   # inject the rule factory
   def inject(target):
 
     '''  '''
 
-    HTTPSemantics.add_route((route, name), target, **kwargs)
+    for entry in ((route,) if not isinstance(route, tuple) else route):
+      HTTPSemantics.add_route((entry, name), target, **kwargs)
     return target
 
   return inject
@@ -48,12 +49,14 @@ def url(name_or_route, route=None, **kwargs):
 
 with runtime.Library('werkzeug') as (library, werkzeug):
 
-  # werkzeug
-  wsgi = library.load('wsgi')
-  utils = library.load('utils')
-  routing = library.load('routing')
-  wrappers = library.load('wrappers')
-  exceptions = library.load('exceptions')
+  # werkzeug internals
+  wsgi, utils, routing, wrappers, exceptions = library.load(
+    'wsgi',
+    'utils',
+    'routing',
+    'wrappers',
+    'exceptions'
+  )
 
 
   @decorators.bind('http', namespace=False)

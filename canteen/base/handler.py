@@ -45,7 +45,7 @@ class Handler(object):
 
   __owner__, __metaclass__ = "Handler", injection.Compound
 
-  def __init__(self, runtime, environ, start_response):
+  def __init__(self, environ, start_response, runtime=None, request=None, response=None):
 
     '''  '''
 
@@ -63,21 +63,9 @@ class Handler(object):
       'text/html'
     )
 
-  def _set_routes(self, routes):
-
-    '''  '''
-
-    self.__routes__ = routes
-    return self
-
-  def _get_routes(self):
-
-    '''  '''
-
-    return self.__routes__
-
-  # bind route list
-  routes = property(_get_routes, _set_routes)
+    # request & response
+    self.__request__ = request
+    self.__response__ = response
 
   @property
   def runtime(self):
@@ -85,6 +73,13 @@ class Handler(object):
     '''  '''
 
     return self.__runtime__  # protect `__runtime__` from writes
+
+  @property
+  def routes(self):
+
+    '''  '''
+
+    return self.__runtime__.routes
 
   @property
   def request(self):

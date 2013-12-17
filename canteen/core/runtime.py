@@ -16,11 +16,14 @@
 '''
 
 # stdlib
+import sys
 import abc
+import inspect
 import importlib
 
 # core API
 from .meta import Proxy
+from .injection import Bridge
 
 
 class Runtime(object):
@@ -29,8 +32,8 @@ class Runtime(object):
 
   routes = None  # compiled route map
   config = None  # application config
-  handler = None  # resolved handler
-  application = None  # WSGI app
+  bridge = None  # window into the injection pool
+  application = None  # WSGI application callable or delegate
 
   __owner__, __metaclass__ = "Runtime", Proxy.Component
 
@@ -63,7 +66,10 @@ class Runtime(object):
 
     '''  '''
 
-    self.application = app
+    self.application, self.bridge = (
+      app,
+      Bridge()
+    )
 
   def initialize(self):
 
@@ -77,25 +83,25 @@ class Runtime(object):
 
     self.config = config
     self.initialize()  # let subclasses initialize
-
     return self
 
-  def serve(self, interface, port):
+  def serve(self, interface, port, bind_only=False):
 
     '''  '''
 
     server = self.bind(interface, port)
 
+    if bind_only:
+      return server
+
     try:
       server.serve_forever()
     except KeyboardInterrupt as e:
       print "Exiting."
-      exit(0)
+      sys.exit(0)
     except Exception as e:
       print "Exiting."
-      exit(1)
-
-    return
+      sys.exit(1)
 
   def bind_environ(self, environ):
 
@@ -103,14 +109,21 @@ class Runtime(object):
 
     from ..logic import http
     self.routes = http.HTTPSemantics.route_map.bind_to_environ(environ)
-    return self.routes, http.HTTPSemantics
+
+    return (
+      http.HTTPSemantics,
+      http.HTTPSemantics.new_request(environ),
+      http.HTTPSemantics.new_response()
+    )
 
   def dispatch(self, environ, start_response):
 
     '''  '''
 
+    from ..base import handler as base_handler
+
     # resolve URL via bound routes
-    routes, http = self.bind_environ(environ)
+    http, request, response = self.bind_environ(environ)
 
     # match route
     endpoint, arguments = self.routes.match()
@@ -121,15 +134,92 @@ class Runtime(object):
     if not handler:  # `None` for handler means it didn't match
       http.error(404)
 
-    # initialize handler
-    flow = handler(self, environ, start_response)
-    flow.routes = routes
+    # class-based pages/handlers
+    if isinstance(handler, type) and issubclass(handler, base_handler.Handler):
 
-    if not hasattr(flow, flow.request.method):
-      http.error(405)
+      # initialize handler
+      flow = handler(*(
+        environ,
+        start_response
+      ), **{
+        'runtime': self,
+        'request': request,
+        'response': response
+      })
 
-    # dispatch
-    return flow(arguments)(environ, start_response)
+      # dispatch time: INCEPTION.
+      return flow(arguments)(environ, start_response)
+
+    # delegated class-based handlers (for instance, other WSGI apps)
+    elif isinstance(handler, type):
+
+      # make a neat little shim, containing our runtime
+      def _foreign_runtime_bridge(*args, **kwargs):
+
+        '''  '''
+
+        return start_response(*args, **kwargs)
+
+      # attach runtime, arguments and actual start_response to shim
+      _foreign_runtime_bridge.runtime = self
+      _foreign_runtime_bridge.arguments = arguments
+      _foreign_runtime_bridge.start_response = start_response
+
+      # initialize foreign handler with replaced start_response
+      return handler(environ, _foreign_runtime_bridge)
+
+    # is it a function, maybe?
+    if inspect.isfunction(handler):
+
+      # inject stuff into context
+      for prop, val in (
+        ('runtime', self),
+        ('self', self.bridge),
+        ('arguments', arguments),
+        ('request', request),
+        ('response', response),
+        ('environ', environ),
+        ('start_response', start_response),
+        ('Response', response.__class__)):
+
+        handler.__globals__[prop] = val  # inject all the things
+
+      # call with arguments only
+      result = handler(**arguments)
+      if isinstance(result, response.__class__):
+        return response(environ, start_response)  # it's a Response class - call it to start_response
+
+      # a tuple bound to a URL - static response
+      elif isinstance(result, tuple):
+
+        if len(result) == 2:  # it's (status_code, response)
+          status, response = result
+          start_response(status, [('Content-Type', 'text/html; charset=utf-8')])
+          return iter([response])
+
+        if len(result) == 3:  # it's (status_code, headers, response)
+          status, headers, response = result
+
+          if isinstance(headers, dict):
+            headers = headers.items()
+            if 'Content-Type' not in headers:
+              headers['Content-Type'] = 'text/html; charset=utf-8'
+
+          start_response(status, headers)
+          return iter([response])
+
+      elif isinstance(result, basestring):
+        start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8')])
+        return iter([result])
+
+    # could be a bound response
+    if not callable(handler):
+      if isinstance(handler, basestring):
+
+        # it's a static response!
+        return iter([handler])
+
+    raise RuntimeError('Unrecognized handler type: "%s".' % type(handler))
 
   @abc.abstractmethod
   def bind(self, interface, address):
@@ -163,11 +253,16 @@ class Library(object):
       self.name, self.package, self.supported = package.__name__, package, True
     self.strict = strict
 
-  def load(self, subpackage):
+  def load(self, *subpackages):
 
     '''  '''
 
-    return importlib.import_module('.'.join((self.name, subpackage)))
+    loaded = []
+    for package in subpackages:
+      loaded.append(importlib.import_module('.'.join((self.name, package))))
+    if len(loaded) == 1:
+      return loaded[0]  # special case: one package only (return it directly)
+    return tuple(loaded)  # otherwise, return a tuple of loaded modules
 
   def __enter__(self):
 

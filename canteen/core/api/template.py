@@ -91,6 +91,42 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
+    # default syntax support method
+    def syntax(self, handler, environment):
+
+      '''  '''
+
+      return environment
+
+    # is there HAML syntax support?
+    with runtime.Library('hamlish_jinja') as (haml_library, haml):
+
+      '''  '''
+
+      def syntax(self, handler, environment):
+
+        '''  '''
+
+        # apply default config / behavior
+        output_cfg = handler.runtime.config.get('TemplateAPI', {'debug': True})
+
+        if handler.runtime.config.debug:
+          environment.hamlish_mode = 'indented'
+          environment.hamlish_debug = True
+
+        # apply config overrides
+        if 'haml' in output_cfg:
+
+          for (config_item, target_attr) in (
+            ('mode', 'hamlish_mode'),
+            ('extensions', 'hamlish_file_extensions'),
+            ('div_shortcut', 'hamlish_enable_div_shortcut')):
+
+            if config_item in output_cfg['haml']:
+              setattr(environment, target_attr, output_cfg['haml'][config_item])
+
+        return environment
+
     @property
     def engine(self):
 
@@ -113,6 +149,7 @@ class TemplateAPI(CoreAPI):
         )
       })
 
+      # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
         if ((not __debug__) or output.get('force_compiled', False)) and isinstance(path, dict) and 'compiled' in path:
           jinja2_cfg['loader'] = ModuleLoader('templates')  # @TODO(sgammon): fix this hard-coded value
@@ -120,7 +157,25 @@ class TemplateAPI(CoreAPI):
           if isinstance(path, dict) and 'source' not in path:
             raise RuntimeError('No configured template source path.')
           jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
-      return self.engine.Environment(**jinja2_cfg)
+
+      # make our new environment
+      j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg))
+
+      # allow jinja2 syntax overrides
+      if 'syntax' in output:
+        for override, (start, terminate) in filter(lambda x: x[0] in output['syntax'], (
+          ('block', ('block_start_string', 'block_end_string')),
+          ('comment', ('comment_start_string', 'comment_end_string')),
+          ('variable', ('variable_start_string', 'variable_end_string')))):
+
+          # if we get here things are golden
+          start_val, terminate_val = output['syntax'][override]
+
+          # override syntax points
+          setattr(j2env, start, start_val)
+          setattr(j2env, terminate, terminate_val)
+
+      return j2env
 
   @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):

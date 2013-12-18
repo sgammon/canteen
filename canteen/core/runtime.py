@@ -151,7 +151,7 @@ class Runtime(object):
       return flow(arguments)(environ, start_response)
 
     # delegated class-based handlers (for instance, other WSGI apps)
-    elif isinstance(handler, type):
+    elif isinstance(handler, type) or callable(handler):
 
       # make a neat little shim, containing our runtime
       def _foreign_runtime_bridge(*args, **kwargs):

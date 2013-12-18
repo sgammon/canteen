@@ -48,7 +48,7 @@ with runtime.Library('werkzeug') as (library, werkzeug):
 
       # run via werkzeug's awesome `run_simple`
       return serving.run_simple(interface, address, self.dispatch, **{
-        'use_reloader': True,
+        'use_reloader': False,
         'use_debugger': True,
         'use_evalex': True,
         'extra_files': None,

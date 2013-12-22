@@ -45,7 +45,7 @@ class Handler(object):
 
   __owner__, __metaclass__ = "Handler", injection.Compound
 
-  def __init__(self, environ, start_response, runtime=None, request=None, response=None):
+  def __init__(self, environ=None, start_response=None, runtime=None, request=None, response=None):
 
     '''  '''
 
@@ -240,7 +240,12 @@ class Handler(object):
     if headers: _merged_headers.update(headers)
 
     # render template with merged context
-    return self.response(self.template.render(self, template, _merged_context), **{
+    return self.response(self.template.render(*(
+      self,
+      self.runtime.config,
+      template,
+      _merged_context
+    )), **{
       'status': self.status,
       'headers': _merged_headers.items(),
       'mimetype': content_type or self.content_type

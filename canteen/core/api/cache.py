@@ -197,7 +197,7 @@ class CacheAPI(CoreAPI):
 
       '''  '''
 
-      if not isinstance(value, (int, float, str, list, dict, tuple)):
+      if not isinstance(value, (int, float, str, list, dict, tuple, type(abc))):
         value = weakref.ref(value)
       self.target[key] = (value, time.time())
       return value

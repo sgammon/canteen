@@ -17,7 +17,7 @@
 '''
 
 # stdlib
-import os, sys
+import os, sys, importlib, time
 
 # core API & util
 from . import CoreAPI
@@ -29,57 +29,97 @@ from canteen.util import decorators
 with runtime.Library('jinja2') as (library, jinja2):
 
 
-  class TemplateLoader(jinja2.FileSystemLoader):
+  class TemplateLoader(object):
 
     '''  '''
 
     pass
 
 
-  class ModuleLoader(TemplateLoader):
+  class ModuleLoader(TemplateLoader, jinja2.ModuleLoader):
 
     '''  '''
 
-    has_source_access = False
+    cache = None  # cache of modules loaded
+    module = None  # main module
+    has_source_access = False  # from jinja's internals
 
-    def __init__(self, template):
-
-      '''  '''
-
-      self.modules, self.template = CacheAPI.spawn('tpl_%s' % template), template
-
-    def prepare_template(self, environment, filename, tpl_vars, globals):
+    def __init__(self, module='templates'):
 
       '''  '''
 
-      pass
+      try:
+        module = importlib.import_module(module)
+      except ImportError:
+        pass
+      self.cache, self.module = CacheAPI.spawn('tpl_%s' % module), module
 
-    def load(self, environment, filename, globals=None, prepare=True):
+    def load(self, environment, filename, globals=None):
 
       '''  '''
 
       if globals is None:
         globals = {}
 
+      if isinstance(self.module, basestring):
+        self.module = importlib.import_module(self.module)
+
+      # Strip '/' and remove extension.
+      filename, ext = os.path.splitext(filename.strip('/'))
+
+      t = self.cache.get(filename)
+      if not t:
+        # Store module to avoid unnecessary repeated imports.
+        mod = self.get_module(environment, filename)
+
+        # initialize module
+        root, blocks, debug_info = mod.run(environment)
+
+        # manufacture new template object from cached module
+        t = object.__new__(environment.template_class)
+        t.environment, t.globals, t.name, t.filename, t.blocks, t.root_render_func, t._module, t._debug_info, t._uptodate = (
+          environment,
+          globals,
+          mod.name,
+          filename,
+          blocks,
+          root,
+          None,
+          debug_info,
+          lambda: True
+        )
+
+        self.cache.set(filename, t)
+      return t
+
     def get_module(self, environment, template):
 
-      '''  '''
+      ''' Converts a template path to a package path and attempts import, or else raises Jinja2's TemplateNotFound. '''
 
-      pass
+      import jinja2
+
+      # Convert the path to a module name.
+      prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.')).rsplit('.', 1)
+      prefix, obj = str(prefix), str(obj)
+
+      try:
+        return getattr(__import__(prefix, None, None, [obj]), obj)
+      except (ImportError, AttributeError):
+        raise jinja2.TemplateNotFound(template)
 
 
-  class FileLoader(TemplateLoader):
+  class FileLoader(TemplateLoader, jinja2.FileSystemLoader):
 
     '''  '''
 
     has_source_access = True
 
-    def get_source(self, environment, name):
 
-      '''  '''
+  class ExtensionLoader(ModuleLoader):
 
-      # retrieve source / uptodate-ness
-      return super(TemplateLoader, self).get_source(environment, name)
+    '''  '''
+
+    pass
 
 
 @decorators.bind('template', namespace=False)
@@ -92,7 +132,7 @@ class TemplateAPI(CoreAPI):
     '''  '''
 
     # default syntax support method
-    def syntax(self, handler, environment):
+    def syntax(self, handler, environment, config):
 
       '''  '''
 
@@ -103,27 +143,24 @@ class TemplateAPI(CoreAPI):
 
       '''  '''
 
-      def syntax(self, handler, environment):
+      def syntax(self, handler, environment, config):
 
         '''  '''
 
-        # apply default config / behavior
-        output_cfg = handler.runtime.config.get('TemplateAPI', {'debug': True})
-
-        if handler.runtime.config.debug:
+        if config.debug:
           environment.hamlish_mode = 'indented'
           environment.hamlish_debug = True
 
         # apply config overrides
-        if 'haml' in output_cfg:
+        if 'haml' in config.config:
 
           for (config_item, target_attr) in (
             ('mode', 'hamlish_mode'),
             ('extensions', 'hamlish_file_extensions'),
             ('div_shortcut', 'hamlish_enable_div_shortcut')):
 
-            if config_item in output_cfg['haml']:
-              setattr(environment, target_attr, output_cfg['haml'][config_item])
+            if config_item in config.config['haml']:
+              setattr(environment, target_attr, config.config['haml'][config_item])
 
         return environment
 
@@ -134,15 +171,16 @@ class TemplateAPI(CoreAPI):
 
       return jinja2
 
-    def environment(self, handler, **kwargs):
+    def environment(self, handler, config):
 
       '''  '''
 
       # grab template path, if any
-      output = handler.runtime.config.get('TemplateAPI', {'debug': True})
-      path = handler.runtime.config.app.get('paths', {}).get('templates', 'templates/')
+      output = config.get('TemplateAPI', {'debug': True})
+      path = config.app.get('paths', {}).get('templates', 'templates/')
       jinja2_cfg = output.get('jinja2', {
         'autoescape': True,
+        'optimized': True,
         'extensions': (
             'jinja2.ext.autoescape',
             'jinja2.ext.with_',
@@ -151,29 +189,26 @@ class TemplateAPI(CoreAPI):
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
-        if ((not __debug__) or output.get('force_compiled', False)) and isinstance(path, dict) and 'compiled' in path:
-          jinja2_cfg['loader'] = ModuleLoader('templates')  # @TODO(sgammon): fix this hard-coded value
+        if (output.get('force_compiled', False)) or (isinstance(path, dict) and 'compiled' in path and (not __debug__)):
+          jinja2_cfg['loader'] = ModuleLoader(path['compiled'])  # @TODO(sgammon): fix this hard-coded value
         else:
           if isinstance(path, dict) and 'source' not in path:
             raise RuntimeError('No configured template source path.')
           jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
 
       # make our new environment
-      j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg))
+      j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg), config)
 
       # allow jinja2 syntax overrides
       if 'syntax' in output:
-        for override, (start, terminate) in filter(lambda x: x[0] in output['syntax'], (
+        for override, directive in filter(lambda x: x[0] in output['syntax'], (
           ('block', ('block_start_string', 'block_end_string')),
           ('comment', ('comment_start_string', 'comment_end_string')),
           ('variable', ('variable_start_string', 'variable_end_string')))):
 
-          # if we get here things are golden
-          start_val, terminate_val = output['syntax'][override]
-
-          # override syntax points
-          setattr(j2env, start, start_val)
-          setattr(j2env, terminate, terminate_val)
+          # zip and properly set each group
+          for group in zip(directive, output['syntax'][override]):
+            setattr(j2env, *group)
 
       return j2env
 
@@ -226,14 +261,15 @@ class TemplateAPI(CoreAPI):
     }
 
   @decorators.bind('template.render')
-  def render(self, handler, template, context):
+  def render(self, handler, config, template, context):
 
     '''  '''
 
-    # calculate response headers and send
+    # render template & return content iterator
+    start = time.clock()
+    content = self.environment(handler, config).get_template(template).render(**context)
+    end = time.clock()
 
-    # render template
-    content = self.environment(handler, **handler.runtime.config.get('TemplateAPI')).get_template(template).render(**context)
-
-    # return content iterator
+    total = end - start
+    print "Rendered \"%s\" in %sms." % (template, str(round(total * 1000, 2)))
     return iter([content])

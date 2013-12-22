@@ -28,5 +28,4 @@ class WSGI(logic.Logic):
 
 		'''  '''
 
-		import pdb; pdb.set_trace()
 		return None

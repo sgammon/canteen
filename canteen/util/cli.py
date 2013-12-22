@@ -18,6 +18,7 @@
 
 
 # stdlib
+import sys
 import inspect
 import argparse
 import textwrap
@@ -164,7 +165,7 @@ class Tool(object):
 
     if not parser:
       # start top-level argument parser
-      parser = argparse.ArgumentParser(prog=(self.name if hasattr(self, 'name') else self.__class__.__name__).lower(), description=textwrap.dedent(self.__doc__.strip()))
+      parser = argparse.ArgumentParser(prog=(self.name if hasattr(self, 'name') else self.__class__.__name__).lower(), description=textwrap.dedent(self.__doc__.strip()) if not (sys.flags.optimize > 1) else '')
       if not _root_tool: _root_tool = parser
 
     self.parser = parser  # assign local parser

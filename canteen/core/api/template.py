@@ -17,7 +17,7 @@
 '''
 
 # stdlib
-import os, sys, importlib, time
+import os, sys, importlib, time, itertools
 
 # core API & util
 from . import CoreAPI
@@ -230,7 +230,7 @@ class TemplateAPI(CoreAPI):
         yield block.strip()
 
     if _iter:
-      return iter_sanitize  # return wrapped iterator
+      return iter((i for i in iter_sanitize()))  # return wrapped iterator
 
     return [block for block in iter_sanitize()]
 

@@ -212,6 +212,28 @@ class TemplateAPI(CoreAPI):
 
       return j2env
 
+  @staticmethod
+  def sanitize(content, _iter=True):
+
+    '''  '''
+
+    # content should be a list of content blocks
+    if not isinstance(content, (tuple, list)):
+      content = [content]
+
+    def iter_sanitize():
+
+      '''  '''
+
+      # iteratively sanitize the response
+      for block in content:
+        yield block.strip()
+
+    if _iter:
+      return iter_sanitize  # return wrapped iterator
+
+    return [block for block in iter_sanitize()]
+
   @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):
 
@@ -265,15 +287,11 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
-    # render template & return content iterator
-    start = time.clock()
+    # render template & return content iterato)
     content = self.environment(handler, config).get_template(template).render(**context)
-    end = time.clock()
 
-    total = end - start
-    print "Rendered \"%s\" in %sms." % (template, str(round(total * 1000, 2)))
+    # if _direct is requested, sanitize and roll-up buffer immediately
+    if _direct: return self.sanitize(content, _iter=False)
 
-    if _direct:
-      return content
-
-    return iter([content])
+    # otherwise, buffer/chain iterators to produce a streaming response
+    return self.sanitize(content, _iter=True)

@@ -16,6 +16,9 @@
 
 '''
 
+# stdlib
+import random
+
 # core API & util
 from . import CoreAPI
 from canteen.util import config
@@ -126,7 +129,16 @@ class AssetsAPI(CoreAPI):
     if arguments.get('absolute'):
       pass
 
-    return '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
+    # should we use a CDN prefix?
+    if self.config.get('serving_mode', 'local') == 'cdn':
+      if isinstance(self.config.get('cdn_prefix', None), (list, tuple)):
+        cdn_prefix = random.choice(self.config.get('cdn_prefix'))
+      else:
+        cdn_prefix = self.config.get('cdn_prefix')
+
+      prefix = '//' + cdn_prefix
+
+    return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
 
   @decorators.bind('assets.style_url')  # CSS
   def style_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)

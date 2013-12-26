@@ -18,6 +18,7 @@
 # stdlib
 import sys
 import abc
+import time
 import inspect
 import importlib
 
@@ -122,6 +123,8 @@ class Runtime(object):
 
     from ..base import handler as base_handler
 
+    start, latency = time.clock(), lambda: "Responded in %sms." % (str(round((time.clock() - start) * 1000, 2)))  # start response clock
+
     # resolve URL via bound routes
     http, request, response = self.bind_environ(environ)
 
@@ -154,12 +157,14 @@ class Runtime(object):
 
         status, headers, content_type, content = result
 
+        print latency()
         return response.__class__(content, **{
           'status': status,
           'headers': headers,
           'mimetype': content_type
         })(environ, start_response)
 
+      print latency()
       return result(environ, start_response)  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)
@@ -170,6 +175,7 @@ class Runtime(object):
 
         '''  '''
 
+        print latency()
         return start_response(*args, **kwargs)
 
       # attach runtime, arguments and actual start_response to shim
@@ -199,6 +205,8 @@ class Runtime(object):
       # call with arguments only
       result = handler(**arguments)
       if isinstance(result, response.__class__):
+
+        print latency()
         return response(environ, start_response)  # it's a Response class - call it to start_response
 
       # a tuple bound to a URL - static response
@@ -207,6 +215,8 @@ class Runtime(object):
         if len(result) == 2:  # it's (status_code, response)
           status, response = result
           start_response(status, [('Content-Type', 'text/html; charset=utf-8')])
+
+          print latency()
           return iter([response])
 
         if len(result) == 3:  # it's (status_code, headers, response)
@@ -218,10 +228,14 @@ class Runtime(object):
               headers['Content-Type'] = 'text/html; charset=utf-8'
 
           start_response(status, headers)
+
+          print latency()
           return iter([response])
 
       elif isinstance(result, basestring):
         start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8')])
+
+        print latency()
         return iter([result])
 
     # could be a bound response

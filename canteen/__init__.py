@@ -44,3 +44,8 @@ from .core.meta import Proxy
 from .core.runtime import Library
 from .core.runtime import Runtime
 from .core.injection import Compound
+
+# util exports
+from .util import say
+from .util import walk
+from .util import cacheable

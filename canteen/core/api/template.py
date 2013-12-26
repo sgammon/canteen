@@ -261,7 +261,7 @@ class TemplateAPI(CoreAPI):
     }
 
   @decorators.bind('template.render')
-  def render(self, handler, config, template, context):
+  def render(self, handler, config, template, context, _direct=False):
 
     '''  '''
 
@@ -272,4 +272,8 @@ class TemplateAPI(CoreAPI):
 
     total = end - start
     print "Rendered \"%s\" in %sms." % (template, str(round(total * 1000, 2)))
+
+    if _direct:
+      return content
+
     return iter([content])

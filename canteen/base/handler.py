@@ -214,7 +214,7 @@ class Handler(object):
 
     return self.routes.build(endpoint, kwargs)
 
-  def render(self, template, headers={}, content_type=None, context={}, **kwargs):
+  def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
 
     '''  '''
 
@@ -240,17 +240,21 @@ class Handler(object):
     if headers: _merged_headers.update(headers)
 
     # render template with merged context
-    return self.response(self.template.render(*(
+    content = self.template.render(*(
       self,
       self.runtime.config,
       template,
       _merged_context
-    )), **{
-      'status': self.status,
-      'headers': _merged_headers.items(),
-      'mimetype': content_type or self.content_type
-    })
+    ), _direct=_direct)
 
+    if _direct:
+      return (self.status, _merged_headers, content_type or self.content_type, content)
+    else:
+      return self.response(content, **{
+        'status': self.status,
+        'headers': _merged_headers.items(),
+        'mimetype': content_type or self.content_type
+      })
 
   def __call__(self, url_args, direct=False):
 

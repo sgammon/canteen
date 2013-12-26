@@ -148,7 +148,19 @@ class Runtime(object):
       })
 
       # dispatch time: INCEPTION.
-      return flow(arguments)(environ, start_response)
+      result = flow(arguments)
+
+      if isinstance(result, tuple):
+
+        status, headers, content_type, content = result
+
+        return response.__class__(content, **{
+          'status': status,
+          'headers': headers,
+          'mimetype': content_type
+        })(environ, start_response)
+
+      return result(environ, start_response)  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)
     elif isinstance(handler, type) or callable(handler):

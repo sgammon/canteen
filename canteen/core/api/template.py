@@ -152,15 +152,15 @@ class TemplateAPI(CoreAPI):
           environment.hamlish_debug = True
 
         # apply config overrides
-        if 'haml' in config.config:
+        if 'TemplateAPI' in config.config and 'haml' in config.config['TemplateAPI']:
 
           for (config_item, target_attr) in (
             ('mode', 'hamlish_mode'),
             ('extensions', 'hamlish_file_extensions'),
             ('div_shortcut', 'hamlish_enable_div_shortcut')):
 
-            if config_item in config.config['haml']:
-              setattr(environment, target_attr, config.config['haml'][config_item])
+            if config_item in config.config['TemplateAPI']['haml']:
+              setattr(environment, target_attr, config.config['TemplateAPI']['haml'][config_item])
 
         return environment
 

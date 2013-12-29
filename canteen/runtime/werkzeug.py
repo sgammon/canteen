@@ -59,3 +59,6 @@ with runtime.Library('werkzeug') as (library, werkzeug):
         'ssl_context': None,
         'static_files': paths
       })
+
+
+  __all__ = ('Werkzeug',)

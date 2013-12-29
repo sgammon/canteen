@@ -130,13 +130,14 @@ class AssetsAPI(CoreAPI):
       pass
 
     # should we use a CDN prefix?
+    prefix = ''
     if self.config.get('serving_mode', 'local') == 'cdn':
       if isinstance(self.config.get('cdn_prefix', None), (list, tuple)):
         cdn_prefix = random.choice(self.config.get('cdn_prefix'))
       else:
         cdn_prefix = self.config.get('cdn_prefix')
 
-      prefix = '//' + cdn_prefix
+      prefix += '//' + cdn_prefix
 
     return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
 
@@ -154,3 +155,6 @@ class AssetsAPI(CoreAPI):
 
   @decorators.bind('assets.static_url')  # Other
   def static_url(self, *fragments, **arguments): return self.asset_url('static', fragments, arguments)
+
+
+__all__ = ('AssetsAPI',)

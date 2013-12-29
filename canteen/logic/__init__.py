@@ -13,4 +13,13 @@
 
 '''
 
-__all__ = ['http', 'wsgi', 'realtime']
+# submodules
+from .http import *
+from .realtime import *
+
+
+__all__ = (
+  'url',
+  'http',
+  'realtime'
+)

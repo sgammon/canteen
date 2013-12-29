@@ -17,7 +17,13 @@
 '''
 
 # stdlib
-import os, sys, importlib, time, itertools
+import os
+import sys
+import json
+import time
+import operator
+import importlib
+import itertools
 
 # core API & util
 from . import CoreAPI
@@ -26,7 +32,12 @@ from .cache import CacheAPI
 from canteen.util import decorators
 
 
-with runtime.Library('jinja2') as (library, jinja2):
+## Globals
+_conditionals = []
+average = lambda x: reduce(operator.add, x)/len(x)
+
+
+with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
 
   class TemplateLoader(object):
@@ -122,6 +133,15 @@ with runtime.Library('jinja2') as (library, jinja2):
     pass
 
 
+  # add loaders to exported items
+  _conditionals += [
+    'TemplateLoader',
+    'FileLoader',
+    'ModuleLoader',
+    'ExtensionLoader'
+  ]
+
+
 @decorators.bind('template', namespace=False)
 class TemplateAPI(CoreAPI):
 
@@ -175,6 +195,8 @@ class TemplateAPI(CoreAPI):
 
       '''  '''
 
+      import jinja2
+
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})
       path = config.app.get('paths', {}).get('templates', 'templates/')
@@ -189,12 +211,16 @@ class TemplateAPI(CoreAPI):
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
+        _choices = []
+
         if (output.get('force_compiled', False)) or (isinstance(path, dict) and 'compiled' in path and (not __debug__)):
-          jinja2_cfg['loader'] = ModuleLoader(path['compiled'])  # @TODO(sgammon): fix this hard-coded value
-        else:
-          if isinstance(path, dict) and 'source' not in path:
-            raise RuntimeError('No configured template source path.')
-          jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
+          _choies.append(ModuleLoader(path['compiled']))
+
+        if isinstance(path, dict) and 'source' not in path and not _choices:
+          raise RuntimeError('No configured template source path.')
+
+        _choices.append(FileLoader(path['source'] if isinstance(path, dict) else path))
+        jinja2_cfg['loader'] = jinja2.ChoiceLoader(_choices)
 
       # make our new environment
       j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg), config)
@@ -282,6 +308,19 @@ class TemplateAPI(CoreAPI):
 
     }
 
+  @decorators.bind('template.base_filters')
+  def base_filters(self):
+
+    '''  '''
+
+    return {
+
+      # Python Builtins (besides the Jinja2 defaults, which are _awesome_)
+      'len': len, 'max': max, 'maximum': max, 'min': min, 'minimum': min,
+      'avg': average, 'average': average, 'json': json.dumps
+
+    }  # @TODO(sgammon): markdown/RST support?
+
   @decorators.bind('template.render')
   def render(self, handler, config, template, context, _direct=False):
 
@@ -295,3 +334,8 @@ class TemplateAPI(CoreAPI):
 
     # otherwise, buffer/chain iterators to produce a streaming response
     return self.sanitize(content, _iter=True)
+
+
+__all__ = tuple([
+  'TemplateAPI'
+] + _conditionals)

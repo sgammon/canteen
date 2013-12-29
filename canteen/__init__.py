@@ -15,8 +15,7 @@
 
 '''
 
-debug = __debug__
-__version__ = (1, 0)
+debug, __version__ = __debug__, (1, 0)
 
 
 # canteen :)
@@ -31,21 +30,5 @@ from .runtime import *
 from .dispatch import *
 from .exceptions import *
 
-# bases
-from .base.page import Page
-from .base.logic import Logic
-from .base.handler import Handler
 
-# logic utils
-from .logic.http import url
-
-# specific exports
-from .core.meta import Proxy
-from .core.runtime import Library
-from .core.runtime import Runtime
-from .core.injection import Compound
-
-# util exports
-from .util import say
-from .util import walk
-from .util import cacheable
+__all__ = globals()  # export all the things

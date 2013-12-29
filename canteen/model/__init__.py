@@ -831,9 +831,22 @@ class Model(AbstractModel):
 
 
 # Module Globals
-__abstract__ = [abstract, MetaFactory, AbstractKey, AbstractModel]
-__concrete__ = [concrete, Property, KeyMixin, ModelMixin, Key, Model]
+__abstract__ = (abstract, MetaFactory, AbstractKey, AbstractModel)
+__concrete__ = (concrete, Property, KeyMixin, ModelMixin, Key, Model)
 
 # All modules
-__all__ = ['concrete', 'abstract', 'MetaFactory', 'AbstractKey', 'AbstractModel', 'query',
-       'Property', 'KeyMixin', 'ModelMixin', 'Key', 'Model', 'adapter', 'exceptions']
+__all__ = (
+  'concrete',
+  'abstract',
+  'MetaFactory',
+  'AbstractKey',
+  'AbstractModel',
+  'query',
+  'Property',
+  'KeyMixin',
+  'ModelMixin',
+  'Key',
+  'Model',
+  'adapter',
+  'exceptions'
+)

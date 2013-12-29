@@ -21,3 +21,6 @@ from ..core import runtime
 
 with runtime.Library('tornado'):
   raise NotImplementedError('tornado is stubbed.')
+
+
+  __all__ = tuple()

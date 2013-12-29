@@ -309,5 +309,16 @@ class Library(object):
 
     '''  '''
 
-    if exception and exception_cls is NotImplementedError:
-      return True
+    if exception and exception_cls in (NotImplementedError, ImportError):
+      if self.strict: return False
+
+      if not exception_cls is NotImplementedError:
+        if __debug__: print 'Encountered exception "%s" during library load.' % exception
+
+    return True
+
+
+__all__ = (
+  'Runtime',
+  'Library'
+)

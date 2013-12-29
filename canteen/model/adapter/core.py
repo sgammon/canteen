@@ -29,6 +29,10 @@ from .abstract import IndexedModelAdapter
 #from canteen.util import json
 
 
+## Globals
+_conditionals = []
+
+
 ## AdaptedKey
 class AdaptedKey(KeyMixin):
 
@@ -92,7 +96,6 @@ class AdaptedKey(KeyMixin):
 
 
 ## AdaptedModel
-# Provides bridging between `Model` and the Adapter API.
 class AdaptedModel(ModelMixin):
 
   ''' Provides bridged methods between `model.Model` and the Adapter API. '''
@@ -253,3 +256,15 @@ else:
       ''' Convert a model or entity's schema to a dictionary, where keys=>values map to internal symbols representing properties=>descriptors. '''
 
       raise NotImplementedError()
+
+
+  # add to module exports
+  _conditionals.append('MsgpackMixin')
+
+
+__all__ = tuple([
+  'AdaptedKey',
+  'AdaptedModel',
+  'DictMixin',
+  'JSONMixin'
+] + _conditionals)

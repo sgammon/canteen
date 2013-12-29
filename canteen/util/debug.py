@@ -11,3 +11,6 @@ except ImportError:
   import logging
 
 Logger = logging.Logger
+
+
+__all__ = ('Logger',)

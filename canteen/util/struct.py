@@ -16,7 +16,7 @@
 
 '''
 
-# Base Imports
+# stdlib
 import abc
 import logging
 
@@ -576,8 +576,21 @@ class BidirectionalEnum(object):
       :returns: '''
 
     return '::'.join([
-      "<%s" % self.__class__.__name__,
+      "<%s" % cls.__name__,
       ','.join([
         block for block in ('='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
       "BiDirectional>"
       ])
+
+
+__all__ = (
+  'Sentinel',
+  '_EMPTY',
+  '_TOMBSTONE',
+  'UtilStruct',
+  'ObjectProxy',
+  'WritableObjectProxy',
+  'CallbackProxy',
+  'ObjectDictBridge',
+  'BidirectionalEnum'
+)

@@ -13,4 +13,17 @@
 
 '''
 
-__all__ = ['page', 'logic', 'handler']
+# import all the things
+from .page import *
+from .logic import *
+from .handler import *
+
+
+__all__ = (
+  'page',
+  'logic',
+  'handler',
+  'Page',
+  'Logic',
+  'Handler'
+)

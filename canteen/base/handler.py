@@ -18,6 +18,7 @@ from ..core import injection
 
 # canteen util
 from ..util import debug
+from ..util import config
 from ..util import decorators
 
 
@@ -67,19 +68,15 @@ class Handler(object):
     self.__request__ = request
     self.__response__ = response
 
-  @property
-  def runtime(self):
+  # expose internals, but write-protected
+  runtime = property(lambda self: self.__runtime__)
+  routes = property(lambda self: self.__runtime__.routes)
+  status = property(lambda self: self.__status__)
+  content_type = property(lambda self: self.__content_type__)
+  headers = property(lambda self: self.__headers__)
 
-    '''  '''
-
-    return self.__runtime__  # protect `__runtime__` from writes
-
-  @property
-  def routes(self):
-
-    '''  '''
-
-    return self.__runtime__.routes
+  # shortcuts & utilities
+  url_for = lambda self, endpoint, **args: self.routes.build(endpoint, args)
 
   @property
   def request(self):
@@ -91,67 +88,11 @@ class Handler(object):
     return self.__request__
 
   @property
-  def content_type(self):
-
-    '''  '''
-
-    return self.__content_type__
-
-  @property
-  def status(self):
-
-    '''  '''
-
-    return self.__status__
-
-  @property
-  def headers(self):
-
-    '''  '''
-
-    return self.__headers__
-
-  @property
   def config(self):
 
     '''  '''
 
-    if not self.__config__:
-      # scan for config, walking up the class chain to fallback
-      done, base, config = False, self.__class__, []
-
-      return {'debug': True}
-
-      while not done:
-
-        for cls in base.__bases__:
-          # calculate config path, optionally deferring to `__path__`
-          path = getattr(base, '__path__') if hasattr(base, '__path__') else (
-            '.'.join((cls.__module__, cls.__name__))
-          )
-
-          # if it's found, merge + return
-          if path in self.runtime.config:
-            config.append(self.runtime.config[path])
-
-        # otherwise jump up in bases and continue searching
-        if base.__class__ not in (object, type):
-          base = base.__class__
-        else:
-          done = True
-
-      else:
-        self.__config__ = {'debug': True}
-
-      _merged = {}
-      for block in reversed(config):
-        _merged.update(block)
-
-      if not _merged:  # empty still?
-        self.__config__ = {'debug': True}
-      else:
-        self.__config__ = _merged
-    return self.__config__
+    return config.Config().config
 
   @property
   def context(self):
@@ -207,12 +148,6 @@ class Handler(object):
       }
 
     }
-
-  def url_for(self, endpoint, **kwargs):
-
-    '''  '''
-
-    return self.routes.build(endpoint, kwargs)
 
   def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
 
@@ -270,3 +205,6 @@ class Handler(object):
 
     self.__response__ = method(**url_args)
     return self.__response__ if not direct else self
+
+
+__all__ = ('Handler',)

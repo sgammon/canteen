@@ -36,12 +36,13 @@ class CoreAPI(object):
 
       '''  '''
 
+      if (not hasattr(target, '__binding__')) or target.__binding__ is None: return
+
       # resolve name, instantiate and register instance singleton
-      alias = target.__binding__.__alias__ if hasattr(target, '__binding__') else target.__name__
+      alias = target.__binding__.__alias__ if (hasattr(target.__binding__, '__alias__') and isinstance(target.__binding__, basestring)) else target.__name__
 
       # if we already have a singleton, give that
-      if alias in cls.__map__:
-        return cls.__map__[alias]
+      if alias in cls.__map__: return cls.__map__[alias]
 
       # otherwise, startup a new singleton
       cls.__map__[alias] = target()
@@ -49,4 +50,9 @@ class CoreAPI(object):
 
 
 
-__all__ = ['CoreAPI', 'assets', 'cache', 'template']
+__all__ = (
+  'CoreAPI',
+  'assets',
+  'cache',
+  'template'
+)

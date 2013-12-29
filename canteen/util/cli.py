@@ -216,3 +216,6 @@ class Tool(object):
     except Exception as exc:
       raise
     return 1 if not return_value else 0
+
+
+__all__ = ('Tool',)

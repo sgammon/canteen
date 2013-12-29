@@ -30,6 +30,8 @@ class Delegate(object):
 
   class __metaclass__(type):
 
+    '''  '''
+
     def __new__(cls, name_or_target, bases=None, properties=None):
 
       '''  '''
@@ -120,3 +122,10 @@ class Bridge(object):
   '''  '''
 
   __metaclass__ = Compound
+
+
+__all__ = (
+  'Delegate',
+  'Compound',
+  'Bridge'
+)

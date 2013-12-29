@@ -42,3 +42,6 @@ class Logic(object):
       # otherwise, startup a new singleton
       cls.__map__[alias] = target()
       return cls.__map__[alias]
+
+
+__all__ = ('Logic',)

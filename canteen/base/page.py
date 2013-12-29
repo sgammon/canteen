@@ -22,3 +22,6 @@ class Page(handler.Handler):
   '''  '''
 
   __owner__ = "Page"
+
+
+__all__ = ('Page',)

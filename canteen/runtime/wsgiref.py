@@ -18,7 +18,6 @@
 
 # core
 from ..core import runtime
-from ..util import decorators
 
 
 with runtime.Library('wsgiref') as (library, wsgiref):
@@ -38,3 +37,6 @@ with runtime.Library('wsgiref') as (library, wsgiref):
       '''  '''
 
       return simple_server.make_server(interface, port, self.dispatch)
+
+
+  __all__ = ('StandardWSGI',)

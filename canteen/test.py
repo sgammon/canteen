@@ -103,40 +103,48 @@ if __debug__:
     return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
 
 
-def clirunner(arguments, root=None):  # pragma: nocover
+  def clirunner(arguments, root=None):  # pragma: nocover
 
-  '''  '''
+    '''  '''
 
-  output, format = None, 'text'
+    output, format = None, 'text'
 
-  if not __debug__:
-    raise RuntimeError('Cannot run tests with -O or -OO.')
-  if not root:
-    root = os.getcwd()
+    if not __debug__:
+      raise RuntimeError('Cannot run tests with -O or -OO.')
+    if not root:
+      root = os.getcwd()
 
-  if arguments:
-    if len(arguments) > 2:
-      print "Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT."
+    if arguments:
+      if len(arguments) > 2:
+        print "Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT."
+        sys.exit(1)
+      if len(arguments) == 2:
+        format, output = tuple(arguments)
+      else:
+        format = arguments[0]
+
+    discovered = None
+    if root:
+      loader = unittest.TestLoader()
+      discovered = loader.discover(root)
+
+    try:
+      run(**{
+        'output': output or (sys.stdout if format is 'text' else None),
+        'suites': discovered,
+        'format': format,
+        'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
+      })
+    except Exception as e:
+      print e
       sys.exit(1)
-    if len(arguments) == 2:
-      format, output = tuple(arguments)
     else:
-      format = arguments[0]
+      sys.exit(0)
 
-  discovered = None
-  if root:
-    loader = unittest.TestLoader()
-    discovered = loader.discover(root)
 
-  try:
-    run(**{
-      'output': output or (sys.stdout if format is 'text' else None),
-      'suites': discovered,
-      'format': format,
-      'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
-    })
-  except Exception as e:
-    print e
-    sys.exit(1)
-  else:
-    sys.exit(0)
+  __all__ = (
+    'AppTest',
+    'FrameworkTest',
+    'run',
+    'clirunner'
+  )

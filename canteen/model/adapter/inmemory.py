@@ -389,3 +389,6 @@ class InMemoryAdapter(IndexedModelAdapter):
     ''' Execute a query across one (or multiple) indexed properties. '''
 
     raise NotImplementedError('Queries are not yet supported in `InMemoryAdapter`.')
+
+
+__all__ = ('InMemoryAdapter',)

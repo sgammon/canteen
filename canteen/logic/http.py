@@ -47,7 +47,7 @@ def url(name_or_route, route=None, **kwargs):
   return inject
 
 
-with runtime.Library('werkzeug') as (library, werkzeug):
+with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
   # werkzeug internals
   wsgi, utils, routing, wrappers, exceptions = library.load(
@@ -198,3 +198,9 @@ with runtime.Library('werkzeug') as (library, werkzeug):
 
       # default to a `Method Not Allowed`
       self.error(405)
+
+
+    __all__ = (
+      'url',
+      'HTTPSemantics'
+    )

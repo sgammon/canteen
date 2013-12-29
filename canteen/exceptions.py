@@ -19,3 +19,6 @@
 class Error(Exception):
 
 	''' Top-level error for all of :py:mod:`canteen`. '''
+
+
+__all__ = ('Error',)

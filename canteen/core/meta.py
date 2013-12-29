@@ -201,7 +201,8 @@ class Proxy(object):
           for concrete in filter(lambda x: issubclass(x.__class__, Proxy.Component), Proxy.Component.__chain__[metabucket]):
 
             namespace = ''
-            responder, properties = concrete.inject(concrete, cls.__target__, cls.__delegate__) or {}
+            responder, properties = concrete.inject(concrete, cls.__target__, cls.__delegate__) or (None, {})
+            if not responder: continue  # filter out classes that opt-out of injection
 
             if hasattr(concrete, '__binding__'):
 
@@ -258,6 +259,9 @@ class Proxy(object):
       # allow class to "prepare" itself (potentially instantiating a singleton)
       concrete = cls.__class__.prepare(cls) if hasattr(cls.__class__, 'prepare') else cls
 
+      # allow class to indicate it does not wish to inject
+      if concrete is None: return
+
       # gather injectable attributes
       _injectable = set()
       if hasattr(cls, '__bindings__'):
@@ -276,3 +280,10 @@ class Proxy(object):
 
       # return bound injectables or the whole set
       return concrete, _injectable or set(filter(lambda x: not x.startswith('__'), concrete.__dict__.iterkeys()))
+
+
+__all__ = (
+  'MetaFactory',
+  'Base',
+  'Proxy'
+)

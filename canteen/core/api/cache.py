@@ -232,6 +232,21 @@ class CacheAPI(CoreAPI):
       self.target = {}
       return length
 
+  #### ==== Internals ==== ####
+  @property
+  def config(self):
+
+    '''  '''
+
+    return config.Config().config.get('CacheAPI', {})
+
+  @property
+  def debug(self):
+
+    '''  '''
+
+    return self.config.get('debug', True)
+
   #### ==== Cache Management ==== ####
   @decorators.bind('cache.spawn', wrap=staticmethod)
   def spawn(name=None, target=None, engine=Threadcache, strategy=PersistentCache):
@@ -287,6 +302,7 @@ class CacheAPI(CoreAPI):
 
     '''  '''
 
+
     _cache = cls.spawn()
     return [_cache.get(key) for key in keys]
 
@@ -321,3 +337,9 @@ class CacheAPI(CoreAPI):
     _cache = cls.spawn()
     for key in keys:
       _cache.delete(key)
+
+
+__all__ = (
+  'Cache',
+  'CacheAPI'
+)

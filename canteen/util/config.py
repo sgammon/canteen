@@ -100,3 +100,6 @@ class Config(object):
     '''  '''
 
     return self.wrap or self.blocks
+
+
+__all__ = ('Config',)

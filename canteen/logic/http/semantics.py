@@ -2,8 +2,8 @@
 
 '''
 
-  canteen HTTP logic
-  ~~~~~~~~~~~~~~~~~~
+  canteen HTTP semantics
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -17,13 +17,13 @@
 import re
 
 # core
-from ..base import logic
-from ..core import runtime
-from ..util import decorators
+from canteen.base import logic
+from canteen.core import runtime
+from canteen.util import decorators
 
 # cache & session APIs
-from ..core.api import cache
-from ..core.api import session
+from canteen.core.api import cache
+from canteen.core.api import session
 
 
 def url(name_or_route, route=None, **kwargs):

@@ -31,12 +31,17 @@ class Runtime(object):
 
   '''  '''
 
+  # == Public Properties == #
+
   routes = None  # compiled route map
   config = None  # application config
   bridge = None  # window into the injection pool
   application = None  # WSGI application callable or delegate
 
-  __owner__, __metaclass__ = "Runtime", Proxy.Component
+  # == Private Properties == #
+  __hooks__ = {}  # mapped hookpoints and methods to call
+  __owner__ = "Runtime"  # metabucket owner name for subclasses
+  __metaclass__ = Proxy.Component  # this should be injectable
 
   @classmethod
   def spawn(cls, app):
@@ -62,6 +67,39 @@ class Runtime(object):
     if _preferred:
       return _preferred[0]  # Werkzeug
     return _default  # WSGIref
+
+  @classmethod
+  def add_hook(cls, hook, func):
+
+    '''  '''
+
+    if hook not in cls.__hooks__: cls.__hooks__[hook] = []
+    cls.__hooks__[hook].append(func)
+    return cls
+
+  @classmethod
+  def get_hooks(cls, point):
+
+    '''  '''
+
+    if point in cls.__hooks__:
+      for i in cls.__hooks__[point]:
+        yield i
+    raise StopIteration()
+
+  @classmethod
+  def execute_hooks(cls, point, *args, **kwargs):
+
+    '''  '''
+
+    for hook in cls.get_hooks(point):
+      try:
+        hook(cls, *args, **kwargs)
+      except Exception as e:
+        print "Encountered hook exception: '%s'." % e
+        if __debug__: raise
+
+    return
 
   def __init__(self, app):
 
@@ -97,12 +135,9 @@ class Runtime(object):
 
     try:
       server.serve_forever()
-    except KeyboardInterrupt as e:
+    except (KeyboardInterrupt, Exception) as e:
       print "Exiting."
       sys.exit(0)
-    except Exception as e:
-      print "Exiting."
-      sys.exit(1)
 
   def bind_environ(self, environ):
 
@@ -125,16 +160,38 @@ class Runtime(object):
 
     start, latency = time.clock(), lambda: "Responded in %sms." % (str(round((time.clock() - start) * 1000, 2)))  # start response clock
 
+    # call dispatch hooks
+    if 'dispatch' in self.__hooks__: self.execute_hooks('dispatch', environ=environ, start_response=start_response)
+
     # resolve URL via bound routes
     http, request, response = self.bind_environ(environ)
 
+    # call request hooks
+    if 'request' in self.__hooks__:  self.execute_hooks('request', request=request, http=http)
+
     # match route
     endpoint, arguments = self.routes.match()
+
+    # call match hooks
+    if 'match' in self.__hooks__: self.execute_hooks('match', endpoint=endpoint, arguments=arguments)
 
     # resolve endpoint
     handler = http.resolve_route(endpoint)
 
     if not handler:  # `None` for handler means it didn't match
+
+      # dispatch error hook for 404
+      if 'error' in self.__hooks__:
+        self.execute_hooks('error', **{
+          'code': 404,
+          'exception': None,
+          'http': http,
+          'request': request,
+          'runtime': self,
+          'endpoint': endpoint,
+          'arguments': arguments
+        })
+
       http.error(404)
 
     # class-based pages/handlers
@@ -150,12 +207,29 @@ class Runtime(object):
         'response': response
       })
 
+      # call handler hooks
+      if 'handler' in self.__hooks__:
+        self.execute_hooks('handler', **{
+          'handler': flow,
+          'environ': environ,
+          'start_response': start_response
+        })
+
       # dispatch time: INCEPTION.
       result = flow(arguments)
 
       if isinstance(result, tuple):
 
         status, headers, content_type, content = result
+
+        # call response hooks
+        if 'response' in self.__hooks__:
+          self.execute_hooks('response', **{
+            'status': status,
+            'headers': headers,
+            'content': content,
+            'response': result
+          })
 
         print latency()
         return response.__class__(content, **{
@@ -164,6 +238,15 @@ class Runtime(object):
           'mimetype': content_type
         })(environ, start_response)
 
+      # call response hooks
+      if 'response' in self.__hooks__:
+        self.execute_hooks('response', **{
+          'status': result.status,
+          'headers': result.headers,
+          'content': result.content,
+          'response': response
+        })
+
       print latency()
       return result(environ, start_response)  # it's a werkzeug Response
 
@@ -171,12 +254,17 @@ class Runtime(object):
     elif isinstance(handler, type) or callable(handler):
 
       # make a neat little shim, containing our runtime
-      def _foreign_runtime_bridge(*args, **kwargs):
+      def _foreign_runtime_bridge(status, headers):
 
         '''  '''
 
         print latency()
-        return start_response(*args, **kwargs)
+
+        # call response hooks
+        if 'response' in self.__hooks__:
+          self.execute_hooks('response', status=status, headers=headers)
+
+        return start_response(status, headers)
 
       # attach runtime, arguments and actual start_response to shim
       _foreign_runtime_bridge.runtime = self
@@ -206,6 +294,15 @@ class Runtime(object):
       result = handler(**arguments)
       if isinstance(result, response.__class__):
 
+        # call response hooks
+        if 'response' in self.__hooks__:
+          self.execute_hooks('response', **{
+            'status': result.status,
+            'headers': result.headers,
+            'content': result.content,
+            'response': result
+          })
+
         print latency()
         return response(environ, start_response)  # it's a Response class - call it to start_response
 
@@ -214,7 +311,18 @@ class Runtime(object):
 
         if len(result) == 2:  # it's (status_code, response)
           status, response = result
-          start_response(status, [('Content-Type', 'text/html; charset=utf-8')])
+          headers = [('Content-Type', 'text/html; charset=utf-8')]
+
+          # call response hooks
+          if 'response' in self.__hooks__:
+            self.execute_hooks('response', **{
+              'status': status,
+              'headers': headers,
+              'content': response,
+              'response': response
+            })
+
+          start_response(status, headers)
 
           print latency()
           return iter([response])
@@ -227,13 +335,34 @@ class Runtime(object):
             if 'Content-Type' not in headers:
               headers['Content-Type'] = 'text/html; charset=utf-8'
 
+          # call response hooks
+          if 'response' in self.__hooks__:
+            self.execute_hooks('response', **{
+              'status': status,
+              'headers': headers,
+              'content': response,
+              'response': response
+            })
+
           start_response(status, headers)
 
           print latency()
           return iter([response])
 
       elif isinstance(result, basestring):
-        start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8')])
+
+        status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
+
+        # call response hooks
+        if 'response' in self.__hooks__:
+          self.execute_hooks('response', **{
+            'status': status,
+            'headers': headers,
+            'content': result,
+            'response': result
+          })
+
+        start_response(status, headers)
 
         print latency()
         return iter([result])
@@ -241,6 +370,17 @@ class Runtime(object):
     # could be a bound response
     if not callable(handler):
       if isinstance(handler, basestring):
+
+        status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
+
+        # call response hooks
+        if 'response' in self.__hooks__:
+          self.execute_hooks('response', **{
+            'status': status,
+            'headers': headers,
+            'content': handler,
+            'response': handler
+          })
 
         # it's a static response!
         return iter([handler])
@@ -309,11 +449,9 @@ class Library(object):
 
     '''  '''
 
-    if exception and exception_cls in (NotImplementedError, ImportError):
+    if exception:
       if self.strict: return False
-
-      if not exception_cls is NotImplementedError:
-        if __debug__: print 'Encountered exception "%s" during library load.' % exception
+      if __debug__: print 'Encountered exception "%s" during library load.' % exception
 
     return True
 

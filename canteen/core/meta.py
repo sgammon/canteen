@@ -18,6 +18,7 @@
 
 # utils
 from ..util import struct
+from ..util import decorators
 
 
 ## Globals
@@ -186,6 +187,14 @@ class Proxy(object):
     __target__ = None
     __binding__ = None
     __injector_cache__ = {}
+    __map__ = {}  # holds map of all platform instances
+
+    @decorators.classproperty
+    def singleton_map(self):
+
+      '''  '''
+
+      return self.__map__
 
     @staticmethod
     def collapse(cls, spec=None):
@@ -280,6 +289,25 @@ class Proxy(object):
 
       # return bound injectables or the whole set
       return concrete, _injectable or set(filter(lambda x: not x.startswith('__'), concrete.__dict__.iterkeys()))
+
+    @classmethod
+    def prepare(cls, target):
+
+      '''  '''
+
+      if (not hasattr(target, '__binding__')) or target.__binding__ is None: return
+
+      # resolve name, instantiate and register instance singleton
+      alias = target.__binding__.__alias__ if (hasattr(target.__binding__, '__alias__') and isinstance(target.__binding__, basestring)) else target.__name__
+
+      if hasattr(target, '__singleton__') and target.__singleton__:
+        # if we already have a singleton, give that
+        if alias in cls.__map__: return cls.__map__[alias]
+
+        # otherwise, startup a new singleton
+        cls.__map__[alias] = target()
+        return cls.__map__[alias]
+      return target
 
 
 __all__ = (

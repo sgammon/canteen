@@ -232,21 +232,32 @@ class bind(object):
 
     # are we decorating a class?
     if isinstance(target, type):
+
       if issubclass(target.__class__, meta.Proxy.Registry):
 
-        _bindings, _aliases = set(), {}
+        _bindings, _aliases, _hooks = set(), {}, []
+
+        # prepare singleton if requested
+        if hasattr(target, '__singleton__') and target.__singleton__:
+          target.__class__.prepare(target)
 
         # scan for "bound" methods (bound for DI, not for Python)
         for mapping in (target.__dict__, target.__class__.__dict__):
           for k, v in mapping.iteritems():
 
+            # is this a wrapped method? unwrap it
             if isinstance(v, (staticmethod, classmethod)):
               v = v.__func__  # unwrap from wrapped class/static decorator
 
+            # is this a bound (i.e. dependency-injected) method?
             if hasattr(v, '__binding__'):
               _bindings.add(k)
               if v.__binding__.__alias__:
                 _aliases[v.__binding__.__alias__] = k
+
+            # is this a hook method? register with self
+            if hasattr(v, '__hooks__'):
+              v.__register__(target)
 
         # attach bindings to target class
         target.__aliases__, target.__bindings__ = _aliases, frozenset(_bindings) if _bindings else None

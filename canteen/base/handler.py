@@ -95,6 +95,15 @@ class Handler(object):
     return config.Config().config
 
   @property
+  def session(self):
+
+    '''  '''
+
+    if self.request.session:
+      session, engine = self.request.session
+      return session
+
+  @property
   def context(self):
 
     '''  '''

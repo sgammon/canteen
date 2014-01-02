@@ -210,6 +210,9 @@ class InMemoryAdapter(IndexedModelAdapter):
         # extract write, inflate
         index, path, value = write[0], write[1:-1], write[-1]
 
+        if isinstance(value, dict):
+          continue  # cannot index dictionaries
+
         # init index hash (mostly covers custom indexes)
         if index not in _metadata:  # pragma: no cover
           _metadata[index] = {(path, value): set()}

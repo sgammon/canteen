@@ -13,6 +13,9 @@
 
 '''
 
+# stdlib
+import json, time
+
 # core runtime
 from canteen.base import logic
 from canteen.core import runtime
@@ -26,30 +29,113 @@ from canteen.core.api.session import SessionEngine
 
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
+  # subimports
+  securecookie = library.load('contrib.securecookie')
+
 
   @decorators.bind('cookies')
   class Cookies(logic.Logic):
 
     '''  '''
 
+    __modes__ = {}  # modes for dealing with cookies
+
+    @classmethod
+    def add_mode(cls, name):
+
+      '''  '''
+
+      def _mode_adder(mode_klass):
+
+        '''  '''
+
+        cls.__modes__[name] = mode_klass
+        cls.__default__ = cls.__modes__[name]
+        return mode_klass
+
+      return _mode_adder
+
+    @classmethod
+    def get_mode(cls, name):
+
+      '''  '''
+
+      return cls.__modes__[name] if name in cls.__modes__ else cls.__default__
+
+
     @SessionEngine.configure('cookies')
     class CookieSessions(SessionEngine):
 
       '''  '''
 
-      def load(self, context):
+      def load(self, request, http):
 
         '''  '''
 
-        pass
+        # if there is a session cookie, load it...
+        if self.config.get('key', 'canteen') in request.cookies:
 
-      def commit(self, context, session):
+          # resolve serializer
+          _serializer = Cookies.get_mode(self.config.get('mode', 'json'))
+
+          # unserialize the cookie
+          session = _serializer.unserialize(request.cookies[self.config.get('key', 'canteen')], self.api.secret)
+
+          if not session.new: return request.set_session(session, self)
+        return request.set_session(None, self)  # set an explicitly-empty session (none was found)
+
+      def commit(self, request, response, session):
 
         '''  '''
 
-        pass
+        # resolve serializer
+        _serializer, _key = (
+          Cookies.get_mode(self.config.get('mode', 'json')),
+          self.config.get('key', 'canteen')
+        )
+
+        # serialize the cookie
+        serialized = _serializer({
+          'id': session.id
+        }, self.api.secret).serialize()
+
+        # do we even need to write the cookie?
+        if _key in request.cookies and (request.cookies[_key] == serialized):
+          return  # the cookies are equal: don't need to re-set it
+
+        # cookie parameters
+        _params = {}
+
+        # resolve expiration
+        if 'max_age' not in self.config:
+          if 'expires' not in self.config:
+            _params['max_age'] = None  # expire on session close
+          else:
+            _params['expires'] = self.config['expires']
+        else:
+          _params['max_age'] = self.config['max_age']
+
+        # copy-over cookie params
+        _params.update({
+          'path': self.config.get('path', '/'),
+          'secure': self.config.get('secure', False),
+          'domain': self.config.get('domain', request.host.split(':')[0]),
+          'httponly': self.config.get('http_only', self.config.get('httponly', False))
+        })
+
+        # write cookie into the response
+        response.set_cookie(_key, serialized, **_params)
+
+
+  @Cookies.add_mode('json')
+  class JSONCookie(securecookie.SecureCookie):
+
+    '''  '''
+
+    serialization_method = json
 
 
   __all__ = (
     'Cookies',
+    'JSONCookie'
   )

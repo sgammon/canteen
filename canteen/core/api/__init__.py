@@ -26,28 +26,8 @@ class CoreAPI(object):
   '''  '''
 
   __owner__ = "CoreAPI"
-
-  class __metaclass__(Proxy.Component):
-
-    __map__ = {}  # holds map of all platform instances
-
-    @classmethod
-    def prepare(cls, target):
-
-      '''  '''
-
-      if (not hasattr(target, '__binding__')) or target.__binding__ is None: return
-
-      # resolve name, instantiate and register instance singleton
-      alias = target.__binding__.__alias__ if (hasattr(target.__binding__, '__alias__') and isinstance(target.__binding__, basestring)) else target.__name__
-
-      # if we already have a singleton, give that
-      if alias in cls.__map__: return cls.__map__[alias]
-
-      # otherwise, startup a new singleton
-      cls.__map__[alias] = target()
-      return cls.__map__[alias]
-
+  __singleton__ = True  # core APIs have singletons
+  __metaclass__ = Proxy.Component
 
 
 __all__ = (

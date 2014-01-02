@@ -13,12 +13,12 @@
 
 '''
 
-# stdlib
-import re
-
 # core
 from canteen.base import logic
 from canteen.core import runtime
+
+# canteen util
+from canteen.util import config
 from canteen.util import decorators
 
 # cache & session APIs
@@ -71,6 +71,52 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     # == Base Classes == #
     HTTPException = exceptions.HTTPException
 
+
+    class HTTPRequest(wrappers.Request):
+
+      '''  '''
+
+      __session__ = None  # internal slot for session reference
+
+      @property
+      def session(self):
+
+        '''  '''
+
+        return self.__session__
+
+      def set_session(self, session_obj, engine=None):
+
+        '''  '''
+
+        if session_obj and not isinstance(session_obj, session.Session):
+          session_obj = session.Session.load(session_obj['id'])
+
+        if self.__session__:
+
+          existing_session, existing_engine = self.__session__
+          if not engine:
+            engine = existing_engine
+
+        self.__session__ = (session_obj, engine)
+        return self
+
+
+    class HTTPResponse(wrappers.Response):
+
+      '''  '''
+
+      pass
+
+
+    #### ==== Internals ==== ####
+    @decorators.classproperty
+    def config(cls):
+
+      '''  '''
+
+      return config.Config().get('http', {'debug': True})
+
     #### ==== Routing ==== ####
     @classmethod
     def add_route(cls, (route, name), target, **kwargs):
@@ -96,14 +142,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
-      return wrappers.Request(environ)
+      return cls.HTTPRequest(environ)
 
     @classmethod
     def new_response(cls, *args, **kwargs):
 
       '''  '''
 
-      return wrappers.Response(*args, **kwargs)
+      return cls.HTTPResponse(*args, **kwargs)
 
     @decorators.classproperty
     def router(cls):

@@ -41,6 +41,7 @@ class Runtime(object):
   # == Private Properties == #
   __hooks__ = {}  # mapped hookpoints and methods to call
   __owner__ = "Runtime"  # metabucket owner name for subclasses
+  __singleton__ = False  # many runtimes can exist, so power
   __metaclass__ = Proxy.Component  # this should be injectable
 
   @classmethod
@@ -69,12 +70,13 @@ class Runtime(object):
     return _default  # WSGIref
 
   @classmethod
-  def add_hook(cls, hook, func):
+  def add_hook(cls, hook, (context, func)):
 
     '''  '''
 
+    assert isinstance(hook, basestring), "hook name must be a string"
     if hook not in cls.__hooks__: cls.__hooks__[hook] = []
-    cls.__hooks__[hook].append(func)
+    cls.__hooks__[hook].append((context, func))
     return cls
 
   @classmethod
@@ -88,16 +90,38 @@ class Runtime(object):
     raise StopIteration()
 
   @classmethod
-  def execute_hooks(cls, point, *args, **kwargs):
+  def execute_hooks(cls, points, *args, **kwargs):
 
     '''  '''
 
-    for hook in cls.get_hooks(point):
-      try:
-        hook(cls, *args, **kwargs)
-      except Exception as e:
-        print "Encountered hook exception: '%s'." % e
-        if __debug__: raise
+    if isinstance(points, basestring): points = (points,)
+    for point in points:
+      for context, hook in cls.get_hooks(point):
+        try:
+          # run as classmethod
+          if isinstance(hook, classmethod):
+            hook.__func__(context, *args, **kwargs)
+
+          # run as staticmethod
+          elif isinstance(hook, staticmethod):
+            hook.__func__(*args, **kwargs)
+
+          else:
+
+            # must have a singleton if we're running in object context
+            if not hasattr(context, '__singleton__') or not context.__singleton__:
+              raise RuntimeError('Cannot execute hook method "%s" without matching singleton context.' % hook)
+
+            # resolve singleton by context name
+            obj = Proxy.Component.singleton_map.get(context.__name__)
+            if not obj: raise RuntimeError('No matching singleton for hook method "%s".' % hook)
+
+            # run in singleton context
+            hook(obj, *args, **kwargs)
+
+        except Exception as e:
+          print "Encountered hook exception: '%s'." % e
+          if __debug__: raise
 
     return
 
@@ -161,19 +185,19 @@ class Runtime(object):
     start, latency = time.clock(), lambda: "Responded in %sms." % (str(round((time.clock() - start) * 1000, 2)))  # start response clock
 
     # call dispatch hooks
-    if 'dispatch' in self.__hooks__: self.execute_hooks('dispatch', environ=environ, start_response=start_response)
+    self.execute_hooks('dispatch', environ=environ, start_response=start_response)
 
     # resolve URL via bound routes
     http, request, response = self.bind_environ(environ)
 
     # call request hooks
-    if 'request' in self.__hooks__:  self.execute_hooks('request', request=request, http=http)
+    self.execute_hooks('request', request=request, http=http)
 
     # match route
     endpoint, arguments = self.routes.match()
 
     # call match hooks
-    if 'match' in self.__hooks__: self.execute_hooks('match', endpoint=endpoint, arguments=arguments)
+    self.execute_hooks('match', environ=environ, endpoint=endpoint, arguments=arguments, request=request, http=http)
 
     # resolve endpoint
     handler = http.resolve_route(endpoint)
@@ -181,16 +205,16 @@ class Runtime(object):
     if not handler:  # `None` for handler means it didn't match
 
       # dispatch error hook for 404
-      if 'error' in self.__hooks__:
-        self.execute_hooks('error', **{
-          'code': 404,
-          'exception': None,
-          'http': http,
-          'request': request,
-          'runtime': self,
-          'endpoint': endpoint,
-          'arguments': arguments
-        })
+      self.execute_hooks(('error', 'complete'), **{
+        'code': 404,
+        'exception': None,
+        'http': http,
+        'request': request,
+        'runtime': self,
+        'endpoint': endpoint,
+        'environ': environ,
+        'arguments': arguments
+      })
 
       http.error(404)
 
@@ -208,12 +232,11 @@ class Runtime(object):
       })
 
       # call handler hooks
-      if 'handler' in self.__hooks__:
-        self.execute_hooks('handler', **{
-          'handler': flow,
-          'environ': environ,
-          'start_response': start_response
-        })
+      self.execute_hooks('handler', **{
+        'handler': flow,
+        'environ': environ,
+        'start_response': start_response
+      })
 
       # dispatch time: INCEPTION.
       result = flow(arguments)
@@ -222,30 +245,36 @@ class Runtime(object):
 
         status, headers, content_type, content = result
 
-        # call response hooks
-        if 'response' in self.__hooks__:
-          self.execute_hooks('response', **{
-            'status': status,
-            'headers': headers,
-            'content': content,
-            'response': result
-          })
-
-        print latency()
-        return response.__class__(content, **{
+        _response = response.__class__(content, **{
           'status': status,
           'headers': headers,
           'mimetype': content_type
-        })(environ, start_response)
+        })
+
+        # call response hooks
+        self.execute_hooks(('response', 'complete'), **{
+          'http': http,
+          'status': status,
+          'request': request,
+          'headers': headers,
+          'content': content,
+          'environ': environ,
+          'response': _response
+        })
+
+        print latency()
+        return _response(environ, start_response)
 
       # call response hooks
-      if 'response' in self.__hooks__:
-        self.execute_hooks('response', **{
-          'status': result.status,
-          'headers': result.headers,
-          'content': result.content,
-          'response': response
-        })
+      self.execute_hooks(('response', 'complete'), **{
+        'http': http,
+        'status': status,
+        'request': request,
+        'headers': result.headers,
+        'content': result.content,
+        'environ': environ,
+        'response': response
+      })
 
       print latency()
       return result(environ, start_response)  # it's a werkzeug Response
@@ -261,8 +290,7 @@ class Runtime(object):
         print latency()
 
         # call response hooks
-        if 'response' in self.__hooks__:
-          self.execute_hooks('response', status=status, headers=headers)
+        self.execute_hooks(('response', 'complete'), status=status, headers=headers)
 
         return start_response(status, headers)
 
@@ -295,13 +323,15 @@ class Runtime(object):
       if isinstance(result, response.__class__):
 
         # call response hooks
-        if 'response' in self.__hooks__:
-          self.execute_hooks('response', **{
-            'status': result.status,
-            'headers': result.headers,
-            'content': result.content,
-            'response': result
-          })
+        self.execute_hooks(('response', 'complete'), **{
+          'http': http,
+          'status': status,
+          'request': request,
+          'headers': result.headers,
+          'content': result.content,
+          'environ': environ,
+          'response': result
+        })
 
         print latency()
         return response(environ, start_response)  # it's a Response class - call it to start_response
@@ -314,13 +344,15 @@ class Runtime(object):
           headers = [('Content-Type', 'text/html; charset=utf-8')]
 
           # call response hooks
-          if 'response' in self.__hooks__:
-            self.execute_hooks('response', **{
-              'status': status,
-              'headers': headers,
-              'content': response,
-              'response': response
-            })
+          self.execute_hooks(('response', 'complete'), **{
+            'http': http,
+            'status': status,
+            'request': request,
+            'headers': headers,
+            'content': response,
+            'environ': environ,
+            'response': response
+          })
 
           start_response(status, headers)
 
@@ -336,13 +368,15 @@ class Runtime(object):
               headers['Content-Type'] = 'text/html; charset=utf-8'
 
           # call response hooks
-          if 'response' in self.__hooks__:
-            self.execute_hooks('response', **{
-              'status': status,
-              'headers': headers,
-              'content': response,
-              'response': response
-            })
+          self.execute_hooks(('response', 'complete'), **{
+            'http': http,
+            'status': status,
+            'request': request,
+            'headers': headers,
+            'content': response,
+            'environ': environ,
+            'response': response
+          })
 
           start_response(status, headers)
 
@@ -354,13 +388,15 @@ class Runtime(object):
         status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
 
         # call response hooks
-        if 'response' in self.__hooks__:
-          self.execute_hooks('response', **{
-            'status': status,
-            'headers': headers,
-            'content': result,
-            'response': result
-          })
+        self.execute_hooks(('response', 'complete'), **{
+          'http': http,
+          'status': status,
+          'request': request,
+          'headers': headers,
+          'content': result,
+          'environ': environ,
+          'response': result
+        })
 
         start_response(status, headers)
 
@@ -374,13 +410,15 @@ class Runtime(object):
         status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
 
         # call response hooks
-        if 'response' in self.__hooks__:
-          self.execute_hooks('response', **{
-            'status': status,
-            'headers': headers,
-            'content': handler,
-            'response': handler
-          })
+        self.execute_hooks(('response', 'complete'), **{
+          'http': http,
+          'status': status,
+          'request': request,
+          'headers': headers,
+          'content': handler,
+          'environ': environ,
+          'response': handler
+        })
 
         # it's a static response!
         return iter([handler])

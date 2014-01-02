@@ -27,14 +27,18 @@ class ContentFilter(object):
 
     '''  '''
 
-    self.__hooks__ = []
-    for k in hooks:
-      if hooks[k]: self.__hooks__.append(k)
+    self.__hooks__ = frozenset(hooks.keys())
+
+  def __register__(self, context):
+
+    '''  '''
+
+    for i in self.__hooks__:
+      runtime.Runtime.add_hook(i, (context, self.__func__))
 
   def __call__(self, func):
 
     '''  '''
 
-    for hook in self.__hooks__:
-      runtime.Runtime.add_hook(hook, func)
-    return func
+    self.__func__ = func
+    return self

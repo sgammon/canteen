@@ -18,7 +18,7 @@ import json
 
 # canteen base & core
 from canteen.core import runtime
-from canteen.base.protocol import Protocol
+from canteen.base import protocol
 
 
 ## Globals
@@ -38,8 +38,8 @@ with runtime.Library('protorpc') as (library, protorpc):
   protojson = library.load('protojson')
 
 
-  @Protocol.register('jsonrpc', _content_types)
-  class JSONRPC(Protocol, protojson.ProtoJson):
+  @protocol.Protocol.register('jsonrpc', _content_types)
+  class JSONRPC(protocol.Protocol, protojson.ProtoJson):
 
     '''  '''
 

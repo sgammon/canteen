@@ -90,7 +90,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         '''  '''
 
         if session_obj and not isinstance(session_obj, session.Session):
-          session_obj = session.Session.load(session_obj['id'])
+          session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'])
 
         if self.__session__:
 

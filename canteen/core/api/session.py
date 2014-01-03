@@ -403,7 +403,7 @@ class SessionAPI(CoreAPI):
 
     '''  '''
 
-    if request.session:  # are sessions enabled?
+    if request.session and response:  # are sessions enabled?
 
       session, engine = request.session  # extract engine and session
 

@@ -96,7 +96,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
         # serialize the cookie
         serialized = _serializer({
-          'id': session.id
+          'uuid': session.id
         }, self.api.secret).serialize()
 
         # do we even need to write the cookie?
@@ -133,6 +133,20 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     '''  '''
 
     serialization_method = json
+
+
+  with runtime.Library('flask') as (flib, flask):
+
+    # load flask sessions
+    flask_sessions = flib.load('sessions')
+
+
+    class FlaskSessionBridge(JSONCookie, flask_sessions.SessionMixin):
+
+      '''  '''
+
+    # install our session bridge, forcing Flask to use JSON cookies
+    flask_sessions.SecureCookieSessionInterface.session_class = FlaskSessionBridge
 
 
   __all__ = (

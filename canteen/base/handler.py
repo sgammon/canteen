@@ -104,6 +104,27 @@ class Handler(object):
       return session
 
   @property
+  def environment(self):
+
+    '''  '''
+
+    return self.__environ__
+
+  @property
+  def start_response(self):
+
+    '''  '''
+
+    return self.__callback__
+
+  @property
+  def runtime(self):
+
+    '''  '''
+
+    return self.__runtime__
+
+  @property
   def context(self):
 
     '''  '''

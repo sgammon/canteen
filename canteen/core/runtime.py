@@ -268,10 +268,10 @@ class Runtime(object):
       # call response hooks
       self.execute_hooks(('response', 'complete'), **{
         'http': http,
-        'status': status,
+        'status': result.status,
         'request': request,
         'headers': result.headers,
-        'content': result.content,
+        'content': result.response,
         'environ': environ,
         'response': response
       })

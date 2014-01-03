@@ -31,8 +31,9 @@ abstract_adapters = [abstract, ModelAdapter, IndexedModelAdapter]
 
 # adapter modules
 from . import inmemory
+from . import protorpc
 
-modules = [inmemory]
+modules = [inmemory, protorpc]
 
 
 # concrete adapters

@@ -13,26 +13,23 @@
 
 '''
 
-
-# stdlib
-import os
-import time
-import json
-
 # canteen
 from canteen import core
 from canteen import base
-from canteen import util
 from canteen import model
 
 # canteen core
-from canteen.core import meta
 from canteen.core import injection
 
+# canteen HTTP
+from canteen.logic import http
+
 # canteen util
-from canteen.util import debug
 from canteen.util import decorators
 from canteen.util import struct as datastructures
+
+# RPC submodules
+from .protocol import *
 
 
 with core.Library('protorpc', strict=True) as (protorpc, library):
@@ -53,6 +50,11 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
   # message types
   from protorpc import message_types as pmessage_types
   from protorpc.message_types import VoidMessage as ProtoVoidMessage
+
+  # WSGI internals
+  from protorpc import wsgi as pwsgi
+  from protorpc.wsgi import util as pwsgi_util
+  from protorpc.wsgi import service as pservice
 
 
   #### ==== Message Fields ==== ####
@@ -124,18 +126,144 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
   })
 
 
+  def service_mappings(services, registry_path='/_rpc/meta', protocols=None):
+
+    '''  '''
+
+    import pdb; pdb.set_trace()
+
+    if not protocols:
+      from canteen.base import protocol
+      protocols = protocol.Protocol.mapping
+
+    if isinstance(services, dict):
+      services = services.iteritems()
+
+    final_mapping, paths, registry_map = (
+      [],
+      set(),
+      {} if registry_path else None
+    )
+
+    for service_path, service_factory in services:
+      service_class = service_factory.service_class if hasattr(service_factory, 'service_class') else service_factory
+
+      if service_path not in paths:
+        paths.add(service_path)
+      else:
+        raise premote.ServiceConfigurationError(
+          'Path %r is already defined in service mapping' %
+          service_path.encode('utf-8'))
+
+      if registry_map is not None: registry_map[service_path] = service_class
+      final_mapping.append(pservice.service_mapping(service_factory, service_path, protocols=protocols))
+
+    if registry_map is not None:
+      final_mapping.append(pservice.service_mapping(
+        pregistry.RegistryService.new_factory(registry_map), registry_path, protocols=protocols))
+
+    return pwsgi_util.first_found(final_mapping)
+
+
+  @http.url('rpc', r'/_rpc/v1/<string:service>.<string:method>')
   class ServiceHandler(base.Handler):
 
     '''  '''
 
-    pass
+    __services__ = {}  # holds services mapped to their names
+
+    @classmethod
+    def add_service(cls, name, service, **config):
+
+      '''  '''
+
+      cls.__services__[name] = (service, config)
+      return service
+
+    @decorators.classproperty
+    def get_service(cls, name):
+
+      '''  '''
+
+      if name in cls.__services__:
+        return cls.__services__[name]
+
+    @decorators.classproperty
+    def services(cls):
+
+      '''  '''
+
+      for name, service in cls.__services__.iteritems():
+        yield name, service
+
+    @decorators.classproperty
+    def application(cls):
+
+      '''  '''
+
+      _services = []
+      for name, service in cls.services:
+        service, config = service
+        _services.append((r'/_rpc/v1/%s' % name, service.new_factory(config=config)))
+
+      return service_mappings(_services, registry_path='/_rpc/meta/registry')
+
+    def OPTIONS(self, service, method):
+
+      '''  '''
+
+      return self.response('GET, HEAD, OPTIONS, PUT, POST')
+
+    def POST(self, service, method):
+
+      '''  '''
+
+      _status, _headers = None, None
+      def _respond(status, headers):
+
+        '''  '''
+
+        _status = status
+        _headers = headers
+
+      # delegate to service application
+      return self.response(self.application(self.environment, _respond), **{
+        'status': _status,
+        'headers': _headers
+      })
+
+    GET = POST
 
 
-  class Service(object):
+  class Service(premote.Service):
 
     '''  '''
 
-    __owner__, __metaclass__ =  "Service", injection.Compound
+    __config__ = None  # local configuration
+    __bridge__ = None  # dependency injection bridge
+
+    def __init__(self, config=None):
+
+      '''  '''
+
+      self.__bridge__, self.__config__ = (
+        injection.Bridge(),
+        config
+      )
+
+    @property
+    def config(self):
+
+      '''  '''
+
+      return self.__config__
+
+    @property
+    def platform(self):
+
+      '''  '''
+
+      return self.__bridge__
 
 
   class remote(object):
@@ -151,13 +279,45 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       if expose != 'public':
         raise NotImplementedError('Private remote methods are not yet implemented.')
-      print "registering %s..." % name
+
+      self.name, self.config = name, config
 
     @classmethod
-    def public(cls, name, **config):
+    def public(cls, name_or_message, response=None, **config):
 
       '''  '''
 
+      if isinstance(name_or_message, basestring):
+        name, request = name_or_message, None
+      else:
+        name, request = None, name_or_message
+
+      if not name:
+
+        if isinstance(request, type) and issubclass(request, model.Model):
+          request_klass = response_klass = request.to_message_model()
+
+        if response and response != request:
+          if isinstance(response, type) and issubclass(response, model.Model):
+            response_klass = response.to_message_model()
+
+        def _remote_method_responder(method):
+
+          '''  '''
+
+          def _respond(self, request):
+
+            ''' '''
+
+            result = method(self, request)
+
+            if isinstance(result, model.Model):
+              return result.to_message()
+            return result
+
+          return premote.method(request_klass, response_klass)(_respond)
+
+        return _remote_method_responder
       return cls(name, expose='public', **config)
 
     @classmethod
@@ -171,5 +331,20 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       '''  '''
 
-      print "caught %s..." % str(target)
+      # finally, register the service (if it's a service class)
+      if isinstance(target, type) and issubclass(target, Service):
+        ServiceHandler.add_service(self.name, target, **self.config)
+
       return target
+
+  __all__ = (
+    'Service',
+    'remote',
+    'ServiceHandler',
+    'service_mappings',
+    'messages',
+    'Key',
+    'Echo',
+    'VariantField',
+    'protocol'
+  )

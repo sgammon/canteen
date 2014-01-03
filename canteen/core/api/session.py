@@ -392,10 +392,11 @@ class SessionAPI(CoreAPI):
 
     '''  '''
 
-    if request.session:  # are sessions enabled?
+    if response:  # we can only apply sessions to full responses
+      if request.session:  # are sessions enabled?
 
-      session, engine = request.session  # extract engine and session
-      engine.commit(request=request, response=response, session=session)  # defer to engine to commit
+        session, engine = request.session  # extract engine and session
+        engine.commit(request=request, response=response, session=session)  # defer to engine to commit
 
   @decorators.bind('session.save', wrap=ContentFilter(complete=True))
   def save(cls, response, request, http, environ, **extra):

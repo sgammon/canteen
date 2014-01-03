@@ -211,16 +211,15 @@ class TemplateAPI(CoreAPI):
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
-        _choices = []
 
         if (output.get('force_compiled', False)) or (isinstance(path, dict) and 'compiled' in path and (not __debug__)):
-          _choices.append(ModuleLoader(path['compiled']))
+          jinja2_cfg['loader'] = ModuleLoader(path['compiled'])
 
-        if isinstance(path, dict) and 'source' not in path and not _choices:
+        else:
+          jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
+
+        if 'loader' not in jinja2_cfg:
           raise RuntimeError('No configured template source path.')
-
-        _choices.append(FileLoader(path['source'] if isinstance(path, dict) else path))
-        jinja2_cfg['loader'] = jinja2.ChoiceLoader(_choices)
 
       # make our new environment
       j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg), config)

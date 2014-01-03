@@ -91,9 +91,11 @@ class Config(object):
 
     '''  '''
 
-    if 'config' in self.blocks:
-      return self.blocks['config'].get(key, {'debug': True})
-    return self.blocks.get(key, default)
+    if self.blocks:
+      if 'config' in self.blocks:
+        return self.blocks['config'].get(key, {'debug': True})
+      return self.blocks.get(key, default)
+    return default
 
   def __get__(self, instance, owner):
 

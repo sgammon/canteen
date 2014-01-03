@@ -130,8 +130,6 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
     '''  '''
 
-    import pdb; pdb.set_trace()
-
     if not protocols:
       from canteen.base import protocol
       protocols = protocol.Protocol.mapping
@@ -196,6 +194,32 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       for name, service in cls.__services__.iteritems():
         yield name, service
 
+    @classmethod
+    def describe(cls, json=False, javascript=False):
+
+      '''  '''
+
+      _services = []
+      for name, service in cls.services:
+        service, config = service
+        _services.append((
+          name,  # service shortname
+          tuple((name for name in service.all_remote_methods().iterkeys())),  # service methods
+          config or {}
+        ))
+
+      if json and javascript:
+        raise RuntimeError('Please pick between "JSON" and "JavaScript" output for services.')
+
+      if json:  # generate JSON only?
+        import json as serializer
+        return serializer.dumps(_services)
+
+      if javascript:  # generate javascript?
+        import json as serializer
+        return "$.apptools.rpc.service.factory(%s);" % serializer.dumps(_services)
+      return _services  # or return raw?
+
     @decorators.classproperty
     def application(cls):
 
@@ -203,8 +227,24 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       _services = []
       for name, service in cls.services:
+
         service, config = service
-        _services.append((r'/_rpc/v1/%s' % name, service.new_factory(config=config)))
+        service_factory = service.new_factory(config=config)
+
+        # Update docstring so that it is easier to debug.
+        full_class_name = '%s.%s' % (service.__module__, service.__name__)
+        service_factory.func_doc = (
+            'Creates new instances of service %s.\n\n'
+            'Returns:\n'
+            '  New instance of %s.'
+            % (service.__name__, full_class_name))
+
+        # Update name so that it is easier to debug the factory function.
+        service_factory.func_name = '%s_service_factory' % service.__name__
+
+        service_factory.service_class = service
+
+        _services.append((r'/_rpc/v1/%s' % name, service_factory))
 
       return service_mappings(_services, registry_path='/_rpc/meta/registry')
 
@@ -223,8 +263,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
         '''  '''
 
-        _status = status
-        _headers = headers
+        _status, _headers = status, headers
 
       # delegate to service application
       return self.response(self.application(self.environment, _respond), **{
@@ -233,6 +272,26 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       })
 
     GET = POST
+
+
+  class ServiceFactory(object):
+
+    '''  '''
+
+    service = None  # service class to factory
+    args, kwargs = None, None  # service init args
+
+    def __init__(self, service, *args, **kwargs):
+
+      '''  '''
+
+      self.service, self.args, self.kwargs = service, args, kwargs
+
+    def __call__(self):
+
+      '''  '''
+
+      return self.service(*self.args, **self.kwargs)
 
 
   class Service(premote.Service):
@@ -251,6 +310,13 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
         config
       )
 
+    @classmethod
+    def new_factory(cls, *args, **kwargs):
+
+      '''  '''
+
+      return ServiceFactory(cls, *args, **kwargs)
+
     @property
     def config(self):
 
@@ -264,6 +330,13 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       '''  '''
 
       return self.__bridge__
+
+    def initialize_request_state(self, state):
+
+      '''  '''
+
+      ## consider sessions
+      pass
 
 
   class remote(object):
@@ -336,6 +409,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
         ServiceHandler.add_service(self.name, target, **self.config)
 
       return target
+
 
   __all__ = (
     'Service',

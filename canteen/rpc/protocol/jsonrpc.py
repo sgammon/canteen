@@ -16,7 +16,8 @@
 # stdlib
 import json
 
-# canteen RPC
+# canteen base & core
+from canteen.core import runtime
 from canteen.base.protocol import Protocol
 
 
@@ -31,25 +32,31 @@ _content_types = (
 )
 
 
-@Protocol.register('jsonrpc', _content_types)
-class JSONRPC(Protocol):
+with runtime.Library('protorpc') as (library, protorpc):
 
-  '''  '''
+  # submodules
+  protojson = library.load('protojson')
 
-  class JSONMessageCodec(object):
 
-    '''  '''
-
-    pass
-
-  def encode_message(self, message):
+  @Protocol.register('jsonrpc', _content_types)
+  class JSONRPC(Protocol, protojson.ProtoJson):
 
     '''  '''
 
-    import pdb; pdb.set_trace()
+    class JSONMessageCodec(protojson.MessageJSONEncoder):
 
-  def decode_message(self, message_type, encoded_message):
+      '''  '''
 
-    '''  '''
+      pass
 
-    import pdb; pdb.set_trace()
+    def encode_message(self, message):
+
+      '''  '''
+
+      return protojson.ProtoJson().encode_message(message)
+
+    def decode_message(self, message_type, encoded_message):
+
+      '''  '''
+
+      return protojson.ProtoJson().decode_message(message_type, encoded_message)

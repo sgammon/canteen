@@ -129,6 +129,9 @@ class Handler(object):
 
     '''  '''
 
+    # for javascript context
+    from canteen.rpc import ServiceHandler
+
     return {
 
       # Default Context
@@ -159,6 +162,12 @@ class Handler(object):
         'image': self.assets.image_url,
         'style': self.assets.style_url,
         'script': self.assets.script_url
+      },
+
+      # Service API
+      'services': {
+        'list': ServiceHandler.services,
+        'describe': ServiceHandler.describe
       },
 
       # Output API

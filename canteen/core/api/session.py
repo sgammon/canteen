@@ -388,7 +388,7 @@ class SessionAPI(CoreAPI):
       raise NotImplementedError('Sessions are not yet supported for `realtime` dispatch schemes.')
 
   @decorators.bind('session.commit', wrap=ContentFilter(response=True))
-  def commit(cls, response, request, http, headers, **extra):
+  def commit(cls, status, headers, request, http, response=None, **extra):
 
     '''  '''
 

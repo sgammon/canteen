@@ -207,13 +207,15 @@ class Runtime(object):
       # dispatch error hook for 404
       self.execute_hooks(('error', 'complete'), **{
         'code': 404,
+        'error': True,
         'exception': None,
         'http': http,
         'request': request,
         'runtime': self,
         'endpoint': endpoint,
         'environ': environ,
-        'arguments': arguments
+        'arguments': arguments,
+        'response': None
       })
 
       http.error(404)
@@ -290,7 +292,14 @@ class Runtime(object):
         print latency()
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), status=status, headers=headers)
+        self.execute_hooks(('response', 'complete'), **{
+          'http': http,
+          'status': status,
+          'request': request,
+          'headers': headers,
+          'environ': environ,
+          'response': None
+        })
 
         return start_response(status, headers)
 

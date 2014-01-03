@@ -214,7 +214,7 @@ class TemplateAPI(CoreAPI):
         _choices = []
 
         if (output.get('force_compiled', False)) or (isinstance(path, dict) and 'compiled' in path and (not __debug__)):
-          _choies.append(ModuleLoader(path['compiled']))
+          _choices.append(ModuleLoader(path['compiled']))
 
         if isinstance(path, dict) and 'source' not in path and not _choices:
           raise RuntimeError('No configured template source path.')

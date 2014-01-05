@@ -44,7 +44,7 @@ try:
   ## force absolute import to avoid infinite recursion
   redis = _redis_client = _support.redis = __import__('redis', locals(), globals(), [], 0)
 except ImportError as e:  # pragma: no cover
-  _REDIS, _redis_client, redis = False, None, None
+  _support.redis, _redis_client, redis = False, None, None
 
 # resolve gevent
 try:
@@ -52,7 +52,7 @@ try:
 except ImportError as e:  # pragma: no cover
   _support.gevent = False
 else:  # pragma: no cover
-  if _support.REDIS and hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket'):
+  if _support.redis and hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket'):
     ## with Redis AND gevent, patch the connection socket / pool
     redis.connection.socket = gevent.socket
 

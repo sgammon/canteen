@@ -10,7 +10,14 @@ try:
 except ImportError:
   import logging
 
-Logger = logging.Logger
+
+def Logger(name):
+
+  '''  '''
+
+  logger = logging.getLogger(name)
+  logger.setLevel(10)
+  return logger
 
 
 __all__ = ('Logger',)

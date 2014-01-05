@@ -120,7 +120,7 @@ class AdaptedModel(ModelMixin):
     ''' Start building a new `model.Query` object, if the underlying adapter implements `IndexedModelAdapter`. '''
 
     if isinstance(cls.__adapter__, IndexedModelAdapter):  # we implement indexer operations
-      from apptools.model import query
+      from canteen.model import query
       return query.Query(cls, *args, options=query.QueryOptions(**kwargs))
 
     context = (cls.__adapter__.__class__.__name__, cls.kind())

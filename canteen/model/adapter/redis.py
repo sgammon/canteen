@@ -389,7 +389,7 @@ class RedisAdapter(IndexedModelAdapter):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
       return getattr(target, operation.lower())(*args, **kwargs)
-    except Exception:
+    except Exception as e:
       if __debug__:
         import pdb; pdb.set_trace()
       raise

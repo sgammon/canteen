@@ -24,35 +24,22 @@ import logging
 import datetime
 
 # canteen utils
-
-#@TODO(sgammon): fix this
-#from canteen.util import json
-#from canteen.util import debug
+from canteen.util import config
 from canteen.util import decorators
 
-# appconfig
-try:
-  import config
-except ImportError as e:  # pragma: no cover
-  _APPCONFIG = False
-else:
-  _APPCONFIG = True  # pragma: nocover
 
-
-# Globals
+## Globals
 _adapters = {}
 _adapters_by_model = {}
 _encoder = base64.b64encode  # encoder for key names and special strings, if enabled
-_compressor = zlib.compress  # compressor for data values, if enabled
+_compressor = zlib  # compressor for data values, if enabled
 _core_mixin_classes = ('Mixin', 'KeyMixin', 'ModelMixin', 'CompoundKey', 'CompoundModel')
 
-# Computed Classes
+## Computed Classes
 CompoundKey = None
 CompoundModel = None
 
 
-## ModelAdapter
-# Adapt apptools models to a storage backend.
 class ModelAdapter(object):
 
   ''' Abstract base class for classes that adapt apptools models to a particular storage backend. '''
@@ -60,17 +47,13 @@ class ModelAdapter(object):
   registry = {}
   __metaclass__ = abc.ABCMeta
 
-  _config_path = 'apptools.model'
-
-  @decorators.classproperty
-  def config(cls):  # pragma: no cover
+  @property
+  def config(self):  # pragma: no cover
 
     ''' Cached config shortcut.
       :returns: Configuration ``dict``, if any. Defaults to ``{'debug': True}``. '''
 
-    if _APPCONFIG:
-      return config.config.get(cls._config_path, {'debug': True})
-    return {'debug': True}  # default to `debug`: True with no available appconfig
+    return config.Config().get(self.__class__.__name__, {'debug': True})
 
   @decorators.classproperty
   def logging(cls):
@@ -79,7 +62,6 @@ class ModelAdapter(object):
       :returns: Customized :py:mod:`apptools.util.debug.AppToolsLogger` instance,
             with a proper ``name``/``path``/``condition``. '''
 
-    psplit = cls._config_path.split('.')
     #return debug.AppToolsLogger(**{
     #  'path': '.'.join(psplit[0:-1]),
     #  'name': psplit[-1]})._setcondition(cls.config.get('debug', True))
@@ -225,9 +207,6 @@ class ModelAdapter(object):
 
       :param model: :py:class:`model.Model` class to register.
       :returns: The ``model`` it was handed (for chainability). '''
-
-    if cls.config.get('debug', False):
-      cls.logging.debug("Registered Model class: \"%s\"." % model)
 
     cls.registry[model.kind()] = model
     return model
@@ -547,16 +526,8 @@ class IndexedModelAdapter(ModelAdapter):
         continue
 
     else:
-      if cls.config.get('debug', False):  # pragma: no cover
-        context = (_meta_indexes, encoded_key)
-        cls.logging.info("Generated indexes for clean: \"%s\" under key \"%s\"." % context)
-
       # we're cleaning indexes
       return encoded_key, _meta_indexes
-
-    if cls.config.get('debug', False):  # pragma: no cover
-      context = (_meta_indexes, _property_indexes, encoded_key)
-      cls.logging.info("Generated indexes for write: META(\"%s\"), VALUE(\"%s\") under key \"%s\"." % context)
 
     if key is not None:
       # we're writing indexes

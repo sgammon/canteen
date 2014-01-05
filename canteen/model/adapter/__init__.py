@@ -30,16 +30,18 @@ abstract_adapters = [abstract, ModelAdapter, IndexedModelAdapter]
 
 
 # adapter modules
+from . import redis
 from . import inmemory
 from . import protorpc
 
-modules = [inmemory, protorpc]
+modules = [inmemory, protorpc, redis]
 
 
 # concrete adapters
+from .redis import RedisAdapter
 from .inmemory import InMemoryAdapter
 
-concrete = [InMemoryAdapter]
+concrete = [InMemoryAdapter, RedisAdapter]
 
 
 # builtin mixins

@@ -268,18 +268,18 @@ class TemplateAPI(CoreAPI):
 
     return filter(lambda x: x and x[1], [
 
+      ('Vary', 'Accept-Encoding,Cookie'),
       ('Cache-Control', 'no-cache; no-store'),
       ('X-UA-Compatible', 'IE=edge,chrome=1'),
       ('X-Debug', '1' if canteen.debug else '0'),
-      ('Vary', 'Accept,Cookie'),
-      ('Server', 'canteen/%s Python/%s' % (
+      ('X-Framework', 'canteen/%s Python/%s' % (
         '.'.join(map(unicode, canteen.__version__)),
         '.'.join(map(unicode, (
           sys.version_info.major,
           sys.version_info.minor,
           sys.version_info.micro
         )))
-      )) if __debug__ else ('Server', 'Canteen/Python')
+      )) if __debug__ else None
 
     ])
 

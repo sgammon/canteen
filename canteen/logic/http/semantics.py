@@ -187,11 +187,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       exceptions.abort(code)
 
     @decorators.bind('redirect', wrap=classmethod)
-    def redirect(cls, url_or_page, permanent=False):
+    def redirect(cls, url=None, name=None, permanent=False, *args, **kwargs):
 
       '''  '''
 
-      pass
+      # sanity checks
+      if (not url and not name) or (url and name):
+        raise TypeError('Must provide either a URL or name to redirect to - not both and at least one or the other. Got "%s" and "%s".' % (url, name))
+      return utils.redirect(url if url else self.url_for(name, *args, **kwargs), code=302 if not permanent else 301)
 
     @decorators.bind('response', wrap=classmethod)
     def response(cls, *args, **kwargs):

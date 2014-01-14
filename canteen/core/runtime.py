@@ -44,6 +44,14 @@ class Runtime(object):
   __singleton__ = False  # many runtimes can exist, so power
   __metaclass__ = Proxy.Component  # this should be injectable
 
+  # == Abstract Properties == #
+  @abc.abstractproperty
+  def base_exception(self):
+
+    '''  '''
+
+    return False
+
   @classmethod
   def spawn(cls, app):
 
@@ -441,7 +449,18 @@ class Runtime(object):
 
     raise NotImplementedError
 
-  __call__ = dispatch
+  def __call__(self, environ, start_response):
+
+    '''  '''
+
+    try:
+      return self.dispatch(environ, start_response)
+
+    except self.base_exception as exc:
+      return exc(environ, start_response)  # it's an acceptable exception that can be returned as a response
+
+    except Exception:
+      raise  # just raise it k?
 
 
 class Library(object):

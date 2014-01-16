@@ -132,7 +132,35 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    serialization_method = json
+    class CookieSerializer(json.JSONEncoder):
+
+      '''  '''
+
+      @classmethod
+      def dumps(cls, structure):
+
+        '''  '''
+
+        return cls().encode(structure)
+
+      @classmethod
+      def loads(cls, serialized):
+
+        '''  '''
+
+        return json.loads(serialized)
+
+      def default(self, obj):
+
+        '''  '''
+
+        if isinstance(obj, Exception):
+          if hasattr(obj, 'message'):
+            return obj.message
+
+        return json.JSONEncoder.default(self, obj)
+
+    serialization_method = CookieSerializer
 
 
   with runtime.Library('flask') as (flib, flask):

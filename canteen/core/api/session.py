@@ -119,10 +119,6 @@ class Session(object):
     if default: return default
     if exception: raise exception('Could not resolve session data item "%s".' % key)
 
-  # attribute protocol
-  #__getattr__ = lambda self, key: self.get(key, exception=AttributeError)
-  #__setattr__ = lambda self, key, value: self.set(key, value, exception=AttributeError)
-
   # item protocol
   __getitem__ = lambda self, key: self.get(key, exception=KeyError)
   __setitem__ = lambda self, key, value: self.set(key, value, exception=KeyError)

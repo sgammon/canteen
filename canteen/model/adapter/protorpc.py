@@ -265,8 +265,8 @@ else:
     # construct message class on-the-fly
     return type(_model.kind(), (pmessages.Message,), _model_message)
 
+
   ## ProtoRPCKey
-  # Mixin to core `Key` class that enables ProtoRPC message conversion.
   class ProtoRPCKey(KeyMixin):
 
     ''' Adapt `Key` classes to ProtoRPC messages. '''
@@ -290,8 +290,16 @@ else:
       from canteen import rpc
       return rpc.Key
 
+    @classmethod
+    def from_message(cls, key_message):
+
+      '''  '''
+
+      # decode recursively for parent key, if specified
+      return cls(key_message.kind, key_message.id, parent=cls.from_message(key_message.parent)if key_message.parent else None)
+
+
   ## ProtoRPCModel
-  # Mixin to core `Model` class that enables ProtoRPC message conversion.
   class ProtoRPCModel(ModelMixin):
 
     ''' Adapt Model classes to ProtoRPC messages. '''
@@ -359,3 +367,18 @@ else:
 
       # return from cache
       return _model_impl[(cls, cls.__lookup__)]
+
+    @classmethod
+    def from_message(cls, message):
+
+      '''  '''
+
+      # create an empty model, loading its key (if present, which it will be if this is coming from `to_message`)
+      model = cls(key=cls.__keyclass__.from_message(message.key)) if (hasattr(message, 'key') and message.key is not None) else cls()
+
+      # decode field values
+      for field, value in ((k.name, message.get_assigned_value(k.name)) for k in message.all_fields()):
+        if field is not 'key':
+          model[field] = value
+
+      return model

@@ -13,6 +13,9 @@
 
 '''
 
+# stdlib
+import abc
+
 # canteen
 from canteen import core
 from canteen import base
@@ -294,21 +297,61 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       return self.service(*self.args, **self.kwargs)
 
 
-  class Service(premote.Service):
+  class Exceptions(datastructures.ObjectProxy):
+
+    '''  '''
+
+    pass
+
+
+  class AbstractService(premote.Service):
+
+    '''  '''
+
+    class __metaclass__(premote.Service.__metaclass__):
+
+      '''  '''
+
+      __delegate__ = None  # dependency injection delegate class
+
+      def mro(cls):
+
+        '''  '''
+
+        chain = type.mro(cls)
+
+        if not premote.StubBase in cls.__bases__:
+          if cls.__name__ is "AbstractService":
+            return chain[0:-1] + [cls.delegate()] + chain[-1:]  # wrap delegate deep in the root
+        return chain  # it's a stub or something else - don't touch anything
+
+      def delegate(cls):
+
+        '''  '''
+
+        cls.__class__.__delegate__ = injection.Delegate.bind(cls)
+        return cls.__class__.__delegate__
+
+    @abc.abstractproperty
+    def exceptions(self):
+
+      '''  '''
+
+      raise NotImplementedError('Property `AbstractService.exceptions` requires implementation '
+                                'by a concrete subclass and cannot be invoked directly.')
+
+
+  class Service(AbstractService):
 
     '''  '''
 
     __config__ = None  # local configuration
-    __bridge__ = None  # dependency injection bridge
 
     def __init__(self, config=None):
 
       '''  '''
 
-      self.__bridge__, self.__config__ = (
-        injection.Bridge(),
-        config
-      )
+      self.__config__ = config
 
     @classmethod
     def new_factory(cls, *args, **kwargs):
@@ -378,19 +421,30 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
           '''  '''
 
-          def _respond(self, request):
+          def _respond(self, _request_message):
 
             ''' '''
 
-            result = method(self, request)
+            if isinstance(request, type) and issubclass(request, model.Model):
+              # convert incoming message to model
+              result = method(self, request.from_message(_request_message))
 
+            else:
+              # we're using regular messages always
+              result = method(self, _request_message)
+
+            # convert outgoing message to model if it isn't already
             if isinstance(result, model.Model):
               return result.to_message()
             return result
 
+          # wrap responder
           return premote.method(request_klass, response_klass)(_respond)
 
+        # wrap wrapper
         return _remote_method_responder
+
+      # wrap wrap wrapper
       return cls(name, expose='public', **config)
 
     @classmethod

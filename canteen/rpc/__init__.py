@@ -345,6 +345,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
     '''  '''
 
+    __state__ = None  # local state
     __config__ = None  # local configuration
 
     def __init__(self, config=None):
@@ -352,6 +353,13 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       '''  '''
 
       self.__config__ = config
+
+    @property
+    def state(self):
+
+      '''  '''
+
+      return self.__state__
 
     @classmethod
     def new_factory(cls, *args, **kwargs):
@@ -378,8 +386,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       '''  '''
 
-      ## consider sessions
-      pass
+      self.__state__ = state
 
 
   class remote(object):

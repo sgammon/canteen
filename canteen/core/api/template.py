@@ -69,8 +69,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       '''  '''
 
-      if globals is None:
-        globals = {}
+      globals = globals or {}
 
       if isinstance(self.module, basestring):
         self.module = importlib.import_module(self.module)
@@ -291,6 +290,7 @@ class TemplateAPI(CoreAPI):
     return {
 
       # Python Builtins
+      '__debug__': __debug__,
       'all': all, 'any': any,
       'int': int, 'str': str,
       'len': len, 'map': map,

@@ -4,11 +4,15 @@
 
 '''
 
+# stdlib
+import sys
+
 # 3rd party / stdlib
 try:
   import logbook as logging
 except ImportError:
   import logging
+  logging.basicConfig(stream=sys.stdout, level=10, format='%(message)s')
 
 
 def Logger(name):

@@ -194,7 +194,7 @@ class Handler(object):
 
     # merge template context
     _merged_context = {}
-    for context_block in (self.context, context, kwargs):
+    for context_block in (self.template.base_context, self.context, context, kwargs):
       _merged_context.update(context_block)
 
     # collapse and merge HTTP headers (base headers first)

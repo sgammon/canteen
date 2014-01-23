@@ -128,8 +128,8 @@ class Runtime(object):
             hook(obj, *args, **kwargs)
 
         except Exception as e:
-          print "Encountered hook exception: '%s'." % e
-          if __debug__: raise
+          if __debug__:
+            raise
 
     return
 
@@ -517,7 +517,6 @@ class Library(object):
 
     if exception:
       if self.strict: return False
-      if __debug__: print 'Encountered exception "%s" during library load.' % exception
 
     return True
 

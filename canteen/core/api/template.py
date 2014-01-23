@@ -282,7 +282,7 @@ class TemplateAPI(CoreAPI):
 
     ])
 
-  @decorators.bind('template.base_context')
+  @decorators.bind('template.base_context', wrap=property)
   def base_context(self):
 
     '''  '''

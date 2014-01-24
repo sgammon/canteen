@@ -26,12 +26,6 @@ else:
   _extensions = tuple()
 
 
-# grab requirements
-_deps = []
-with open('requirements.txt') as requirements:
-  map(_deps.append, map(lambda x: x.replace('\n', ''), requirements))
-
-
 setup(name="canteen",
       version="0.1-alpha",
       description="Minimally complicated, maximally blasphemous approach to app development",
@@ -53,7 +47,6 @@ setup(name="canteen",
         "canteen.util",
         "canteen_tests"
       ],
-      install_requires=_deps,
       tests_require=["nose"],
       ext_modules=_extensions if _CYTHON else tuple(),
 )

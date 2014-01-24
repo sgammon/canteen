@@ -17,7 +17,10 @@
 '''
 
 # stdlib
+import os
 import random
+import hashlib
+import mimetypes
 
 # core API & util
 from . import CoreAPI
@@ -31,6 +34,7 @@ class AssetsAPI(CoreAPI):
   '''  '''
 
   __config__ = None  # asset configuration, if any
+  __handles__ = {}  # cached file handles for local responders
   __static_types__ = frozenset(('style', 'script', 'font', 'image'))
 
   ### === Internals === ###
@@ -61,6 +65,95 @@ class AssetsAPI(CoreAPI):
     '''  '''
 
     return config.Config().assets.get('assets', {})
+
+  ### === URL Bindings === ###
+  def bind_urls(self, runtime=None):
+
+    '''  '''
+
+    from canteen import url
+    from canteen import handler
+
+    ## asset handler
+    def make_responder(asset_type):
+
+      '''  '''
+
+      class AssetResponder(handler.Handler):
+
+        '''  '''
+
+        content_types = {
+          'css': 'text/css',
+          'js': 'application/javascript',
+          'svg': 'image/svg+xml',
+          'woff': 'font/woff',
+
+        }
+
+        def GET(self, asset):
+
+          '''  '''
+
+          fullpath = os.path.join(self.assets.path, asset_type, asset)
+          if fullpath in self.assets.__handles__:
+
+            # extract cached handle/modtime/content
+            modtime, handle, contents, fingerprint = self.assets.__handles__[fullpath]
+
+            if os.path.getmtime(fullpath) > modtime:
+              modtime, handle, contents, fingerprint = self.open_and_serve(fullpath)  # need to refresh cache
+
+          else:
+            modtime, handle, contents, fingerprint = self.open_and_serve(fullpath)  # need to prime cache in first place
+
+          # try to serve a 304, if possible
+          if 'If-None-Match' in self.request.headers:
+            if self.request.headers['If-None-Match'] == fingerprint:  # fingerprint matches, serve a 304
+              return self.response(status='304 Not Modified', headers=[('ETag', self.request.headers['If-None-Match'])])
+
+          # resolve content type by file extension, if possible
+          content_type = self.content_types.get(fullpath.split('.')[-1])
+          if not content_type:
+
+            # try to guess with `mimetypes`
+            content_type, encoding = mimetypes.guess_type(fullpath)
+            if not content_type:
+              content_type = 'application/octet-stream'
+
+          return self.response(contents, headers=[('ETag', fingerprint)], content_type=content_type)  # can return content directly
+
+        def open_and_serve(self, filepath):
+
+          '''  '''
+
+          if os.path.exists(filepath):
+            try:
+              with open(filepath, 'rb') as fhandle:
+
+                # assign to cache location by file path
+                contents = fhandle.read()
+                self.assets.__handles__[filepath] = (os.path.getmtime(filepath), fhandle, contents, hashlib.md5(contents).hexdigest())
+                return self.assets.__handles__[filepath]
+
+            except IOError as e:
+              if __debug__: raise
+              self.abort(404)
+
+            except Exception as e:
+              if __debug__: raise
+              self.abort(500)
+
+          else:
+            return self.abort(404)
+
+      return AssetResponder
+
+
+    # map asset prefixes to asset responder
+    if 'asset_prefix' in self.config:
+      for category, prefix in self.config['asset_prefix'].iteritems():
+        url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(category))
 
   ### === Resolvers === ###
   def find_filepath(self, asset_type):

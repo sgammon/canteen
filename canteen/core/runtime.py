@@ -57,8 +57,7 @@ class Runtime(object):
 
     '''  '''
 
-    # if we're running as ``Runtime``, resolve a runtime first
-    return (cls.resolve() if cls is Runtime else cls)(app)
+    return (cls.resolve() if cls is Runtime else cls)(app)  # if we're running as ``Runtime``, resolve a runtime first
 
   @classmethod
   def resolve(cls):
@@ -146,7 +145,7 @@ class Runtime(object):
 
     '''  '''
 
-    return
+    self.bridge.assets.bind_urls(self)
 
   def configure(self, config):
 

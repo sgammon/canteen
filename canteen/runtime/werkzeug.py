@@ -66,16 +66,19 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
+      paths = {}
+
       # resolve static asset paths
       if 'assets' in self.config.app.get('paths', {}):
         if isinstance(self.config.app['paths'].get('assets'), dict):
-          paths = dict(((k, v) for k, v in self.config.app['paths']['assets'].iteritems()))
-        paths = {
+          paths.update(dict(((k, v) for k, v in self.config.app['paths']['assets'].iteritems())))
+
+        paths.update({
           '/assets': self.config.app['paths']['assets'],
           '/favicon.ico': self.config.app['paths'].get('favicon', False) or os.path.join(
             self.config.app['paths']['assets'],
             'favicon.ico'
-        )}
+        )})
 
       # run via werkzeug's awesome `run_simple`
       return serving.run_simple(interface, address, self, **{
@@ -88,7 +91,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         'processes': 1,
         'passthrough_errors': False,
         'ssl_context': None,
-        'static_files': paths
+        #'static_files': paths
       })
 
 

@@ -32,7 +32,7 @@ setup(name="canteen",
       author="Sam Gammon",
       author_email="sam@keen.io",
       url="https://github.com/sgammon/canteen",
-      packages=[
+      packages=(
         "canteen",
         "canteen.base",
         "canteen.core",
@@ -46,7 +46,8 @@ setup(name="canteen",
         "canteen.runtime",
         "canteen.util",
         "canteen_tests"
-      ],
-      tests_require=["nose"],
+      ),
+      install_requires=("jinja2", "werkzeug", "protorpc"),
+      tests_require=("nose",),
       ext_modules=_extensions if _CYTHON else tuple(),
 )

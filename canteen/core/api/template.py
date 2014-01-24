@@ -316,7 +316,7 @@ class TemplateAPI(CoreAPI):
 
       # Python Builtins (besides the Jinja2 defaults, which are _awesome_)
       'len': len, 'max': max, 'maximum': max, 'min': min, 'minimum': min,
-      'avg': average, 'average': average, 'json': json.dumps
+      'avg': average, 'average': average, 'json': json.dumps, 'tojson': json.dumps
 
     }  # @TODO(sgammon): markdown/RST support?
 

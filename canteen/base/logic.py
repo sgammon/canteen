@@ -15,14 +15,15 @@
 
 # core API
 from ..core import meta
+from ..util import decorators
 
 
+@decorators.singleton
 class Logic(object):
 
   '''  '''
 
   __owner__ = "Logic"
-  __singleton__ = True  # logic classes have singletons
   __metaclass__ = meta.Proxy.Component
 
 

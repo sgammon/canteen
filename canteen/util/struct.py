@@ -20,6 +20,9 @@
 import abc
 import logging
 
+# canteen util
+from . import decorators
+
 
 class Sentinel(object):
 
@@ -441,12 +444,11 @@ class ObjectDictBridge(UtilStruct):
     return default_value
 
 
+@decorators.singleton
 class BidirectionalEnum(object):
 
   ''' Small and simple datastructure for mapping
     static flags to smaller values. '''
-
-  __singleton__ = True
 
   class __metaclass__(abc.ABCMeta):
 

@@ -19,14 +19,15 @@
 
 # core API
 from ..meta import Proxy
+from ..meta import decorators
 
 
+@decorators.singleton
 class CoreAPI(object):
 
   '''  '''
 
   __owner__ = "CoreAPI"
-  __singleton__ = True  # core APIs have singletons
   __metaclass__ = Proxy.Component
 
 

@@ -811,7 +811,6 @@ class RedisAdapter(IndexedModelAdapter):
 
       _filters, _filter_i_lookup = {}, set()
       for _f in filters:
-
         origin, meta, property_map = cls.generate_indexes(kinded_key, {
           _f.target.name: (_f.target, _f.value.data)
         })
@@ -827,15 +826,26 @@ class RedisAdapter(IndexedModelAdapter):
           _filters[(_flag, _index_key)] = []
           _filter_i_lookup.add((_flag, _index_key))
 
-        _filters[(_flag, _index_key)].append((_f.operator, value))
+        _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
 
       # process sorted sets first: leads to lower cardinality
       sorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'Z', _filters.iterkeys())])
       unsorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'S', _filters.iterkeys())])
 
+      _and_filters, _or_filters = [], []
+
       if sorted_indexes:
 
         for prop, _directives in sorted_indexes.iteritems():
+
+          _operator, _value, chain = _directives[0]
+
+          if chain:
+            for subquery in chain:
+              if subquery.sub_operator is query.AND:
+                _and_filters.append(subquery)
+              if subquery.sub_operator is query.OR:
+                _or_filters.append(subquery)
 
           # double-filters
           if len(_filters[prop]) == 2:
@@ -893,6 +903,16 @@ class RedisAdapter(IndexedModelAdapter):
 
         _intersections = set()
         for prop, _directives in unsorted_indexes.iteritems():
+
+          _operator, _value, chain = _directives[0]
+
+          if chain:
+            for subquery in chain:
+              if subquery.sub_operator is query.AND:
+                _and_filters.append(subquery)
+              if subquery.sub_operator is query.OR:
+                _or_filters.append(subquery)
+
           _flag, index = prop
           _intersections.add(index)
 
@@ -933,7 +953,7 @@ class RedisAdapter(IndexedModelAdapter):
         matching_keys = cls.execute(cls.Operations.KEYS, kind.kind(), prefix + '*')  # regex search it. why not
 
         # if we're doing keys only, we're done
-        if options.keys_only:
+        if options.keys_only and not (_and_filters or _or_filters):
           return [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys]
 
     # otherwise, build entities and return
@@ -943,21 +963,44 @@ class RedisAdapter(IndexedModelAdapter):
     with cls.channel(kind.kind()).pipeline() as pipeline:
 
       # fill pipeline
+      _seen_results = 0
       for key in matching_keys:
+        if (not (_and_filters or _or_filters)) and (options.limit > 0 and _seen_results >= options.limit):
+          break
+        _seen_results += 1
+
         cls.execute(cls.Operations.GET, kind.kind(), key, target=pipeline)
 
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results
       for key, entity in zip([model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], _blob_results):
+
+        _seen_results = 0
+
         if not entity:
           continue
+
+        if (options.limit > 0) and _seen_results >= options.limit:
+          break
 
         # decode raw entity
         decoded = cls.get(None, None, entity)
 
         # attach key, decode entity and construct
         decoded['key'] = key
+
+        if _and_filters or _or_filters:
+
+          if _and_filters and not all((filter.match(decoded) for filter in _and_filters)):
+            continue  # doesn't match one of the filters
+
+          if _or_filters and not any((filter.match(decoded) for filter in _or_filters)):
+            continue  # doesn't match any of the `or` filters
+
+        # matches, by the grace of god
+        _seen_results += 1
+
         result_entities.append(kind(_persisted=True, **decoded))
 
     return result_entities

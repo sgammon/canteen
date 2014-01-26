@@ -88,12 +88,18 @@ class AssetsAPI(CoreAPI):
           'js': 'application/javascript',
           'svg': 'image/svg+xml',
           'woff': 'font/woff',
-
+          'png': 'image/png',
+          'gif': 'image/gif',
+          'jpeg': 'image/jpeg',
+          'jpg': 'image/jpeg',
+          'webp': 'image/webp'
         }
 
         def GET(self, asset):
 
           '''  '''
+
+          import pdb; pdb.set_trace()
 
           fullpath = os.path.join(self.assets.path, asset_type, asset)
           if fullpath in self.assets.__handles__:
@@ -138,17 +144,16 @@ class AssetsAPI(CoreAPI):
 
             except IOError as e:
               if __debug__: raise
-              self.abort(404)
+              self.error(404)
 
             except Exception as e:
               if __debug__: raise
-              self.abort(500)
+              self.error(500)
 
           else:
-            return self.abort(404)
+            return self.error(404)
 
       return AssetResponder
-
 
     # map asset prefixes to asset responder
     if 'asset_prefix' in self.config:

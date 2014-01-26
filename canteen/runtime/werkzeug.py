@@ -91,7 +91,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         'processes': 1,
         'passthrough_errors': False,
         'ssl_context': None,
-        #'static_files': paths
+        'static_files': paths
       })
 
 

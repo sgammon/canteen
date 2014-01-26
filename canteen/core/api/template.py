@@ -59,11 +59,12 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       '''  '''
 
-      try:
-        module = importlib.import_module(module)
-      except ImportError:
-        pass
-      self.cache, self.module = CacheAPI.spawn('tpl_%s' % module), module
+      if isinstance(module, basestring):
+        try:
+          module = importlib.import_module(module)
+        except ImportError:
+          pass
+      self.cache, self.module = CacheAPI.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__), module
 
     def load(self, environment, filename, globals=None):
 
@@ -107,6 +108,9 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       ''' Converts a template path to a package path and attempts import, or else raises Jinja2's TemplateNotFound. '''
 
       import jinja2
+
+      if __debug__:
+        print 'Loaded template module: "%s".' % template
 
       # Convert the path to a module name.
       prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.')).rsplit('.', 1)

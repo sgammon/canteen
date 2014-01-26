@@ -121,7 +121,17 @@ class AdaptedModel(ModelMixin):
 
     if isinstance(cls.__adapter__, IndexedModelAdapter):  # we implement indexer operations
       from canteen.model import query
-      return query.Query(cls, *args, options=query.QueryOptions(**kwargs))
+
+      filters, sorts = [], []
+      for arg in args:
+        if isinstance(arg, query.Filter):
+          filters.append(arg)
+        elif isinstance(arg, query.Sort):
+          sorts.append(arg)
+        else:
+          raise RuntimeError('Cannot sort or filter based on arbitrary objects. Got: "%s".' % arg)
+
+      return query.Query(cls, filters=filters, sorts=sorts, options=query.QueryOptions(**kwargs))
 
     context = (cls.__adapter__.__class__.__name__, cls.kind())
     raise AttributeError("Adapter \"%s\" (currently selected for model \"%s\") does not support indexing, "

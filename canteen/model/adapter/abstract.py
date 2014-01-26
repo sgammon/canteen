@@ -515,7 +515,7 @@ class IndexedModelAdapter(ModelAdapter):
         prop, value = v
 
         # consider repeated properties
-        if not prop._repeated:
+        if not prop._repeated or not isinstance(value, (tuple, list, set, frozenset)):
           value = [value]
 
         # iterate through property values

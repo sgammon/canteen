@@ -46,6 +46,10 @@ GREATER_THAN = GT = datastructures.Sentinel('GREATER_THAN')
 GREATER_THAN_EQUAL_TO = GE = datastructures.Sentinel('GREATER_THAN_EQUAL_TO')
 CONTAINS = IN = datastructures.Sentinel('CONTAINS')
 
+# Logic operators
+AND = datastructures.Sentinel('AND')
+OR = datastructures.Sentinel('OR')
+
 # Operator Constants
 _operator_map = {
     EQUALS: operator.eq,
@@ -54,7 +58,9 @@ _operator_map = {
     LESS_THAN_EQUAL_TO: operator.le,
     GREATER_THAN: operator.gt,
     GREATER_THAN_EQUAL_TO: operator.ge,
-    CONTAINS: operator.contains
+    CONTAINS: operator.contains,
+    AND: operator.__and__,
+    OR: operator.__or__
 }
 
 _operator_strings = {
@@ -64,7 +70,9 @@ _operator_strings = {
     LESS_THAN_EQUAL_TO: '<=',
     GREATER_THAN: '>',
     GREATER_THAN_EQUAL_TO: '>=',
-    CONTAINS: 'IN'
+    CONTAINS: 'CONTAINS',
+    AND: 'AND',
+    OR: 'OR'
 }
 
 
@@ -84,6 +92,8 @@ class QueryOptions(object):
         '_plan',
         '_cursor'
     ))
+
+    option_names = frozenset(('_'.join(option.split('_')[1:]) for option in options))
 
     # == Option Defaults == #
     _defaults = {
@@ -115,7 +125,7 @@ class QueryOptions(object):
             :returns: Nothing, as this is a constructor. '''
 
         map(lambda bundle: self._set_option(*bundle),
-            map(lambda slot: (slot, kwargs.get(slot, datastructures._EMPTY)), self.__slots__))
+            map(lambda slot: (slot, kwargs.get(slot, datastructures._EMPTY)), self.option_names))
 
     ## == Protected Methods == ##
     def _set_option(self, name, value=datastructures._EMPTY):
@@ -345,7 +355,7 @@ class Query(AbstractQuery):
         )
 
     # @TODO(sgammon): async methods to execute
-    def _execute(self, **options):
+    def _execute(self, options=None, **kwargs):
 
         ''' Internal method to execute a query,
             optionally along with some override
@@ -376,7 +386,7 @@ class Query(AbstractQuery):
             to this :py:class:`Query`. '''
 
         ## build query options
-        options = options.get('options', QueryOptions(**options))
+        options = options or kwargs.get('options', QueryOptions(**kwargs) if kwargs else self.options)
 
         ## fail for projection queries
         if options.projection:
@@ -470,7 +480,7 @@ class Query(AbstractQuery):
             :returns: Iterable (``list``) of matching model
             entities. '''
 
-        return self._execute(options=QueryOptions(**options))
+        return self._execute(options=QueryOptions(**options) if options else None)
 
     def fetch_page(self, **options):
 
@@ -515,6 +525,8 @@ class Filter(QueryComponent):
 
     ## == Filter State == ##
     value = None  # value to match
+    chain = None  # chained AND and OR filters
+    sub_operator = None  # subquery operator, if any (makes this a subfilter)
 
     ## == Operators == ##
     EQUALS = EQ = EQUALS
@@ -525,20 +537,73 @@ class Filter(QueryComponent):
     GREATER_THAN_EQUAL_TO = GE = GREATER_THAN_EQUAL_TO
     CONTAINS = IN = CONTAINS
 
-    def __init__(self, prop, value, type=PROPERTY, operator=EQUALS):
+    def __init__(self, prop, value, AND=None, OR=None, type=PROPERTY, operator=EQUALS):
 
         ''' Initialize this :py:class:`Filter`. '''
 
         from canteen import model
         value = model.AbstractModel._PropertyValue(value, False)  # make a value
-        self.target, self.value, self.kind, self.operator = prop, value, type, operator
+
+        # repeated properties do not support EQUALS -> only CONTAINS
+        if prop._repeated and operator is EQUALS:
+            self.operator = operator = CONTAINS
+
+        self.target, self.value, self.kind, self.operator, self.chain = prop, value, type, operator, []
+
+        if AND or OR:
+            for var in (AND, OR):
+                if not isinstance(var, (list, tuple, set, frozenset)):
+                    var = [var]
+                self.chain += var
 
     def __repr__(self):
 
         ''' Generate a string representation of
             this :py:class:`Filter`. '''
 
-        return 'Filter(%s %s %s)' % (self.target.name, _operator_strings[self.operator], str(self.value))
+        return 'Filter(%s %s %s %s)' % (self.sub_operator.name if self.sub_operator else '', self.target.name, _operator_strings[self.operator], str(self.value))
+
+    def AND(self, filter_expression):
+
+        '''  '''
+
+        self.chain += [filter_expression.set_subquery_operator(AND)]
+        return self
+
+    def OR(self, filter_expression):
+
+        '''  '''
+
+        self.chain += [filter_expression.set_subquery_operator(OR)]
+        return self
+
+    def set_subquery_operator(self, operator):
+
+        '''  '''
+
+        self.sub_operator = operator
+        return self
+
+    def match(self, target):
+
+        '''  '''
+
+        if self.operator not in _operator_map:
+            raise RuntimeError('Invalid comparison operator could not be matched: "%s".' % self.operator)
+
+        try:
+            # it's a raw entity -> dict
+            if isinstance(target, dict):
+                if self.target.name in target:
+                    return _operator_map[self.operator](target[self.target.name], self.value.data)
+                return False  # no such property
+
+            # it's a model or something
+            return _operator_map[self.operator](getattr(target, self.target.name), self.value.data)
+
+        except AttributeError:
+            raise
+            return False  # no such property
 
 
 class KeyFilter(Filter):

@@ -47,6 +47,22 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
     pass
 
 
+  class ChoiceLoader(jinja2.ChoiceLoader):
+
+    '''  '''
+
+    def get_source(self, environment, template):
+
+      '''  '''
+
+      for loader in self.loaders:
+        try:
+          return loader.get_source(environment, template)
+        except (jinja2.TemplateNotFound, RuntimeError, ImportError):
+          pass
+      raise jinja2.TemplateNotFound(template)
+
+
   class ModuleLoader(TemplateLoader, jinja2.ModuleLoader):
 
     '''  '''

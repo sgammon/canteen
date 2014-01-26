@@ -194,6 +194,17 @@ def configured(debug=False, path=None):
     return inject
 
 
+def singleton(target):
+
+  '''  '''
+
+  if isinstance(target, type):
+    setattr(target, '__singleton__', True)  # indicate this is a singleton class
+    return target
+  else:
+    raise RuntimeError('Only classes may be marked/decorated as singletons. Got: "%s".' % target)
+
+
 ## `` ``
 class bind(object):
 
@@ -348,5 +359,6 @@ __all__ = (
   'cached',
   'configured',
   'bind',
-  'cacheable'
+  'cacheable',
+  'singleton'
 )

@@ -58,7 +58,7 @@ class Delegate(object):
             return bridge[key]  # return value directly if it's not a tuple
 
           raise AttributeError('Could not resolve attribute \'%s\'.' % key)
-        except KeyError:
+        except KeyError:  # pragma: nocover
           raise AttributeError('Could not resolve attribute \'%s\''
                                ' on item \'%s\'.' % (key, klass))
 
@@ -71,7 +71,7 @@ class Delegate(object):
         '__target__': target
       })
 
-    def __repr__(cls):
+    def __repr__(cls):  # pragma: nocover
 
       '''  '''
 

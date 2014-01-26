@@ -42,15 +42,7 @@ def run(app=None,
   return spawn(app, dev, config, root).serve(interface, port)
 
 
-def dispatch():
-
-  '''  '''
-
-  pass
-
-
 __all__ = (
   'spawn',
-  'run',
-  'dispatch'
+  'run'
 )

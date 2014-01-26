@@ -118,7 +118,6 @@ class ModelAdapterTests(FrameworkTest):
     self.assertTrue(hasattr(TestDefault, '__adapter__'))
     self.assertIsInstance(TestDefault.__adapter__, adapter.InMemoryAdapter)
 
-  @unittest.expectedFailure
   def test_explicit_adapter(self):
 
     ''' Test that an adapter can be set explcitly. '''

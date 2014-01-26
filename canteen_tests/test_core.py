@@ -21,8 +21,11 @@ from canteen import test
 
 # core meta
 from canteen.core import meta
+from canteen.core import injection
 from canteen.core.meta import Proxy
-from canteen.core.meta import MetaFactory
+
+# canteen util
+from canteen.util import decorators
 
 
 class CoreMetaTest(test.FrameworkTest):
@@ -212,3 +215,128 @@ class ClassComponentTest(test.FrameworkTest):
     assert hasattr(ComponentMetaclass, 'inject')
     assert hasattr(ComponentMetaclass, 'register')
     assert hasattr(ComponentMetaclass, 'initialize')
+
+    return ComponentMetaclass
+
+  def test_collapse(self):
+
+    ''' Try manually collapsing a class with known
+        bindings. '''
+
+    meta.Proxy.Component.reset_cache()
+
+    @decorators.bind('injectable')
+    class InjectableClass(self.test_construct_component()):
+
+      '''  '''
+
+      @decorators.bind('test', wrap=staticmethod)
+      def test():
+
+        '''  '''
+
+        pass
+
+      @decorators.bind('toplevel', wrap=staticmethod, namespace=False)
+      def toplevel():
+
+        '''  '''
+
+        pass
+
+
+    class TestCompound(object):
+      __metaclass__ = injection.Compound
+
+
+    class InjectedClass(TestCompound):
+
+      '''  '''
+
+      def test_blab(self):
+
+        '''  '''
+
+        assert self.toplevel
+        assert self.injectable
+        assert self.injectable.test
+
+      def test_invalid(self):
+
+        '''  '''
+
+        self.invalid_property_here
+
+
+    # manually perform a class collapse
+    collapsed = meta.Proxy.Component.collapse(InjectedClass)
+
+    # test collapse
+    assert isinstance(collapsed, dict)
+    assert 'injectable' in collapsed
+    assert 'toplevel' in collapsed
+    assert 'injectable.test' in collapsed
+
+    # test full injection
+    i = InjectedClass()
+    assert i.test_blab
+    i.test_blab()
+
+    # make sure invalid attributes still fail
+    with self.assertRaises(AttributeError):
+      i.blabble
+
+    with self.assertRaises(AttributeError):
+      i.test_invalid()
+
+    # clean up
+    meta.Proxy.Component.reset_cache()
+
+    return InjectedClass
+
+  def test_singleton_map(self):
+
+    ''' Try setting a :py:class:`Component`
+        meta-implementor into ``singleton``
+        mode. '''
+
+
+    @decorators.singleton
+    @decorators.bind('singleton')
+    class SingletonTest(self.test_construct_component()):
+
+      '''  '''
+
+      def get_self(self):
+
+        '''  '''
+
+        return self
+
+
+    class TestCompound(object):
+      __metaclass__ = injection.Compound
+
+
+    class CompoundSingletonTest(TestCompound):
+
+      '''  '''
+
+      def test_singleton(self):
+
+        '''  '''
+
+        assert self.singleton
+        return self.singleton.get_self()
+
+    # access the singleton to create one
+    i = CompoundSingletonTest()
+    singleton_one = i.test_singleton()
+    singleton_two = i.test_singleton()
+
+    # must be exactly equal
+    assert singleton_one is singleton_two
+
+    # check singleton's presence in the map
+    assert singleton_one in SingletonTest.__class__.singleton_map.values()
+    assert singleton_two in SingletonTest.__class__.singleton_map.values()

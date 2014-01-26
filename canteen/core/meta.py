@@ -103,7 +103,7 @@ class Proxy(object):
         #  defer to _cls.register directly after construction
         if issubclass(_cls, Proxy.Registry):
           return grab(_cls.register)(_cls, construct(_cls, _name, _bases, _properties))
-        return construct(_cls, _name, _bases, _properties)
+        return construct(_cls, _name, _bases, _properties)  # pragma: nocover
 
       # drop down if we already have a metachain for this tree
       if cls.__metachain__: properties['__new__'] = metanew
@@ -132,33 +132,6 @@ class Proxy(object):
 
       # remember to filter-out weakrefs that have died
       return [child for child in cls.iter_children()]
-
-    def mro(cls):
-
-      '''  '''
-
-      return type.mro(cls)
-
-    @classmethod
-    def trim(cls, owner, target):
-
-      '''  '''
-
-      # never trim `Registry`
-      if cls is Proxy.Registry: return
-
-      _owner_map, _new_map = cls.__chain__.get(owner), []
-      if _owner_map:
-        for child in _owner_map:
-          obj = child()
-          if obj is child or obj is None:
-            continue
-          _new_map.append(obj)
-
-        cls.__chain__ = _new_map
-        return cls.__chain__
-      raise RuntimeError('Attempted to trim target `%s` '
-                         'from non-existent parent `%s`.' % (target, owner))
 
     @staticmethod
     def register(meta, target):
@@ -190,11 +163,20 @@ class Proxy(object):
     __map__ = {}  # holds map of all platform instances
 
     @decorators.classproperty
-    def singleton_map(self):
+    def singleton_map(cls):
 
       '''  '''
 
-      return self.__map__
+      return cls.__map__
+
+    @classmethod
+    def reset_cache(cls):
+
+      '''  '''
+
+      cls.__injector_cache__ = {}
+      cls.__class__.__injector_cache__ = {}
+      return
 
     @staticmethod
     def collapse(cls, spec=None):
@@ -226,8 +208,9 @@ class Proxy(object):
                   # dereference property aliases
                   if hasattr(klass, '__aliases__') and property_name in klass.__aliases__:
                     return getattr(obj, klass.__aliases__[property_name])
-                  return getattr(obj, property_name)
+                  return getattr(obj, property_name)  # pragma: nocover
 
+                setattr(pluck, 'target', klass)
                 return pluck
 
               if concrete.__binding__:
@@ -307,7 +290,7 @@ class Proxy(object):
         # otherwise, startup a new singleton
         cls.__map__[alias] = target()
         return cls.__map__[alias]
-      return target
+      return target  # pragma: nocover
 
 
 __all__ = (

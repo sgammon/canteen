@@ -75,7 +75,7 @@ class AssetsAPI(CoreAPI):
     from canteen import handler
 
     ## asset handler
-    def make_responder(asset_type):
+    def make_responder(asset_type, path_prefix=None):
 
       '''  '''
 
@@ -99,9 +99,11 @@ class AssetsAPI(CoreAPI):
 
           '''  '''
 
-          import pdb; pdb.set_trace()
+          if not path_prefix:
+            fullpath = os.path.join(self.assets.path, asset_type, asset)
+          else:
+            fullpath = os.path.join(path_prefix, asset)
 
-          fullpath = os.path.join(self.assets.path, asset_type, asset)
           if fullpath in self.assets.__handles__:
 
             # extract cached handle/modtime/content
@@ -158,7 +160,12 @@ class AssetsAPI(CoreAPI):
     # map asset prefixes to asset responder
     if 'asset_prefix' in self.config:
       for category, prefix in self.config['asset_prefix'].iteritems():
-        url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(category))
+        url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
+
+    if 'extra_assets' in self.config:
+      for name, ext_cfg in self.config['extra_assets'].iteritems():
+        prefix, path = ext_cfg
+        url("%s-extra-assets" % name, "%s/<path:asset>" % prefix)(make_responder(asset_type=name, path_prefix=path))
 
   ### === Resolvers === ###
   def find_filepath(self, asset_type):

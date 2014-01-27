@@ -80,6 +80,10 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
             'favicon.ico'
         )})
 
+      # append any extra asset paths
+      if self.config.assets.get('config', {}).get('extra_assets'):
+        paths.update(dict(self.config.assets['config']['extra_assets'].itervalues()))
+
       # run via werkzeug's awesome `run_simple`
       return serving.run_simple(interface, address, self, **{
         'use_reloader': True,

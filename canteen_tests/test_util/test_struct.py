@@ -28,7 +28,7 @@ class BaseUtilTests(test.FrameworkTest):
 
   def test_exports(self):
 
-    ''' Test that `canteen.util` exports expected things... '''
+    ''' Test that `canteen.util` exports expected things. '''
 
     assert hasattr(struct, '_EMPTY')
     assert hasattr(struct, '_TOMBSTONE')
@@ -74,14 +74,14 @@ class SentinelTests(test.FrameworkTest):
 
   def test_falsy(self):
 
-    ''' Test ability to set a Sentinel as falsy... '''
+    ''' Test ability to set a Sentinel as falsy. '''
 
     BAD = struct.Sentinel('BAD', falsy=True)
     assert not BAD
 
   def test_not_falsy(self):
 
-    ''' Test ability to set a Sentinel as truthy... '''
+    ''' Test ability to set a Sentinel as truthy. '''
 
     GOOD = struct.Sentinel('GOOD', falsy=False)
     assert GOOD
@@ -181,6 +181,8 @@ class ObjectProxyTests(test.FrameworkTest):
     assert not hasattr(st_struct, 'hellothere')
     assert 'HelloThere' in st_struct
     assert 'hellothere' not in st_struct
+    assert 'idonotexist' not in st_struct
+    assert 'IDoNotExist' not in st_struct
 
   def test_fill_case_insensitive(self):
 
@@ -196,15 +198,145 @@ class ObjectProxyTests(test.FrameworkTest):
     assert st_struct.hellothere is True
     assert 'HelloThere' in st_struct
     assert 'hellothere' in st_struct
+    assert 'idonotexist' not in st_struct
 
-"""
   def test_getitem(self):
 
     ''' Test that `util.ObjectProxy` can be used with getitem syntax. '''
 
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=False)
+
+    assert st_struct['HelloThere'] is True
+    assert st_struct['hellothere'] is True
+    assert 'HelloThere' in st_struct
+    assert 'hellothere' in st_struct
+    assert 'idonotexist' not in st_struct
+
+    # try invalid names
+    with self.assertRaises(KeyError):
+      st_struct['IDoNotExist']
+    with self.assertRaises(KeyError):
+      st_struct['idonotexist']
+
   def test_getattr(self):
 
-    ''' Test that `util.ObjectProxy` can be used with getattr syntax. '''
+    ''' Test that `util.ObjectProxy` can be used with getitem syntax. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=False)
+
+    assert st_struct.HelloThere is True
+    assert st_struct.hellothere is True
+    assert 'HelloThere' in st_struct
+    assert 'hellothere' in st_struct
+    assert 'idonotexist' not in st_struct
+
+    # try invalid names
+    with self.assertRaises(AttributeError):
+      st_struct.idonotexist
+    with self.assertRaises(AttributeError):
+      st_struct.IDoNotExist
+
+    # test special attributes
+    assert st_struct._case_sensitive is False
+    assert isinstance(st_struct._entries, dict)
+
+  def test_keys(self):
+
+    ''' Test buffered iteration with `util.ObjectProxy.keys`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=True)
+
+    ref = ('HelloThere', 'IamA', 'StRuct')
+    for key in st_struct.keys():
+      assert key in ref
+
+  def test_iterkeys(self):
+
+    ''' Test streaming iteration with `util.ObjectProxy.iterkeys`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=True)
+
+    ref = ('HelloThere', 'IamA', 'StRuct')
+    for key in st_struct.iterkeys():
+      assert key in ref
+
+    assert isinstance(st_struct.iterkeys(), {}.iterkeys().__class__)
+
+  def test_values(self):
+
+    ''' Test buffered iteration with `util.ObjectProxy.values`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': 1,
+      'IamA': 2,
+      'StRuct': 3
+    })
+
+    ref = (1, 2, 3)
+    for val in st_struct.values():
+      assert val in ref
+
+  def test_itervalues(self):
+
+    ''' Test streaming iteration with `util.ObjectProxy.itervalues`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': 1,
+      'IamA': 2,
+      'StRuct': 3
+    })
+
+    ref = (1, 2, 3)
+    for val in st_struct.itervalues():
+      assert val in ref
+
+    assert isinstance(st_struct.itervalues(), {}.itervalues().__class__)
+
+  def test_items(self):
+
+    ''' Test buffered iteration with `util.ObjectProxy.items`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=True)
+
+    ref = {'HelloThere': True, 'IamA': False, 'StRuct': None}
+    for key, value in st_struct.items():
+      assert ref[key] == value
+
+  def test_iteritems(self):
+
+    ''' Test streaming iteration with `util.ObjectProxy.iteritems`. '''
+
+    st_struct = struct.ObjectProxy({
+      'HelloThere': True,
+      'IamA': False,
+      'StRuct': None
+    }, case_sensitive=True)
+
+    ref = {'HelloThere': True, 'IamA': False, 'StRuct': None}
+    for key, value in st_struct.iteritems():
+      assert ref[key] == value
+
+    assert isinstance(st_struct.iteritems(), {}.iteritems().__class__)
 
 
 class WritableObjectProxyTests(test.FrameworkTest):
@@ -217,15 +349,60 @@ class WritableObjectProxyTests(test.FrameworkTest):
 
     ''' Test that `util.WritableObjectProxy` can be used with setitem syntax. '''
 
+    st_struct = struct.WritableObjectProxy()
+    st_struct['hi'] = True
+
+    assert 'hi' in st_struct
+    assert st_struct['hi'] is True
+
   def test_setattr(self):
 
     ''' Test that `util.WritableObjectProxy` can be used with setattr syntax. '''
+
+    st_struct = struct.WritableObjectProxy()
+    st_struct.hi = True
+
+    assert 'hi' in st_struct
+    assert st_struct.hi is True
 
   def test_delitem(self):
 
     ''' Test that `util.WritableObjectProxy` can be used with delitem syntax. '''
 
+    st_struct = struct.WritableObjectProxy()
+    st_struct['hi'] = True
+    st_struct['bye'] = False
+
+    assert st_struct['hi'] is True
+    assert st_struct['bye'] is False
+
+    del st_struct['bye']
+
+    assert 'bye' not in st_struct
+    with self.assertRaises(KeyError):
+      st_struct['bye']
+
+    # try deleting an invalid item
+    with self.assertRaises(KeyError):
+      del st_struct['i_was_never_here_lol']
+
   def test_delattr(self):
 
     ''' Test that `util.WritableObjectProxy` can be used with delattr syntax. '''
-"""
+
+    st_struct = struct.WritableObjectProxy()
+    st_struct.hi = True
+    st_struct.bye = False
+
+    assert st_struct.hi is True
+    assert st_struct.bye is False
+
+    del st_struct.bye
+
+    assert 'bye' not in st_struct
+    with self.assertRaises(AttributeError):
+      st_struct.bye
+
+    # try deleting an invalid attr
+    with self.assertRaises(AttributeError):
+      del st_struct.i_was_never_here_lol

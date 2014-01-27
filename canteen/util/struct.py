@@ -17,8 +17,7 @@
 '''
 
 # stdlib
-import abc
-import logging
+import abc, logging
 
 # canteen util
 from . import decorators
@@ -102,21 +101,6 @@ class UtilStruct(object):
       raise NotImplementedError('Cannot construct `UtilStruct` directly as'
                                 ' it is an abstract class.')
     return object.__new__(cls, *args, **kwargs)
-
-  def __init__(self, struct=None, case_sensitive=False, **kwargs):
-
-    ''' If handed a dictionary (or something) in init, send it to
-      fillStructure (and do the same for kwargs).
-
-      :param struct:
-      :param case_sensitive:
-      :param kwargs:
-      :raises TypeError:
-      :returns: '''
-
-    if struct:
-      if kwargs: struct.update(kwargs)
-      self.fillStructure(struct, case_sensitive=case_sensitive)
 
   @abc.abstractmethod
   def fillStructure(self, struct, case_sensitive=False, **kwargs):
@@ -202,9 +186,10 @@ class ObjectProxy(UtilStruct):
       :raises KeyError:
       :returns: '''
 
-    if self.i_filter(name) not in self._entries:
+    filtered = self.i_filter(name)
+    if filtered not in self._entries:
       raise KeyError("Cannot locate name '%s' in ObjectProxy '%s'." % (name, self))
-    return self._entries[self.i_filter(name)]
+    return self._entries[filtered]
 
   def __getattr__(self, name):
 
@@ -214,12 +199,10 @@ class ObjectProxy(UtilStruct):
       :raises AttributeError
       :returns: '''
 
-    if name in ('_entries', '_case_sensitive', '__slots__'):
-      return object.__getattr__(self, name)
-
-    if self.i_filter(name) not in self._entries:
+    filtered = self.i_filter(name)
+    if filtered not in self._entries:
       raise AttributeError("Could not find the attribute '%s' on the specified ObjectProxy." % name)
-    return self._entries[self.i_filter(name)]
+    return self._entries[filtered]
 
   def __contains__(self, name):
 
@@ -244,7 +227,7 @@ class ObjectProxy(UtilStruct):
 
       :returns: '''
 
-    self._entries.values()
+    return self._entries.values()
 
   def items(self):
 
@@ -261,8 +244,7 @@ class ObjectProxy(UtilStruct):
 
         :yields: '''
 
-    for k in self._entries.iterkeys():
-      yield k
+    return self._entries.iterkeys()
 
   def itervalues(self):
 
@@ -271,8 +253,7 @@ class ObjectProxy(UtilStruct):
 
         :yields: '''
 
-    for v in self._entries.itervalues():
-      yield v
+    return self._entries.itervalues()
 
   def iteritems(self):
 
@@ -281,8 +262,7 @@ class ObjectProxy(UtilStruct):
 
         :yields: '''
 
-    for k, v in self._entries.iteritems():
-      yield k, v
+    return self._entries.iteritems()
 
 
 class WritableObjectProxy(ObjectProxy):

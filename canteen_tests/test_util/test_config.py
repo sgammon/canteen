@@ -2,10 +2,10 @@
 
 '''
 
-  canteen test runner
-  ~~~~~~~~~~~~~~~~~~~
+  canteen config tests
+  ~~~~~~~~~~~~~~~~~~~~
 
-  discovers canteen's tests, then runs them.
+  tests for canteen's data structures utilities.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -14,17 +14,3 @@
             the root of the project.
 
 '''
-
-
-if __debug__:
-
-  # stdlib & canteen
-  import os
-  import sys
-  import canteen
-  import canteen.test
-
-  if __name__ == '__main__':
-
-    import nose
-    sys.exit(int(nose.run()))

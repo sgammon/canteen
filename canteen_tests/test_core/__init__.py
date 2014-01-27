@@ -16,16 +16,17 @@
 
 '''
 
-# testing
-from canteen import test
+# stdlib
+import os
 
-# core meta
-from canteen.core import meta
-from canteen.core.meta import Proxy
-from canteen.core.meta import MetaFactory
-
-
-if 'TEST_REIMPORT' in os.environ:
+if 'TEST_REIMPORT' in os.environ:  # pragma: nocover
   from canteen_tests.test_core import test_runtime
   from canteen_tests.test_core import test_meta
   from canteen_tests.test_core import test_injection
+
+
+__all__ = (
+  'test_runtime',
+  'test_injection',
+  'test_meta'
+)

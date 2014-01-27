@@ -29,6 +29,7 @@ class Sentinel(object):
   ''' Create a named sentinel object. '''
 
   name = None
+  hash = None
   _falsy = False
 
   def __init__(self, name, falsy=False):
@@ -39,7 +40,25 @@ class Sentinel(object):
       :param falsy:
       :returns: '''
 
-    self.name, self._falsy = name, falsy
+    self.name, self.hash, self._falsy = name, int((''.join(str(ord(c)) for c in name))), falsy
+
+  def __hash__(self):
+
+    ''' Hash value for this sentinel.
+
+        :returns: '''
+
+    return self.hash
+
+  def __eq__(self, other):
+
+    ''' Equality comparator for this sentinel.
+
+        :returns: '''
+
+    if isinstance(other, self.__class__):
+      return other.hash == self.hash
+    return False
 
   def __repr__(self):
 
@@ -66,8 +85,25 @@ class UtilStruct(object):
 
   ''' Abstract class for a utility object. '''
 
+  __metaclass__ = abc.ABCMeta
+
   ## Init -- Accept structure fill
-  def __init__(self, struct=None, case_sensitive=True, **kwargs):
+  def __new__(cls, *args, **kwargs):
+
+    ''' Class constructor that enforces abstractness
+        at the root of the class tree.
+
+        Raises :py:exc:`NotImplementedError` if the
+        root class :py:class:`UtilStruct` is constructed
+        directly. Otherwise, returns a new instance
+        of the requested class. '''
+
+    if cls.__name__ is 'UtilStruct':
+      raise NotImplementedError('Cannot construct `UtilStruct` directly as'
+                                ' it is an abstract class.')
+    return object.__new__(cls, *args, **kwargs)
+
+  def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
     ''' If handed a dictionary (or something) in init, send it to
       fillStructure (and do the same for kwargs).
@@ -78,15 +114,23 @@ class UtilStruct(object):
       :raises TypeError:
       :returns: '''
 
-    try:
-      if struct is not None:
-        self.fillStructure(struct, case_sensitive=case_sensitive)
-      if len(kwargs) > 0:
-        self.fillStructure(case_sensitive=case_sensitive, **kwargs)
-    except TypeError:
-      logging.critical('Type error encountered when trying to fillStructure.')
-      logging.critical('Current struct: "%s".' % self)
-      logging.critical('Target struct: "%s".' % struct)
+    if struct:
+      if kwargs: struct.update(kwargs)
+      self.fillStructure(struct, case_sensitive=case_sensitive)
+
+  @abc.abstractmethod
+  def fillStructure(self, struct, case_sensitive=False, **kwargs):
+
+    ''' Abstract method that fills a local object with data, usually
+        from initialization.
+
+        :param struct:
+        :param case_sensitive:
+        :param kwargs:
+        :returns: '''
+
+    raise NotImplementedError('`UtilStruct.fillStructure` is abstract and must'
+                              ' be implemented by a subclass.')
 
 
 class ObjectProxy(UtilStruct):
@@ -94,37 +138,61 @@ class ObjectProxy(UtilStruct):
   ''' Same handy object as above, but stores the entries in an
     _entries attribute rather than the class dict.  '''
 
-  _entries = {}
-  i_filter = lambda _, k: k
+  _entries = None
+  _case_sensitive = None
 
-  def __init__(self, fill=None, case_sensitive=True, **kwargs):
+  def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
-    ''' If handed a dictionary or kwargs, fill _entries with e[k] = v.
-      A list will do the same and be interpreted as a list of tuples in (k, v) format.
+    ''' If handed a dictionary (or something) in init, send it to
+      fillStructure (and do the same for kwargs).
 
-      :param fill:
+      :param struct:
       :param case_sensitive:
       :param kwargs:
+      :raises TypeError:
       :returns: '''
 
-    if case_sensitive is False:
-      self.i_filter = lambda k: str(k).lower()
-    if fill is not None:
-      if isinstance(fill, dict):
-        for k, v in fill.iteritems():
-          if case_sensitive is False:
-            k = str(k).lower()
-          self._entries[k] = v
-      elif isinstance(fill, list):
-        for k, v in fill:
-          if case_sensitive is False:
-            k = str(k).lower()
-          self._entries[k] = v
-    if kwargs:
-      for k, v in kwargs.iteritems():
-        if case_sensitive is False:
-          k = str(k).lower()
-        self._entries[k] = v
+    self._entries, self._case_sensitive = {}, case_sensitive
+    if struct:
+      if kwargs: struct.update(kwargs)
+      self.fillStructure(struct, case_sensitive=case_sensitive)
+
+  def i_filter(self, target):
+
+    ''' Account for case sensitivity.
+
+        :param target: String parameter name
+        to filter.
+
+        :returns: Case insensitive version
+        of ``target`` if case sensitivity
+        is deactivated. '''
+
+    if self._case_sensitive:
+      return target
+    return str(target).lower()
+
+  def fillStructure(self, fill, case_sensitive=False, **kwargs):
+
+    ''' If handed a dictionary, will fill self with
+        those entries. Usually called from ``__init__``.
+
+        :param fill: Structure to fill self with.
+
+        :param case_sensitive: Whether we should
+        initialize while ignoring case.
+
+        :param kwargs: Keyword arguments to be applied
+        to ``struct`` as override.
+
+        :returns: ``self``. '''
+
+    self.case_sensitive = case_sensitive
+    if fill:
+      if kwargs: fill.update(kwargs)
+      for k, v in (fill.iteritems() if isinstance(fill, dict) else iter(fill)):
+        self._entries[self.i_filter(k)] = v
+    return self
 
   def __getitem__(self, name):
 
@@ -138,18 +206,6 @@ class ObjectProxy(UtilStruct):
       raise KeyError("Cannot locate name '%s' in ObjectProxy '%s'." % (name, self))
     return self._entries[self.i_filter(name)]
 
-  def __delitem__(self, name):
-
-    ''' 'del struct[name]' override.
-
-      :param name:
-      :raises KeyError:
-      :returns: '''
-
-    if self.i_filter(name) not in self._entries:
-      raise KeyError("Could not find the entry '%s' on the specified ObjectProxy." % name)
-    del self._entries[self.i_filter(name)]
-
   def __getattr__(self, name):
 
     ''' 'x = struct.name' override.
@@ -157,6 +213,9 @@ class ObjectProxy(UtilStruct):
       :param name:
       :raises AttributeError
       :returns: '''
+
+    if name in ('_entries', '_case_sensitive', '__slots__'):
+      return object.__getattr__(self, name)
 
     if self.i_filter(name) not in self._entries:
       raise AttributeError("Could not find the attribute '%s' on the specified ObjectProxy." % name)
@@ -170,18 +229,6 @@ class ObjectProxy(UtilStruct):
       :returns: '''
 
     return self.i_filter(name) in self._entries
-
-  def __delattr__(self, name):
-
-    ''' 'del struct.name' override.
-
-      :param name:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.i_filter(name) not in self._entries:
-      raise AttributeError("Could not find the entry '%s' on the specified ObjectProxy." % name)
-    del self._entries[self.i_filter(name)]
 
   def keys(self):
 
@@ -199,7 +246,6 @@ class ObjectProxy(UtilStruct):
 
     self._entries.values()
 
-  ## Utiliy Methods
   def items(self):
 
     ''' return all (k, v) pairs in this struct.
@@ -207,6 +253,36 @@ class ObjectProxy(UtilStruct):
       :returns: '''
 
     return self._entries.items()
+
+  def iterkeys(self):
+
+    ''' return each key in this struct,
+        one at a time, generator-style.
+
+        :yields: '''
+
+    for k in self._entries.iterkeys():
+      yield k
+
+  def itervalues(self):
+
+    ''' return each value in this struct,
+        one at a time, generator-style.
+
+        :yields: '''
+
+    for v in self._entries.itervalues():
+      yield v
+
+  def iteritems(self):
+
+    ''' return all (k, v) pairs in this struct,
+        one at a time, generator-style.
+
+        :yields: '''
+
+    for k, v in self._entries.iteritems():
+      yield k, v
 
 
 class WritableObjectProxy(ObjectProxy):
@@ -231,7 +307,33 @@ class WritableObjectProxy(ObjectProxy):
       :param value:
       :returns: '''
 
+    if name in ('_entries', '_case_sensitive', '__slots__'):
+      return object.__setattr__(self, name, value)
     self._entries[name] = value
+
+  def __delattr__(self, name):
+
+    ''' 'del struct.name' override.
+
+      :param name:
+      :raises AttributeError:
+      :returns: '''
+
+    if self.i_filter(name) not in self._entries:
+      raise AttributeError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+    del self._entries[self.i_filter(name)]
+
+  def __delitem__(self, name):
+
+    ''' 'del struct[name]' override.
+
+      :param name:
+      :raises KeyError:
+      :returns: '''
+
+    if self.i_filter(name) not in self._entries:
+      raise KeyError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+    del self._entries[self.i_filter(name)]
 
 
 class CallbackProxy(ObjectProxy):
@@ -255,11 +357,8 @@ class CallbackProxy(ObjectProxy):
 
     self.callback = callback
 
-    if struct is not None:
-      self._entries = struct
-    else:
-      if kwargs:
-        self._entries = dict([i for i in struct.iteritems()] + [i for i in kwargs.iteritems()])
+    self._entries = struct
+    if kwargs: self._entries.update(kwargs)
 
   def __getitem__(self, name):
 

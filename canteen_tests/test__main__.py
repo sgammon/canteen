@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: main tests
-  ~~~~~~~~~~~~~~~~~~~
+  canteen main tests
+  ~~~~~~~~~~~~~~~~~~
 
   tests things at the top-level package main for canteen.
 

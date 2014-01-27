@@ -26,7 +26,7 @@ from canteen import model
 from canteen.test import FrameworkTest
 
 
-if 'TEST_REIMPORT' in os.environ:
+if 'TEST_REIMPORT' in os.environ:  # pragma: nocover
   from canteen_tests.test_model.test_adapters import test_abstract
   from canteen_tests.test_model.test_adapters import test_core
   from canteen_tests.test_model.test_adapters import test_inmemory

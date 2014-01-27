@@ -2,10 +2,10 @@
 
 '''
 
-  canteen util tests
-  ~~~~~~~~~~~~~~~~~~
+  canteen decorator tests
+  ~~~~~~~~~~~~~~~~~~~~~~~
 
-  utilities for providing unittest functionality.
+  tests for canteen's decorator utilities.
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013

@@ -62,6 +62,19 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           pass
       raise jinja2.TemplateNotFound(template)
 
+    def load(self, environment, filename, globals=None):
+
+      '''  '''
+
+      for loader in self.loaders:
+        try:
+          tpl = loader.load(environment, filename, globals)
+        except (jinja2.TemplateNotFound, RuntimeError, ImportError):
+          pass
+        else:
+          return tpl
+      raise jinja2.TemplateNotFound(filename)
+
 
   class ModuleLoader(TemplateLoader, jinja2.ModuleLoader):
 

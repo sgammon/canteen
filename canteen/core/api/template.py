@@ -129,7 +129,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         print 'Loaded template module: "%s".' % template
 
       # Convert the path to a module name.
-      prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.')).rsplit('.', 1)
+      prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.').replace('-', '_')).rsplit('.', 1)
       prefix, obj = str(prefix), str(obj)
 
       try:

@@ -42,12 +42,12 @@ setup(name="canteen",
         "jinja2",
         "werkzeug",
         "protorpc",
-        "protobuf",
-        "hamlish_jinja"
+        "hamlish_jinja>=2.0.0beta",
+        "protobuf>=2.0.0beta"
       ),
       dependency_links=(
-        "git+git://github.com/keenlabs/protobuf.git#egg=protobuf",
-        "git+git://github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja"
+        "git+git://github.com/keenlabs/protobuf.git#egg=protobuf-2.0.0beta",
+        "git+git://github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja-2.0.0beta"
       ),
       tests_require=("nose",)
 )

@@ -42,6 +42,10 @@ setup(name="canteen",
         "jinja2",
         "werkzeug",
         "protorpc",
+        "protobuf",
+        "hamlish_jinja"
+      ),
+      dependency_links=(
         "git+git://github.com/keenlabs/protobuf.git#egg=protobuf",
         "git+git://github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja"
       ),

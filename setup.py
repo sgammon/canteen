@@ -47,7 +47,13 @@ setup(name="canteen",
         "canteen.util",
         "canteen_tests"
       ),
-      install_requires=("jinja2", "werkzeug", "protorpc"),
+      install_requires=(
+        "jinja2",
+        "werkzeug",
+        "protorpc",
+        "git+git://github.com/keenlabs/protobuf.git#egg=protobuf",
+        "git+git://github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja"
+      ),
       tests_require=("nose",),
       ext_modules=_extensions if _CYTHON else tuple(),
 )

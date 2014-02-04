@@ -320,10 +320,11 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
+    from canteen.util import config
+
     return {
 
       # Python Builtins
-      '__debug__': __debug__,
       'all': all, 'any': any,
       'int': int, 'str': str,
       'len': len, 'map': map,
@@ -336,6 +337,7 @@ class TemplateAPI(CoreAPI):
       'xrange': xrange, 'filter': filter,
       'reduce': reduce, 'sorted': sorted,
       'unicode': unicode, 'reversed': reversed,
+      '__debug__': __debug__ and config.Config().debug,
       'isinstance': isinstance, 'issubclass': issubclass
 
     }

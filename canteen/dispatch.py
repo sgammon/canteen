@@ -20,13 +20,16 @@ app = None
 
 def spawn(app,
         dev,
-        config,
+        config=None,
         root=None):
 
   '''  '''
 
   # canteen core & util
   from canteen.core import runtime
+  from canteen.util import config as cfg
+
+  if not config: config = cfg.Config()
   return runtime.Runtime.spawn(app).configure(config)
 
 

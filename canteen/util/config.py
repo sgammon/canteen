@@ -20,7 +20,7 @@ import collections
 
 
 ## Globals
-_appconfig = None
+_appconfig = {}
 
 
 class Config(object):

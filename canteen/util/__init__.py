@@ -17,6 +17,8 @@
 '''
 
 # stdlib
+import os
+import sys
 import time
 import pkgutil
 import datetime
@@ -37,14 +39,30 @@ def say(*args):
   print ' '.join(map(lambda x: str(x), args))
 
 
-def walk(root=None, debug=True):
+def walk(root=None, debug=__debug__):
 
   '''  '''
 
+  # make sure working directory is in path
+  if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
+
+  def walker((loader, name, is_package)):
+
+    '''  '''
+
+    try:
+      return importlib.import_module(name).__name__ if not is_package else name
+    except ImportError as e:
+      if debug:
+        print 'Failed to preload path "%s"...' % (root or '.')
+        print e
+        raise
+      return
+
   if debug: print 'Preloading path "%s"...' % (root or '.')
   return map((lambda x: say('Preloaded:', x)) if debug else (lambda x: x),
-          map(lambda (loader, name, is_package): importlib.import_module(name).__name__ if not is_package
-            else name, pkgutil.walk_packages(root or '.')))
+          map(walker, pkgutil.walk_packages(root or '.')))
 
 
 __all__ = (

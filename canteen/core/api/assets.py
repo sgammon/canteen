@@ -50,7 +50,7 @@ class AssetsAPI(CoreAPI):
 
     '''  '''
 
-    return config.Config().app.get('paths', {}).get('assets', 'assets')
+    return config.Config().app.get('paths', {}).get('assets', os.path.join(os.getcwd(), 'assets'))
 
   @property
   def config(self):
@@ -158,9 +158,21 @@ class AssetsAPI(CoreAPI):
       return AssetResponder
 
     # map asset prefixes to asset responder
-    if 'asset_prefix' in self.config:
-      for category, prefix in self.config['asset_prefix'].iteritems():
-        url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
+    if 'asset_prefix' not in self.config:
+
+      # set default asset prefixes
+      asset_prefixes = {
+        'style': 'assets/style',
+        'image': 'assets/img',
+        'script': 'assets/js',
+        'font': 'assets/font'
+      }
+
+    else:
+      asset_prefixes = self.config['asset_prefix']
+
+    for category, prefix in asset_prefixes.iteritems():
+      url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
 
     if 'extra_assets' in self.config:
       for name, ext_cfg in self.config['extra_assets'].iteritems():

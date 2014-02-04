@@ -16,3 +16,9 @@
             the root of the project.
 
 '''
+
+# utils
+from util import walk
+from dispatch import run
+
+walk(), run()

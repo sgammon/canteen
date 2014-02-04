@@ -183,21 +183,62 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
-    # default syntax support method
-    def syntax(self, handler, environment, config):
+    engine = jinja2  # we're using jinja :)
+
+    @property
+    def default_extensions(self):
 
       '''  '''
 
-      return environment
+      return []  # nothing, for now @TODO(sgammon): add builtin caching etc
+
+    @property
+    def default_config(self):
+
+      '''  '''
+
+      return {
+        'optimized': True,
+        'autoescape': True
+      }
+
+    # default syntax support method
+    def syntax(self, handler, environment_factory, j2config, config):
+
+      '''  '''
+
+      # factory environment
+      return environment_factory(**j2config)
 
     # is there HAML syntax support?
     with runtime.Library('hamlish_jinja') as (haml_library, haml):
 
       '''  '''
 
-      def syntax(self, handler, environment, config):
+      syntax_extension = (haml.HamlishExtension, haml.HamlishTagExtension)  # we're using haml :)
+
+      def syntax(self, handler, environment_factory, j2config, config):
 
         '''  '''
+
+        # make environment first
+        if 'extensions' not in j2config or not j2config.get('extensions'):
+
+          # make sure standard j2 extensions are added
+          j2config['extensions'] = [
+            'jinja2.ext.autoescape',
+            'jinja2.ext.with_',
+            'jinja2.ext.do',
+            'jinja2.ext.loopcontrols'
+          ] + self.default_extensions
+
+        # auto-add hamlish extension
+        for ext in self.syntax_extension:
+          if ext not in j2config['extensions']:
+            j2config['extensions'].append(ext)
+
+        # factory environment
+        environment = environment_factory(**j2config)
 
         if config.debug:
           environment.hamlish_mode = 'indented'
@@ -216,13 +257,6 @@ class TemplateAPI(CoreAPI):
 
         return environment
 
-    @property
-    def engine(self):
-
-      '''  '''
-
-      return jinja2
-
     def environment(self, handler, config):
 
       '''  '''
@@ -231,15 +265,13 @@ class TemplateAPI(CoreAPI):
 
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})
-      path = config.app.get('paths', {}).get('templates', 'templates/')
-      jinja2_cfg = output.get('jinja2', {
-        'autoescape': True,
-        'optimized': True,
-        'extensions': (
-            'jinja2.ext.autoescape',
-            'jinja2.ext.with_',
-        )
-      })
+      path = config.app.get('paths', {}).get('templates')
+      jinja2_cfg = output.get('jinja2', self.default_config)
+
+      if not path:
+        # default path to cwd, and cwd + templates/, and cwd + templates/source
+        cwd = os.getcwd()
+        path = (os.path.join(cwd), os.path.join(cwd, 'templates'), os.path.join(cwd, 'templates', 'source'))
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
@@ -254,7 +286,7 @@ class TemplateAPI(CoreAPI):
           raise RuntimeError('No configured template source path.')
 
       # make our new environment
-      j2env = self.syntax(handler, self.engine.Environment(**jinja2_cfg), config)
+      j2env = self.syntax(handler, self.engine.Environment, jinja2_cfg, config)
 
       # allow jinja2 syntax overrides
       if 'syntax' in output:

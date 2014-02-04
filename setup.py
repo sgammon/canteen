@@ -13,17 +13,8 @@
 
 '''
 
-# distutils
-from distutils.core import setup
-
-try:
-  from Cython.Build import cythonize; _CYTHON = True
-except ImportError:
-  _CYTHON = False
-  print "Building without Cython support..."
-else:
-  print "Building with Cython support..."
-  _extensions = tuple()
+# setuptools
+from setuptools import setup
 
 
 setup(name="canteen",
@@ -54,6 +45,5 @@ setup(name="canteen",
         "git+git://github.com/keenlabs/protobuf.git#egg=protobuf",
         "git+git://github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja"
       ),
-      tests_require=("nose",),
-      ext_modules=_extensions if _CYTHON else tuple(),
+      tests_require=("nose",)
 )

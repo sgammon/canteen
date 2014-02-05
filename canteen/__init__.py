@@ -17,6 +17,8 @@
 
 debug, __version__ = __debug__, (1, 0)
 
+# stdlib
+import __builtin__; export = None
 
 # canteen :)
 from .rpc import *
@@ -31,4 +33,4 @@ from .dispatch import *
 from .exceptions import *
 
 
-__all__ = globals()  # export all the things
+__all__ = [export for export in globals() if (export not in __builtin__.__dict__ and (not export.startswith('__')))]  # export all the things!

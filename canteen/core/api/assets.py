@@ -35,6 +35,7 @@ class AssetsAPI(CoreAPI):
 
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
+  __prefixes__ = {}  # static asset type prefixes
   __static_types__ = frozenset(('style', 'script', 'font', 'image'))
 
   ### === Internals === ###
@@ -164,7 +165,7 @@ class AssetsAPI(CoreAPI):
       asset_prefixes = {
         'style': 'assets/style',
         'image': 'assets/img',
-        'script': 'assets/js',
+        'script': 'assets/script',
         'font': 'assets/font'
       }
 
@@ -173,6 +174,8 @@ class AssetsAPI(CoreAPI):
 
     for category, prefix in asset_prefixes.iteritems():
       url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
+
+    self.__prefixes__ = asset_prefixes
 
     if 'extra_assets' in self.config:
       for name, ext_cfg in self.config['extra_assets'].iteritems():
@@ -193,15 +196,12 @@ class AssetsAPI(CoreAPI):
 
     '''  '''
 
-    asset_prefix = self.config.get('asset_prefix', 'assets')
-
-    if isinstance(asset_prefix, dict):
+    if isinstance(self.__prefixes__, dict):
       # allow type-specific asset prefixes
-      if isinstance(asset_prefix, dict):
-        if asset_type in asset_prefix:
-          return asset_prefix[asset_type]
-        raise ValueError("Cannot calculate asset prefix for unspecified asset type '%s'." % asset_type)
-    return (asset_prefix, asset_type)
+      if asset_type in self.__prefixes__:
+        return self.__prefixes__[asset_type]
+      raise ValueError("Cannot calculate asset prefix for unspecified asset type '%s'." % asset_type)
+    return ("assets/%s" % asset_type, asset_type)
 
   def find_prefix(self, asset_type, package):
 

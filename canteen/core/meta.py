@@ -50,7 +50,7 @@ class MetaFactory(type):
     # construct, yo. then unconditionally apply it to the metachain and return also, defer to the class'
     #  ``initialize``, or any of its bases if they have ``initialize`, for constructing the actual class.
     return ((grab(properties['initialize'] if 'initialize' in properties else
-              getattr(filter(lambda x: hasattr(x, 'initialize'), bases)[0], 'initialize')))(*(
+              getattr((x for x in bases if hasattr(x, 'initialize')).next(), 'initialize')))(*(
                 cls, name, bases, properties))) if (
                   'initialize' in properties or any((hasattr(b, 'initialize') for b in bases))
                 ) else metachain(cls, name, bases, properties)

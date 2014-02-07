@@ -43,6 +43,7 @@ class Handler(object):
   __response__ = None  # lazy-loaded response object
   __callback__ = None  # callback to send data (sync or async)
   __content_type__ = None  # response content type
+  __base_context__ = None  # base template render context
 
   __owner__, __metaclass__ = "Handler", injection.Compound
 
@@ -65,10 +66,9 @@ class Handler(object):
     )
 
     # request & response
-    self.__request__ = request
-    self.__response__ = response
+    self.__request__, self.__response__ = request, response
 
-  # expose internals, but write-protected
+  # expose internals, but write-protect
   runtime = property(lambda self: self.__runtime__)
   routes = property(lambda self: self.__runtime__.routes)
   status = property(lambda self: self.__status__)
@@ -77,6 +77,11 @@ class Handler(object):
 
   # shortcuts & utilities
   url_for = lambda self, endpoint, **args: self.routes.build(endpoint, args)
+
+  # WSGI internals
+  app = runtime = property(lambda self: self.__runtime__)
+  environment = environ = property(lambda self: self.__environ__)
+  start_response = callback = property(lambda self: self.__callback__)
 
   @property
   def request(self):
@@ -104,27 +109,6 @@ class Handler(object):
       return session
 
   @property
-  def environment(self):
-
-    '''  '''
-
-    return self.__environ__
-
-  @property
-  def start_response(self):
-
-    '''  '''
-
-    return self.__callback__
-
-  @property
-  def runtime(self):
-
-    '''  '''
-
-    return self.__runtime__
-
-  @property
   def context(self):
 
     '''  '''
@@ -143,6 +127,12 @@ class Handler(object):
       'http': {
         'request': self.request,
         'response': self.response
+      },
+
+      # WSGI internals
+      'wsgi': {
+        'environ': self.environ,
+        'start_response': self.start_response
       },
 
       # Cache API
@@ -188,24 +178,28 @@ class Handler(object):
 
     }
 
+  @property
+  def base_context(self):
+
+    '''  '''
+
+    if not self.__base_context__:
+      base = {}
+      map(base.update, (self.template.base_context, self.context))
+      self.__base_context__ = base
+
+    return self.__base_context__
+
   def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
 
     '''  '''
 
     # merge template context
-    _merged_context = {}
-    for context_block in (self.template.base_context, self.context, context, kwargs):
-      _merged_context.update(context_block)
+    _merged_context = self.base_context
+    map(_merged_context.update, (context, kwargs))
 
     # collapse and merge HTTP headers (base headers first)
-    _merged_headers = dict(self.template.base_headers)
-    _config_headers = self.config.get('http', {}).get('headers')
-
-    # config headers second
-    if _config_headers:
-      if isinstance(_config_headers, list):
-        _config_headers = dict(_config_headers)
-      _merged_headers.update(_config_headers)
+    _merged_headers = dict(self.template.base_headers + self.config.get('http', {}).get('headers', {}).items())
 
     # handler-level headers next
     if self.headers: _merged_headers.update(self.headers)
@@ -223,6 +217,7 @@ class Handler(object):
 
     if _direct:
       return (self.status, _merged_headers, content_type or self.content_type, content)
+
     else:
       return self.response(content, **{
         'status': self.status,

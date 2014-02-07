@@ -120,7 +120,7 @@ class ModelAdapterTests(FrameworkTest):
 
   def test_explicit_adapter(self):
 
-    ''' Test that an adapter can be set explcitly. '''
+    ''' Test that an adapter can be set explcitly on a model class. '''
 
     from canteen.model import adapter
     from canteen.model.adapter import abstract

@@ -254,7 +254,7 @@ class AssetsAPI(CoreAPI):
       else:
         cdn_prefix = self.config.get('cdn_prefix')
 
-      prefix += '//' + cdn_prefix
+      prefix += cdn_prefix
 
     return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
 

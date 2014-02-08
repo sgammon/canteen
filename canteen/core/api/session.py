@@ -168,7 +168,8 @@ class Session(object):
     '''  '''
 
     # manufacture our own session, by loading the model
-    _session = model.get(Session.make_key(id, model))
+    #_session = model.get(Session.make_key(id, model))
+    _session = None  # @TODO(sgammon): fix this
     if _session:
       return cls(id, _session)
     if strict: return False  # possibly fail stuff hardcore

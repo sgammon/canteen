@@ -16,6 +16,7 @@
 '''
 
 # stdlib
+import os
 import sys
 import abc
 import time
@@ -41,6 +42,7 @@ class Runtime(object):
   # == Private Properties == #
   __hooks__ = {}  # mapped hookpoints and methods to call
   __owner__ = "Runtime"  # metabucket owner name for subclasses
+  __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, so power
   __metaclass__ = Proxy.Component  # this should be injectable
 
@@ -441,6 +443,59 @@ class Runtime(object):
 
     raise RuntimeError('Unrecognized handler type: "%s".' % type(handler))
 
+  def wrap(self, dispatch):
+
+    '''  '''
+
+    if not self.__wrapped__:
+
+      # default: return dispatch directly
+      _dispatch = dispatch
+
+      # == development wrappers
+      dev_config = self.config.app.get('dev', {})
+
+      # profiler support
+      if 'profiler' in dev_config:
+        if dev_config['profiler'].get('enable', False):
+
+          ## grab a profiler
+          try:
+            import cProfile as profile
+          except ImportError as e:
+            import profile
+
+          ## calculate dump file path
+          profile_path = dev_config['profiler'].get('dump_file', os.path.abspath(os.path.join(os.getcwd(), '.develop', 'app.profile')))
+
+          ## current profile
+          _current_profile = profile.Profile(**dev_config['profiler'].get('profile_kwargs', {}))
+
+          ## handle flushing mechanics
+          if dev_config['profiler'].get('on_request', True):
+
+            def maybe_flush_profile():
+
+              '''  '''
+
+              _current_profile.dump_stats(profile_path)
+
+          else:
+            raise RuntimeError('Cross-request profiling is currently unsupported.')  # @TODO(sgammon): cross-request profiling
+
+          def _dispatch(*args, **kwargs):
+
+            ''' Wrapper to enable profiler support. '''
+
+            ## dispatch
+            response = _current_profile.runcall(dispatch, *args, **kwargs)
+            maybe_flush_profile()
+            return response
+
+      self.__wrapped__ = _dispatch  # cache locally
+
+    return self.__wrapped__
+
   @abc.abstractmethod
   def bind(self, interface, address):
 
@@ -453,7 +508,7 @@ class Runtime(object):
     '''  '''
 
     try:
-      return self.dispatch(environ, start_response)
+      return self.wrap(self.dispatch)(environ, start_response)
 
     except self.base_exception as exc:
       return exc(environ, start_response)  # it's an acceptable exception that can be returned as a response

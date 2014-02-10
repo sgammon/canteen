@@ -66,6 +66,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     '''  '''
 
     __aliases__ = {}  # aliases to routes
+    __map__ = None  # routing map cache
     __router__ = None  # route cache
 
     # == Base Classes == #
@@ -176,7 +177,9 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
-      return routing.Map([route for route in cls.routes])
+      if not cls.__map__:
+        cls.__map__ = routing.Map([route for route in cls.routes])
+      return cls.__map__
 
     #### ==== Utilities ==== ####
     @decorators.bind('error', wrap=classmethod)

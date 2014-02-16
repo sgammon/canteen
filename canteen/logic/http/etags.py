@@ -30,12 +30,12 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
   @decorators.bind('etags')
-  class Etags(logic.Logic):
+  class ETags(logic.Logic):
 
     '''  '''
 
     @SessionEngine.configure('etags')
-    class EtagSessions(SessionEngine):
+    class ETagSessions(SessionEngine):
 
       '''  '''
 

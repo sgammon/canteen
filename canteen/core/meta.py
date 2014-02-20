@@ -15,6 +15,14 @@
 
 '''
 
+# stdlib
+import os
+import sys
+import new
+import ast
+import imp
+import pdb  # @TODO(sgammon): remove this
+import readline
 
 # utils
 from ..util import struct
@@ -23,6 +31,7 @@ from ..util import decorators
 
 ## Globals
 _owner_map = {}
+__loader__ = None
 grab = lambda x: x.__func__ if hasattr(x, '__func__') else x
 owner = lambda x: intern(x.__owner__ if hasattr(x, '__owner__') else x.__name__)
 construct = lambda cls, name, bases, properties: type.__new__(cls, name, bases, properties)
@@ -293,8 +302,139 @@ class Proxy(object):
       return target  # pragma: nocover
 
 
+class Loader(object):
+
+  '''  '''
+
+  def __init__(self):
+
+    '''  '''
+
+    self.index = set()  # path index
+    self.modules = {}  # loader cache
+
+  def construct(self, name, filename, modpath, code):
+
+    '''  '''
+
+    # build an empty module
+    mod = new.module(name)
+    mod.__file__ = filename
+    if modpath: mod.__path__ = modpath
+
+    # parse AST, then apply transforms, then finalize as a full module
+    return self.finalize(name, mod, self.transform(name, ast.parse(code)), filename)
+
+  def transform(self, name, tree):
+
+    '''  '''
+
+    print 'transforming: %s' % name
+
+    return tree  # @TODO(sgammon): implement transforms
+
+  def finalize(self, name, mod, tree, filename):
+
+    '''  '''
+
+    # compile AST into code object and return finished module
+    sys.modules[name] = mod
+    exec compile(tree, filename, 'exec') in mod.__dict__
+    return mod
+
+  def find_module(self, name, path=None):
+
+    '''  '''
+
+    if 'canteen' not in name:
+      return None
+
+    try:
+        self.modules[name] = imp.find_module(name.split('.')[-1], path), path
+    except ImportError:
+        return None
+
+    self.index.add(name)
+    return self
+
+  def load_module(self, name):
+
+    '''  '''
+
+    # sanity check
+    if name not in self.index:
+      raise ImportError(name)
+
+    # load mod info
+    (descriptor, filename, info), path = self.modules[name]
+
+    # find proper load handler
+    load_handler = {
+      imp.PY_SOURCE: self._load_source,
+      imp.PY_COMPILED: self._load_compiled,
+      imp.PKG_DIRECTORY: self._load_directory
+    }.get(info[2])
+
+    if not load_handler:  # no idea wtf just load it
+       return imp.load_module(name, descriptor, filename, info)
+
+    # dispatch load handler
+    modpath, code = load_handler(descriptor, filename, info)
+
+    #pdb.set_trace()
+
+    try:
+      # construct and return a new module
+      return self.construct(name, filename, modpath, code)
+
+    except Exception as e:
+      raise ImportError('Failed to pre-parse module "%s" with exception: %s' % (name, e))
+
+  def _load_source(self, descriptor, filename, info):
+
+    '''  '''
+
+    with descriptor as handle:
+      return None, handle.read()
+
+  def _load_compiled(self, descriptor, filename, info):
+
+    '''  '''
+
+    with open(filename[:-1], 'U') as handle:
+      return None, handle.read()
+
+  def _load_directory(self, descriptor, filename, info):
+
+    '''  '''
+
+    with open(os.path.join(filename, '__init__.py')) as handle:
+      return [filename], handle.read()
+
+
+  @classmethod
+  def install(cls):
+
+    '''  '''
+
+
+    global __loader__
+
+    # create and install singleton
+    if not __loader__:
+      __loader__ = cls()
+      sys.meta_path.append(__loader__)
+
+    # then always use singleton
+    return __loader__
+
+
+Loader.install()  # install loader globally
+
+
 __all__ = (
   'MetaFactory',
   'Base',
-  'Proxy'
+  'Proxy',
+  'Loader'
 )

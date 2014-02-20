@@ -17,14 +17,14 @@
 '''
 
 # runtimes
-from . import gevent
+#from . import gevent
 from . import wsgiref
 from . import tornado
 from . import werkzeug
 
 
 __all__ = (
-  'gevent',
+  #'gevent',
   'wsgiref',
   'tornado',
   'werkzeug'

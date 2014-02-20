@@ -41,7 +41,7 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
+  def run_tests(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
 
     '''  '''
 
@@ -129,7 +129,7 @@ if __debug__:
       discovered = loader.discover(root)
 
     try:
-      run(**{
+      run_tests(**{
         'output': output or (sys.stdout if format is 'text' else None),
         'suites': discovered,
         'format': format,
@@ -145,6 +145,6 @@ if __debug__:
   __all__ = (
     'AppTest',
     'FrameworkTest',
-    'run',
+    'run_tests',
     'clirunner'
   )

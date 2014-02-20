@@ -118,7 +118,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
       '''  '''
 
-      return [i for i in filter(lambda x: x != self.content_type, self.__content_types__)]
+      return tuple((i for i in self.__content_types__ if i != self.content_type))
 
     ## == Abstract Methods == ##
     @abc.abstractmethod

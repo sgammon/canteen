@@ -16,11 +16,52 @@
 '''
 
 # core
+from ..util import config
 from ..core import runtime
 
 
-with runtime.Library('gevent'):
-  raise NotImplementedError('gevent is stubbed.')
+import pdb; pdb.set_trace()
 
+
+with runtime.Library('gevent') as (library, gevent):
+
+  # WSGI/tools & utils
+  wsgi, pywsgi, local, monkey, core, server = (
+    library.load('wsgi'),
+    library.load('pywsgi'),
+    library.load('local'),
+    library.load('monkey'),
+    library.load('core'),
+    library.load('server')
+  )
+
+  # supported + default engines
+  default, engines = 'wsgi', {
+    'pywsgi': pywsgi.WSGIServer,
+    'wsgi': wsgi.WSGIServer,
+    'stream': server.StreamServer
+  }
+
+
+  def engine():
+
+    '''  '''
+
+    import pdb; pdb.set_trace()
+
+    cfg = config.Config()
+    if 'gevent' in cfg:
+      if 'engine' in cfg.config['gevent']:
+        return engines.get(lower(cfg.config['gevent']['engine'], 'wsgi'))
+    return engines[default]
+
+
+  class Gevent(runtime.Runtime):
+
+    '''  '''
+
+    pass
+
+  import pdb; pdb.set_trace()
 
   __all__ = tuple()

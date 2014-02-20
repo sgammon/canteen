@@ -97,6 +97,12 @@ class Config(object):
       return self.blocks.get(key, default)
     return default
 
+  def __contains__(self, id):
+
+    '''  '''
+
+    return any(((id in block) for block in self.blocks))
+
   def __get__(self, instance, owner):
 
     '''  '''

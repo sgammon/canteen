@@ -18,7 +18,4 @@
 '''
 
 # utils
-from util import walk
-from dispatch import run
-
-walk(), run()
+from canteen import crawl, walk, run; crawl(), walk(), run()

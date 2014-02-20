@@ -109,8 +109,8 @@ class Compound(type):
 
       return (
         [origin[0]] +
-        [i for i in filter(lambda x: x not in (object, type), origin[1:])] +
-        [y for y in filter(lambda z: z in (object, type), origin[1:])] +
+        [i for i in origin[1:] if i not in frozenset((object, type))] +
+        [i for i in origin[1:] if i in frozenset((object, type))] +
         [delegate]
       )
 

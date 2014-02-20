@@ -32,6 +32,28 @@ from .struct import *
 from .decorators import *
 
 
+def crawl(location=os.environ.get('CANTEEN_CONFIG', None)):
+
+  '''  '''
+
+  if not location:  # if we aren't handed config...
+
+    # try config at default path, otherwise defer
+    try:
+      import config
+      return config
+    except ImportError as e:
+      pass
+
+  else:
+    if isinstance(location, basestring):  # it's probably an import path
+      return importlib.import_module(location)
+
+    if isinstance(location, type(os)):  # it's probably a config module
+      return location.config  # should be mounted at ``config``
+  return {}
+
+
 def say(*args):
 
   '''  '''
@@ -66,6 +88,7 @@ def walk(root=None, debug=__debug__):
 
 
 __all__ = (
+  'crawl',
   'walk',
   'say',
   'cli',

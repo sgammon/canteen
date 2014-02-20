@@ -18,19 +18,20 @@
 debug, __version__ = __debug__, (1, 0)
 
 # stdlib
-import __builtin__; export = None
+import os, importlib, __builtin__
 
 # canteen :)
-from .rpc import *
 from .core import *
-from .util import *
-from .test import *
 from .base import *
 from .logic import *
+
+from .rpc import *
+from .util import *
 from .model import *
 from .runtime import *
 from .dispatch import *
 from .exceptions import *
 
+if debug: from .test import *
 
-__all__ = [export for export in globals() if (export not in __builtin__.__dict__ and (not export.startswith('__')))]  # export all the things!
+__all__ = [export for export in (locals().keys() + globals().keys()) if not (export in __builtin__.__dict__ or export.startswith('__'))]

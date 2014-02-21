@@ -306,6 +306,8 @@ class Loader(object):
 
   '''  '''
 
+  chain = []
+
   def __init__(self):
 
     '''  '''
@@ -346,7 +348,7 @@ class Loader(object):
 
     '''  '''
 
-    if 'canteen' not in name:
+    if 'canteen' not in name:  # only transform canteen-based modules
       return None
 
     try:
@@ -411,12 +413,17 @@ class Loader(object):
     with open(os.path.join(filename, '__init__.py')) as handle:
       return [filename], handle.read()
 
+  @classmethod
+  def add_transformer(cls, transformer):
+
+    '''  '''
+
+    return (cls.chain.append(transformer) or self)
 
   @classmethod
   def install(cls):
 
     '''  '''
-
 
     global __loader__
 

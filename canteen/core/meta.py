@@ -23,6 +23,7 @@ import ast
 import imp
 import pdb  # @TODO(sgammon): remove this
 import readline
+import traceback
 
 # utils
 from ..util import struct
@@ -32,6 +33,7 @@ from ..util import decorators
 ## Globals
 _owner_map = {}
 __loader__ = None
+_CORE_TRANSFORM = 'canteen.core.transform'
 grab = lambda x: x.__func__ if hasattr(x, '__func__') else x
 owner = lambda x: intern(x.__owner__ if hasattr(x, '__owner__') else x.__name__)
 construct = lambda cls, name, bases, properties: type.__new__(cls, name, bases, properties)
@@ -306,7 +308,8 @@ class Loader(object):
 
   '''  '''
 
-  chain = []
+  __chain__ = []
+  __transforms__ = {}
 
   def __init__(self):
 
@@ -325,15 +328,23 @@ class Loader(object):
     if modpath: mod.__path__ = modpath
 
     # parse AST, then apply transforms, then finalize as a full module
-    return self.finalize(name, mod, self.transform(name, ast.parse(code)), filename)
+    return self.finalize(name, mod, self.transform(name, mod, ast.parse(code)), filename)
 
-  def transform(self, name, tree):
+  def transform(self, name, module, tree):
 
     '''  '''
 
-    print 'transforming: %s' % name
+    if self.__chain__:
 
-    return tree  # @TODO(sgammon): implement transforms
+      # execute chained transforms
+      mutated = tree
+      for transform in self.__chain__:
+
+        # construct and transform AST
+        mutated = transform(name, module)(tree)
+
+      return mutated
+    return tree
 
   def finalize(self, name, mod, tree, filename):
 
@@ -390,7 +401,7 @@ class Loader(object):
       return self.construct(name, filename, modpath, code)
 
     except Exception as e:
-      raise ImportError('Failed to pre-parse module "%s" with exception: %s' % (name, e))
+      raise ImportError('Failed to pre-parse module "%s" with exception: %s' % (name, traceback.print_exception(*sys.exc_info(), limit=10, file=sys.stdout)))
 
   def _load_source(self, descriptor, filename, info):
 
@@ -414,11 +425,18 @@ class Loader(object):
       return [filename], handle.read()
 
   @classmethod
-  def add_transformer(cls, transformer):
+  def add_transform(cls, transform):
 
     '''  '''
 
-    return (cls.chain.append(transformer) or self)
+    return cls.__chain__.append(transform) or cls
+
+  @classmethod
+  def set_transform_chain(cls, chain, transforms={}):
+
+    '''  '''
+
+    return (setattr(cls, '__chain__', cls.__chain__ + chain), cls.__transforms__.update(transforms)) or cls
 
   @classmethod
   def install(cls):

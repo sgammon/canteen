@@ -14,17 +14,18 @@
 '''
 
 # stdlib
+import pdb  # @TODO(sgammon): remove this
 import copy
 import ast as pyast
 
 # canteen internals
-from . import runtime
+from . import meta
 from ..util import ast
 
 
 ## Globals
 _BODY_TERM = '__body__'
-_TRANSFORM_DECORATOR = ast.transformer
+_TRANSFORM_DECORATOR = ast.transform
 
 
 class BlockVisitor(ast.BlockScanner):
@@ -71,7 +72,7 @@ class BlockMacro(object):
 
     self.args, self.statements = args, statements
     visitor = BlockVisitor()
-    visitor.visit(ast.Module(statements))
+    visitor.visit(pyast.Module(statements))
     self.matched_body = visitor.found
 
   def expand(self, node, call_args, body=None):
@@ -88,11 +89,11 @@ class BlockExpander(ast.SpliceTransformer):
 
   '''  '''
 
-  def __init__(self, module, definitions=None):
+  def __init__(self, name, module, definitions=None):
 
     '''  '''
 
-    self.module, self.definitions = module, (definitions or {})
+    self.name, self.seen, self.module, self.definitions = name, set(), module, (definitions or {})
 
   def parse(self, code):
 
@@ -101,42 +102,45 @@ class BlockExpander(ast.SpliceTransformer):
     code = pyast.parse(code)  # make an AST first
 
     for node in code.body:
-      if not isinstance(node, pyast.FunctionDef):
-        continue
-      if not item.decorator_list:
+      if not isinstance(node, (pyast.FunctionDef, pyast.ClassDef)) or not (hasattr(node, 'decorator_list') and node.decorator_list):
         continue  # it's not decorated, so it definitely doesn't have an AST transform decorator
 
-      for decorator_block in item.decorator_list:
+      for decorator_block in node.decorator_list:
 
         # @TODO(sgammon): match against attributed names too
-        if any(
-          (isinstance(decorator_block, pyast.Name) and decorator_block.id == _TRANSFORM_DECORATOR.__name__)  # it matches as a decorator name
-          ):
+        if any((
+          (isinstance(decorator_block, pyast.Name) and decorator_block.id == _TRANSFORM_DECORATOR.__name__),  # it matches as a decorator name
+          (isinstance(decorator_block, pyast.Attribute) and ((decorator_block.value.id == 'ast') and (decorator_block.attr == 'transform')))  # matches `@ast.transform`
+          )):
 
           # extract name and args
-          name, args = node.name, [arg.id for arg in node.args.args]
+          if isinstance(node, pyast.FunctionDef):
+            name, args = node.name, [arg.id for arg in node.args.args]
 
-          # enforce signature requirements
-          if node.args.vararg or node.args.kwarg or node.args.defaults:
-            raise TypeError('Macro %s has unsupported signature.' % name)
-
-          if len(node.body) == 1 and isinstance(item.body[0], pyast.Expr):
-            yield name, ExpressionMacro(args, item.body[0].value)
+            # enforce signature requirements
+            if node.args.vararg or node.args.kwarg or node.args.defaults:
+              raise TypeError('Macro %s has unsupported signature.' % name)
 
           else:
-            yield name, BlockMacro(args, item.body)
+            name, args = node.name, []
 
-  def consider(self, module, names, mapping):
+          if len(node.body) == 1 and isinstance(node.body[0], pyast.Expr):
+            yield name, ExpressionMacro(args, node.body[0].value)
+
+          else:
+            yield name, BlockMacro(args, node.body)
+
+  def consider(self, name, module, names, mapping):
 
     '''  '''
 
-    try:
-      mod = __import__(module, mapping, None, ['*'])
-    except Exception as err:
-      raise ImportError('Failed to locate or import AST-enabled module: `%s`. Error: %s' % (module, err))
+    #try:
+    #  mod = __import__(module, mapping, None, ['*'])
+    #except Exception as err:
+    #  raise ImportError('Failed to locate or import AST-enabled module: `%s`. Error: %s' % (module, err))
 
     # trim `c` or `o` off compiled bytecode files
-    filename = mod.__file__
+    filename = module.__file__
     if filename.lower().endswith(('c', 'o')):
       filename = filename[:-1]
 
@@ -145,7 +149,7 @@ class BlockExpander(ast.SpliceTransformer):
       code = handle.read()
 
     # collect found macros
-    blocks, desired = {}, frozenset(names)
+    blocks, desired = {}, frozenset(names or tuple())
     for name, block in self.parse(code):
 
       if name in desired or '*' in desired:
@@ -194,11 +198,27 @@ class BlockExpander(ast.SpliceTransformer):
 
     '''  '''
 
-    if node.module and node.module.endswith('.__macros__'):
-      module_name = node.module[:-11]
+    print 'seen: `%s` in `%s`' % ('.'.join((node.module or '', '.'.join((n.name for n in node.names)))), self.name)
+
+    # @TODO(sgammon): add proper support for sniffing imports
+    if node.module and any((
+      ('ast' in node.module or any((n.name == 'ast') for n in node.names)),
+      )):
+
+      print ' !!!  found: `%s` in `%s`  !!! ' % ('.'.join((node.module or '', '.'.join((n.name for n in node.names)))), self.name)
+
       names = dict((alias.name, alias.asname or alias.name) for alias in node.names)
-      self.definitions.update(self.consider(module_name, names, self.module and self.module.__dict__))
-      return None
+      if len(names) == 1 and 'ast' in names: names = None  # skip naming code if we only want AST tools (meta-detect)
+      self.definitions.update(self.consider(self.name, self.module, names, self.module and self.module.__dict__))
+      return node
+
+    return node
+
+  def visit_Import(self, node):
+
+    '''  '''
+
+    print 'seen: `%s` in `%s`' % (', '.join((n.name for n in node.names)), self.name)
     return node
 
   def _handle_expr_call(self, node, macrotype):
@@ -212,6 +232,9 @@ class BlockExpander(ast.SpliceTransformer):
     if self.definitions[node.func.id].matched_body:
       raise TypeError('Cannot handle call macro with body substitution.')
     return self.definitions[node.func.id].expand(node, map(self.visit, node.args))
+
+
+meta.Loader.set_transform_chain(ast.__chain__, ast.__transforms__)  # inform loader of our transform chain
 
 
 __all__ = (

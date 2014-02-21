@@ -23,6 +23,9 @@ import time
 import inspect
 import importlib
 
+# utils
+from ..util import ast
+
 # core API
 from .meta import Proxy
 from .injection import Bridge
@@ -517,6 +520,7 @@ class Runtime(object):
       raise  # just raise it k?
 
 
+@ast.transform
 class Library(object):
 
   '''  '''

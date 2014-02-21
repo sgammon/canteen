@@ -15,13 +15,14 @@
 
 # stdlib
 import abc
-import ast
 import copy
+import importlib
 
 
 ## Globals
 __chain__ = []
-__transformers__ = {}
+__transforms__ = {}
+ast = importlib.import_module('ast')
 
 
 def chain(callable):
@@ -33,12 +34,12 @@ def chain(callable):
   return callable
 
 
-def transformer(callable):
+def transform(callable):
 
   '''  '''
 
-  global __transformers__
-  __transformers__[callable.__name__] = callable
+  global __transforms__
+  __transforms__[callable.__name__] = callable
   return callable
 
 
@@ -79,7 +80,7 @@ class MatchVisitor(ast.NodeVisitor):
 
     '''  '''
 
-    raise NotImplementedError('`ScanVisitor.match` is abstract.')
+    raise NotImplementedError('`%s.match` is abstract.' % self.__class__.__name__)
 
 
 class BlockScanner(MatchVisitor):
@@ -124,6 +125,12 @@ class SpliceTransformer(ast.NodeTransformer):
       return node
 
     return _fix(node, old.lineno, old.col_offset)  # kick off recursive rewrite
+
+  def __call__(self, tree):
+
+    '''  '''
+
+    return self.visit(tree)  # proxy callable syntax to `visit`
 
 
 class MatchTransformer(SpliceTransformer):

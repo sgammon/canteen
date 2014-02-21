@@ -17,16 +17,18 @@
 '''
 
 # submodules
-from .api import *
 from .meta import *
+from .transform import *
+from .api import *
 from .runtime import *
 from .injection import *
 
 
 __all__ = (
+  'meta',
+  'transform',
   'runtime',
   'transform',
-  'meta',
   'injection',
   'api'
 )

@@ -16,7 +16,7 @@
 # stdlib
 import abc
 import ast
-import deepcopy
+import copy
 
 
 ## Globals
@@ -136,7 +136,7 @@ class MatchTransformer(SpliceTransformer):
 
     if node.id in self.args:
       if not isinstance(node.ctx, ast.Load):
-        new_node = deepcopy.deepcopy(self.args[node.id])
+        new_node = copy.deepcopy(self.args[node.id])
         ContextChanger(node.ctx).visit(new_node)
       else:
         new_node = self.args[node.id]

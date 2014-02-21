@@ -14,6 +14,7 @@
 '''
 
 # stdlib
+import copy
 import ast as pyast
 
 # canteen internals
@@ -57,7 +58,7 @@ class ExpressionMacro(object):
     assert not body
     if len(call_args) != len(self.args):
       raise TypeError('Invalid number of arguments for expression macro.')
-    return BlockTransformer(dict(izip(self.args, call_args))).visit(deepcopy(self.expr))
+    return BlockTransformer(dict(izip(self.args, call_args))).visit(copy.deepcopy(self.expr))
 
 
 class BlockMacro(object):
@@ -79,7 +80,7 @@ class BlockMacro(object):
 
     if len(call_args) != len(self.args):
       raise TypeError('Invalid number of arguments for block macro.')
-    return BlockTransformer(dict(izip(self.args, call_args)), body).visit(self.rewrite_locations(pyast.If(pyast.Num(1), deepcopy(self.statements), []), node))
+    return BlockTransformer(dict(izip(self.args, call_args)), body).visit(self.rewrite_locations(pyast.If(pyast.Num(1), copy.deepcopy(self.statements), []), node))
 
 
 @ast.chain

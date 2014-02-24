@@ -334,16 +334,7 @@ class TemplateAPI(CoreAPI):
 
       ('Vary', 'Accept-Encoding,Cookie'),
       ('Cache-Control', 'no-cache; no-store'),
-      ('X-UA-Compatible', 'IE=edge,chrome=1'),
-      ('X-Debug', '1' if canteen.debug else '0'),
-      ('X-Framework', 'canteen/%s Python/%s' % (
-        '.'.join(map(unicode, canteen.__version__)),
-        '.'.join(map(unicode, (
-          sys.version_info.major,
-          sys.version_info.minor,
-          sys.version_info.micro
-        )))
-      )) if __debug__ else None
+      ('X-UA-Compatible', 'IE=edge,chrome=1')
 
     ])
 

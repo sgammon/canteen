@@ -79,6 +79,15 @@ class Config(object):
 
     return self.blocks.get('config', {})
 
+  @property
+  def app_version(self):
+
+    '''  '''
+
+    if 'version' in self.app:
+      return '-'.join(('.'.join(map(str, self.app['version'].values()[:3])), str(self.app['version']['release'])))
+    return '0.0.1-alpha'
+
   ### === Public Methods === ###
   def load(self, path):
 

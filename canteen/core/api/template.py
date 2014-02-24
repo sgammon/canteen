@@ -333,8 +333,7 @@ class TemplateAPI(CoreAPI):
     return filter(lambda x: x and x[1], [
 
       ('Vary', 'Accept-Encoding,Cookie'),
-      ('Cache-Control', 'no-cache; no-store'),
-      ('X-UA-Compatible', 'IE=edge,chrome=1')
+      ('Cache-Control', 'no-cache; no-store')
 
     ])
 

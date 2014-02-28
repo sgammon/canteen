@@ -21,11 +21,19 @@ class ContentFilter(object):
 
   '''  '''
 
-  __func__, __hooks__ = None, None
+  __func__ = None
+  __wrap__ = None
+  __hooks__ = None
+  __registered__ = False
 
   def __init__(self, **hooks):
 
     '''  '''
+
+    # pull out inner wrap, if any
+    if 'wrap' in hooks:
+      self.__wrap__ = hooks['wrap']
+      del hooks['wrap']
 
     self.__hooks__ = frozenset(hooks.keys())
 
@@ -33,6 +41,7 @@ class ContentFilter(object):
 
     '''  '''
 
+    self.__registered__ = True
     for i in self.__hooks__:
       runtime.Runtime.add_hook(i, (context, self.__func__))
 
@@ -40,5 +49,5 @@ class ContentFilter(object):
 
     '''  '''
 
-    self.__func__ = func
+    self.__func__ = self.__wrap__(func) if self.__wrap__ else func
     return self

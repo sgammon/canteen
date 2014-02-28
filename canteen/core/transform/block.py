@@ -2,8 +2,8 @@
 
 '''
 
-  canteen transform core
-  ~~~~~~~~~~~~~~~~~~~~~~
+  canteen block transforms
+  ~~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -14,13 +14,11 @@
 '''
 
 # stdlib
-import pdb  # @TODO(sgammon): remove this
 import copy
 import ast as pyast
 
 # canteen internals
-from . import meta
-from ..util import ast
+from canteen.util import ast
 
 
 ## Globals
@@ -40,26 +38,6 @@ class BlockTransformer(ast.MatchTransformer):
   '''  '''
 
   term = _BODY_TERM
-
-
-class ExpressionMacro(object):
-
-  '''  '''
-
-  def __init__(self, args, expr):
-
-    '''  '''
-
-    self.args, self.expr, self.has_body = args, expr, False
-
-  def expand(self, node, call_args, body=None):
-
-    '''  '''
-
-    assert not body
-    if len(call_args) != len(self.args):
-      raise TypeError('Invalid number of arguments for expression macro.')
-    return BlockTransformer(dict(izip(self.args, call_args))).visit(copy.deepcopy(self.expr))
 
 
 class BlockMacro(object):
@@ -130,14 +108,15 @@ class BlockExpander(ast.SpliceTransformer):
           else:
             yield name, BlockMacro(args, node.body)
 
-  def consider(self, name, module, names, mapping):
+  def match(self, node):
 
     '''  '''
 
-    #try:
-    #  mod = __import__(module, mapping, None, ['*'])
-    #except Exception as err:
-    #  raise ImportError('Failed to locate or import AST-enabled module: `%s`. Error: %s' % (module, err))
+    import pdb; pdb.set_trace()
+
+  def consider(self, name, module, names, mapping):
+
+    '''  '''
 
     # trim `c` or `o` off compiled bytecode files
     filename = module.__file__
@@ -198,14 +177,14 @@ class BlockExpander(ast.SpliceTransformer):
 
     '''  '''
 
-    print 'seen: `%s` in `%s`' % ('.'.join((node.module or '', '.'.join((n.name for n in node.names)))), self.name)
+    #print 'seen: `%s` in `%s`' % ('.'.join(filter(lambda x: x, (node.module or None, '.'.join((n.name for n in node.names))))), self.name)
 
     # @TODO(sgammon): add proper support for sniffing imports
-    if node.module and any((
+    if node.module and all((
       ('ast' in node.module or any((n.name == 'ast') for n in node.names)),
       )):
 
-      print ' !!!  found: `%s` in `%s`  !!! ' % ('.'.join((node.module or '', '.'.join((n.name for n in node.names)))), self.name)
+      print ' !!!  found: `%s` in `%s`  !!! ' % ('.'.join((node.module or '', ', '.join((n.name for n in node.names)))), self.name)
 
       names = dict((alias.name, alias.asname or alias.name) for alias in node.names)
       if len(names) == 1 and 'ast' in names: names = None  # skip naming code if we only want AST tools (meta-detect)
@@ -218,7 +197,14 @@ class BlockExpander(ast.SpliceTransformer):
 
     '''  '''
 
-    print 'seen: `%s` in `%s`' % (', '.join((n.name for n in node.names)), self.name)
+    #print 'seen: `%s` in `%s`' % (', '.join((n.name for n in node.names)), self.name)
+
+    #if self.match(node):
+    #  print '!!! found match: %s !!!' % ','.join(node.names)
+    for name in node.names:
+      if 'ast' in name.name:
+        print '!!! found match: `%s` in `%s`' % (name.name, self.name)
+
     return node
 
   def _handle_expr_call(self, node, macrotype):
@@ -232,14 +218,3 @@ class BlockExpander(ast.SpliceTransformer):
     if self.definitions[node.func.id].matched_body:
       raise TypeError('Cannot handle call macro with body substitution.')
     return self.definitions[node.func.id].expand(node, map(self.visit, node.args))
-
-
-meta.Loader.set_transform_chain(ast.__chain__, ast.__transforms__)  # inform loader of our transform chain
-
-
-__all__ = (
-  'BlockVisitor',
-  'BlockTransformer',
-  'ExpressionMacro',
-  'BlockMacro'
-)

@@ -311,6 +311,15 @@ class Loader(object):
   __chain__ = []
   __transforms__ = {}
 
+  def __new__(cls, *args, **kwargs):
+
+    '''  '''
+
+    global __loader__
+    if not __loader__:
+      __loader__ = object.__new__(cls, *args, **kwargs)
+    return __loader__
+
   def __init__(self):
 
     '''  '''
@@ -352,6 +361,7 @@ class Loader(object):
 
     # compile AST into code object and return finished module
     sys.modules[name] = mod
+    mod.__dict__['__preload__'] = True  # indicate preload
     exec compile(tree, filename, 'exec') in mod.__dict__
     return mod
 
@@ -359,13 +369,11 @@ class Loader(object):
 
     '''  '''
 
-    if 'canteen' not in name:  # only transform canteen-based modules
-      return None
-
+    # try module-relative import first
     try:
-        self.modules[name] = imp.find_module(name.split('.')[-1], path), path
-    except ImportError:
-        return None
+      self.modules[name] = imp.find_module(name.split('.')[-1], path), path
+    except ImportError as e:
+      return None
 
     self.index.add(name)
     return self
@@ -376,7 +384,11 @@ class Loader(object):
 
     # sanity check
     if name not in self.index:
-      raise ImportError(name)
+      if not self.find_module(name):
+        raise ImportError(name)
+      # should never reach this line, but just to be safe...
+      assert name in self.index, "module load index mismatch"  # prama: nocover
+
 
     # load mod info
     (descriptor, filename, info), path = self.modules[name]
@@ -437,6 +449,21 @@ class Loader(object):
     '''  '''
 
     return (setattr(cls, '__chain__', cls.__chain__ + chain), cls.__transforms__.update(transforms)) or cls
+
+  @classmethod
+  def load(cls, name, force=False, strict=False):
+
+    '''  '''
+
+    try:
+      if name in sys.modules:
+        return sys.modules[name]
+      if cls().find_module(name):
+        return cls().load_module(name)
+      return False  # module refused
+    except ImportError:
+      if strict: raise
+      return None
 
   @classmethod
   def install(cls):

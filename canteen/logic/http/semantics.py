@@ -160,8 +160,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
-      if not cls.__router__:
-        cls.__router__ = cache.CacheAPI.spawn('router')
+      if not cls.__router__: cls.spawn_router()
       return cls.__router__
 
     @decorators.classproperty
@@ -182,6 +181,22 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       return cls.__map__
 
     #### ==== Utilities ==== ####
+    @classmethod
+    def spawn_router(cls):
+
+      '''  '''
+
+      cls.__router__ = cache.CacheAPI.spawn('router')
+
+    @classmethod
+    def clear_router(cls):
+
+      '''  '''
+
+      # clear router cache and map
+      cls.__map__ = None
+      cls.__router__.clear()
+
     @decorators.bind('error', wrap=classmethod)
     def error(cls, code):
 

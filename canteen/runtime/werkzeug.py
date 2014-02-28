@@ -16,22 +16,49 @@
 
 '''
 
-# stdlib & core
-import os
+# stdlib
+import sys, os, socket
+import subprocess, signal
+
+# canteen
+from ..util import walk
 from ..util import struct
 from ..core import runtime
 
 
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
-  # WSGI devserver
-  serving, exceptions = library.load('serving'), library.load('exceptions')
+  # defaults
+  default_config = {
+
+    ## Code Reloader
+    'reloader': {
+      'enabled': False,
+      'interval': 5
+    },
+
+    ## Integrated Debugger
+    'debugger': {
+      'enabled': False,
+      'use_evalex': True
+    }
+
+  }
+
+  # WSGI, serving and debug tools
+  wsgi, serving, exceptions, debug = (
+    library.load('wsgi'),
+    library.load('serving'),
+    library.load('exceptions'),
+    library.load('debug') if __debug__ else None,
+  )
 
 
   class Werkzeug(runtime.Runtime):
 
     '''  '''
 
+    middleware = None
     base_exception = exceptions.HTTPException
 
     exceptions = struct.ObjectProxy({
@@ -62,11 +89,30 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       'SecurityError': exceptions.SecurityError
     })
 
-    def bind(self, interface, address):
+    def add_wrap(self, target, *args, **kwargs):
 
       '''  '''
 
-      paths = {}
+      if not self.middleware: self.middleware = []
+      self.middleware.append((target, args, kwargs))
+      return self.middleware
+
+    def wrap(self, dispatch):
+
+      '''  '''
+
+      for wrap, args, kwargs in self.middleware:  # apply added middleware
+        dispatch = wrap(dispatch, *args, **kwargs)
+      return super(Werkzeug, self).wrap(dispatch)  # pass up the chain
+
+    def bind(self, interface, port):
+
+      '''  '''
+
+      paths, do_bind = {}, None
+
+      # sanity checks
+      assert 1 < port < 65534, "please provide a valid port (range 1 - 65534)"
 
       # resolve static asset paths
       if 'assets' in self.config.app.get('paths', {}):
@@ -84,19 +130,85 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       if self.config.assets.get('config', {}).get('extra_assets'):
         paths.update(dict(self.config.assets['config']['extra_assets'].itervalues()))
 
-      # run via werkzeug's awesome `run_simple`
-      return serving.run_simple(interface, address, self, **{
-        'use_reloader': True,
-        'use_debugger': True,
-        'use_evalex': True,
-        'extra_files': None,
-        'reloader_interval': 1,
-        'threaded': False,
-        'processes': 1,
-        'passthrough_errors': False,
-        'ssl_context': None,
-        'static_files': paths
-      })
+      # if we want to run the debugger, attach it
+      if __debug__ and self.config.get('werkzeug', {}).get('debugger', False):
+        if (isinstance(self.config.config['werkzeug']['debugger'], dict) and self.config.config['werkzeug']['debugger'].get('enabled', False)):
+          self.add_wrap(debug.DebuggedApplication, self.config.config['werkzeug']['debugger'].get('use_evalex', True))
+        elif self.config.config['werkzeug']['debugger']:
+          self.add_wrap(debug.DebuggedApplication)
+
+      # if we have statics to serve, do it through shared data
+      if paths: self.add_wrap(wsgi.SharedDataMiddleware, paths)
+
+      # if we want to use the reloader, set it up
+      if __debug__ and self.config.get('werkzeug', {}).get('reloader', False):
+
+        do_reloader, reloader_cfg = True, {}
+        if isinstance(self.config.config['werkzeug']['reloader'], dict):
+          if self.config.config['werkzeug']['reloader']['enabled']:
+            do_reloader, reloader_cfg = True, self.config.config['werkzeug']['reloader']
+          else:
+            do_reloader = False
+
+        if do_reloader:
+          def do_bind(*args, **kwargs):
+
+            '''  '''
+
+            def do_inner():
+
+              import socket, thread
+
+              try:
+                if args or kwargs:
+                  server_factory(*args, **kwargs)
+                server_factory()
+              except Exception as e:
+                thread.exit()
+
+            try:
+              serving.run_with_reloader(do_inner, paths or None, reloader_cfg.get('interval', 5))
+
+            except (SystemExit, KeyboardInterrupt) as e:
+              if e.code != 3: sys.exit(e.code)
+              runtime.Runtime.respawn()
+
+            except BaseException as e:
+              import traceback
+              traceback.print_exception(*sys.exc_info())
+              print 'Fatal exception. Exiting.'
+              sys.exit(e.code)
+
+      # if we don't have one yet, setup default server init
+      if not do_bind:
+        def do_bind(): return server_factory()
+
+      processes, threads = (
+        self.config.get('werkzeug', {}).get('serving', {}).get('processes', 1),
+        self.config.get('werkzeug', {}).get('serving', {}).get('threads', None)
+      )
+
+      # pick a server factory
+      if processes > 1 and threads: raise RuntimeError('Multithreaded multiprocess serving is not yet supported.')
+      if not 0 < processes < 25: raise RuntimeError('Please pick a sane number of threads (say, less than 25 and more than 0).')
+      if processes == 1 and not threads: server_target = serving.BaseWSGIServer
+      if processes > 1 and not threads: server_target = serving.ForkingWSGIServer
+      if processes == 1 and threads: server_target = serving.ThreadedWSGIServer
+
+      def server_factory(*args, **kwargs):
+        return server_target(*args, **kwargs).serve_forever()
+
+      # resolve hostname
+      hostname = self.config.get('werkzeug', {}).get('serving', {}).get('hostname', 'localhost')
+
+      ## stolen from werkzeug: spawn a socket to force any related exceptions before proc spawn
+      address_family = serving.select_ip_version(hostname, port)
+      test_socket = socket.socket(address_family, socket.SOCK_STREAM)
+      test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      test_socket.bind((hostname, port))
+      test_socket.close()
+
+      return do_bind(hostname, port, self)  # start the server and serve forever!
 
 
   __all__ = ('Werkzeug',)

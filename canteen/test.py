@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   canteen tests
   ~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 if __debug__:
 
@@ -29,23 +29,28 @@ if __debug__:
 
   class AppTest(unittest.TestCase):
 
-    '''  '''
+    """  """
 
     __root__, __owner__, __metaclass__ = True, 'AppTest', meta.Proxy.Registry
 
 
   class FrameworkTest(unittest.TestCase):
 
-    '''  '''
+    """  """
 
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run_tests(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
+  def run_tests(output=None,
+                suites=None,
+                scope=(AppTest, FrameworkTest),
+                format='text',
+                verbosity=1,
+                **kwargs):  # pragma: nocover
 
-    '''  '''
+    """  """
 
-    # fill testsuite with found testcases
+    # fill test suite with found test cases
     master_suite, loader = [], unittest.TestLoader()
 
     for bucket in scope:
@@ -60,11 +65,11 @@ if __debug__:
       for _suite in suites:
         master_suite.append(_suite)
 
-    def filter_suite(suite):
+    def filter_suite(s):
 
-      '''  '''
+      """  """
 
-      if not suite.countTestCases():
+      if not s.countTestCases():
         return False
       return True
 
@@ -72,7 +77,7 @@ if __debug__:
 
     def merge_suite(left, right):
 
-      '''  '''
+      """  """
 
       _master = []
       for case in [test for test in left] + [test for test in right]:

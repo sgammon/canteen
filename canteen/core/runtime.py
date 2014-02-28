@@ -20,6 +20,7 @@ import os
 import sys
 import abc
 import time
+import socket
 import inspect
 import importlib
 
@@ -29,6 +30,9 @@ from ..util import ast
 # core API
 from .meta import Proxy
 from .injection import Bridge
+
+# utils
+from ..util import walk
 
 
 class Runtime(object):
@@ -48,6 +52,13 @@ class Runtime(object):
   __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, so power
   __metaclass__ = Proxy.Component  # this should be injectable
+  __respawn_disabled__ = set((
+    'canteen.model',
+    'canteen.model.adapter',
+    'canteen.model.adapter.protorpc',
+    'http.cookies',
+    'core.meta',
+  ))  # modules that can't be respawed
 
   # == Abstract Properties == #
   @abc.abstractproperty
@@ -137,6 +148,17 @@ class Runtime(object):
 
     return
 
+  @classmethod
+  def prevent_reload(cls, module_spec):
+
+    '''  '''
+
+    if not isinstance(module_spec, (frozenset, set, tuple)):
+      module_spec = (module_spec,)
+    for mod in module_spec:
+      cls.__respawn_disabled__.add(mod)
+    return cls.__respawn_disabled__
+
   def __init__(self, app):
 
     '''  '''
@@ -160,20 +182,39 @@ class Runtime(object):
     self.initialize()  # let subclasses initialize
     return self
 
-  def serve(self, interface, port, bind_only=False):
+  def serve(self, interface, port):
 
     '''  '''
 
-    server = self.bind(interface, port)
+    self.bind(interface, port)
 
-    if bind_only:
-      return server
+  @classmethod
+  def respawn(cls):
 
-    try:
-      server.serve_forever()
-    except (KeyboardInterrupt, Exception) as e:
-      print "Exiting."
-      sys.exit(0)
+    '''  '''
+
+    # cleanup hook
+    cls.execute_hooks('cleanup', runtime=cls)
+
+    # spawn a new router
+    from ..logic import http
+    http.HTTPSemantics.clear_router()
+
+    _reloaded_mods = set()
+    for name, mod in sys.modules.iteritems():
+      if (mod and not name.startswith('__') and not (name in frozenset(('os', 'sys'))) and isinstance(mod, type(sys))):
+        if any(((i in name or name in i or name == i) for i in cls.__respawn_disabled__)):
+          continue
+        try:
+          reload(mod)
+        except ImportError:
+          continue
+        else:
+          print "Reloading %s..." % name
+          _reloaded_mods.add(name)
+
+    cls.execute_hooks('respawn', runtime=cls, reloaded_modules=_reloaded_mods)
+    return cls
 
   def bind_environ(self, environ):
 

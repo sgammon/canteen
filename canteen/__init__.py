@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   canteen
   ~~~~~~~
@@ -13,12 +13,12 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
-debug, __version__ = __debug__, (1, 0)
+debug, __version__ = __debug__, (0, 0, 5)
 
 # stdlib
-import os, importlib, __builtin__
+import __builtin__
 
 # canteen :)
 from .core import *
@@ -32,6 +32,8 @@ from .runtime import *
 from .dispatch import *
 from .exceptions import *
 
+
 if debug: from .test import *
 
-__all__ = [export for export in (locals().keys() + globals().keys()) if not (export in __builtin__.__dict__ or export.startswith('__'))]
+__all__ = [export for export in (locals().keys() + globals().keys()) if not (
+    (export in __builtin__.__dict__ or export.startswith('__')))]

@@ -346,13 +346,12 @@ class Loader(object):
     if self.__chain__:
 
       # execute chained transforms
-      mutated = tree
-      for transform in self.__chain__:
+      for matcher, transform in self.__chain__.itervalues():
 
-        # construct and transform AST
-        mutated = transform(name, module)(tree)
+        # allow matcher to refuse transform
+        if not matcher or matcher(self, name, module)(tree):
+          tree = transform(self, name, module)(tree)
 
-      return mutated
     return tree
 
   def finalize(self, name, mod, tree, filename):
@@ -389,7 +388,6 @@ class Loader(object):
       # should never reach this line, but just to be safe...
       assert name in self.index, "module load index mismatch"  # prama: nocover
 
-
     # load mod info
     (descriptor, filename, info), path = self.modules[name]
 
@@ -405,8 +403,6 @@ class Loader(object):
 
     # dispatch load handler
     modpath, code = load_handler(descriptor, filename, info)
-
-    #pdb.set_trace()
 
     try:
       # construct and return a new module
@@ -436,6 +432,13 @@ class Loader(object):
     with open(os.path.join(filename, '__init__.py')) as handle:
       return [filename], handle.read()
 
+  @property
+  def code(self):
+
+    '''  '''
+
+    return self.__code__
+
   @classmethod
   def add_transform(cls, transform):
 
@@ -448,7 +451,7 @@ class Loader(object):
 
     '''  '''
 
-    return (setattr(cls, '__chain__', cls.__chain__ + chain), cls.__transforms__.update(transforms)) or cls
+    return (setattr(cls, '__chain__', chain) or cls)
 
   @classmethod
   def load(cls, name, force=False, strict=False):

@@ -23,7 +23,7 @@ from canteen.util import ast
 
 ## Globals
 _BODY_TERM = '__body__'
-_TRANSFORM_DECORATOR = ast.transform
+_TRANSFORM_DECORATOR = ast.chain
 
 
 class BlockVisitor(ast.BlockScanner):
@@ -62,7 +62,7 @@ class BlockMacro(object):
     return BlockTransformer(dict(izip(self.args, call_args)), body).visit(self.rewrite_locations(pyast.If(pyast.Num(1), copy.deepcopy(self.statements), []), node))
 
 
-@ast.chain
+#@ast.chain  # @TODO(sgammon): apply transforms someday
 class BlockExpander(ast.SpliceTransformer):
 
   '''  '''

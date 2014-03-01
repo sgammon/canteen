@@ -19,10 +19,11 @@ from canteen.util import ast
 
 # submodules
 from .block import *
+from .detect import *
 from .expression import *
 
 
-meta.Loader.set_transform_chain(ast.__chain__, ast.__transforms__)  # inform loader of our transform chain
+meta.Loader.set_transform_chain(ast.__chain__)  # inform loader of our transform chain
 
 
 __all__ = (

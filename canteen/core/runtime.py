@@ -561,7 +561,6 @@ class Runtime(object):
       raise  # just raise it k?
 
 
-@ast.transform
 class Library(object):
 
   '''  '''

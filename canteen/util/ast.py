@@ -15,32 +15,30 @@
 
 # stdlib
 import abc
+import pdb
 import copy
 import importlib
 
 
 ## Globals
-__chain__ = []
-__transforms__ = {}
+__chain__ = {}
 ast = importlib.import_module('ast')
 
 
-def chain(callable):
+def chain(matcher=None):
 
   '''  '''
 
   global __chain__
-  __chain__.append(callable)
-  return callable
 
+  def ast_chain(callable):
 
-def transform(callable):
+    '''  '''
 
-  '''  '''
+    __chain__[callable.__name__] = (matcher, callable)
+    return callable
 
-  global __transforms__
-  __transforms__[callable.__name__] = callable
-  return callable
+  return ast_chain
 
 
 class ContextChanger(ast.NodeVisitor):
@@ -67,16 +65,144 @@ class MatchVisitor(ast.NodeVisitor):
 
   '''  '''
 
+  node_types = None
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self):
+  def __init__(self, loader, name, module):
 
     '''  '''
 
-    self.found = False
+    self.name, self.module, self.loader, self.found = name, module, loader, False
+
+  def generic_visit(self, node):
+
+    '''  '''
+
+    if self.filter(node):
+      for identifier in self.extract(node):
+        if self.match(identifier):
+          self.found = True
+
+    return super(MatchVisitor, self).generic_visit(node)
+
+  def generic_extract(self, node):
+
+    '''  '''
+
+    raise RuntimeError("I don't know how to generically extract :(")
+
+  def extract(self, node):
+
+    '''  '''
+
+    # route to AST-node-specific methods for this node
+    for id in self.extractor_map.get(type(node), self.extractor_map[None])(self, node):
+      yield id
+
+    #pdb.set_trace()
+
+    # collapse (extract) the tree for each branch under this node
+    #for branch in (getattr(node, i) for i in node._fields):
+    #  if not isinstance(branch, (set, tuple, list, frozenset)):
+    #    # extract stringy/constant values
+    #    yield branch
+    #  else:
+    #    # otherwise, recurse to follow the tree
+    #    for sub_branch in branch:
+    #      for id in self.extract(sub_branch):
+    #        yield id
+
+  def extract_import(self, node):
+
+    '''  '''
+
+    # regular imports only have names
+    if isinstance(node, ast.Import):
+      for n in node.names: yield n.name
+
+    # for `from`-style imports, extract main module *and* names
+    if isinstance(node, ast.ImportFrom):
+      if node.module: yield node.module
+      for n in node.names: yield n.name
+
+  def extract_call(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+    raise StopIteration()
+
+  def extract_name(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+    raise StopIteration()
+
+  def extract_with(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+    raise StopIteration()
+
+  def extract_class(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+
+
+    yield node.name  # class name
+    for entry in node.decorator_list:
+      yield self.extract(entry)  # re-extract decorators
+    raise StopIteration()
+
+  def extract_func(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+    raise StopIteration()
+
+  def extract_attribute(self, node):
+
+    '''  '''
+
+    #pdb.set_trace()
+    raise StopIteration()
+
+  def filter(self, node):
+
+    '''  '''
+
+    # by default: check against class-level installed node types
+    return (self.node_types and isinstance(node, self.node_types)) or (not self.node_types)
+
+  ## build map of extractor tools
+  extractor_map = {
+
+    ast.Call: extract_call,
+    ast.Name: extract_name,
+    ast.Import: extract_import,
+    ast.ImportFrom: extract_import,
+    ast.Attribute: extract_attribute,
+    ast.FunctionDef: extract_func,
+    ast.ClassDef: extract_class,
+    ast.With: extract_with,
+    None: generic_visit
+
+  }
+
+  def __call__(self, tree):
+
+    '''  '''
+
+    self.visit(tree)  # proxy callable syntax to `visit`
+    return self.found  # indicate found status
 
   @abc.abstractmethod
-  def match(self, node):
+  def match(self, identifier):
 
     '''  '''
 

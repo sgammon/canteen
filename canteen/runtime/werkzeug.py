@@ -181,7 +181,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       # if we don't have one yet, setup default server init
       if not do_bind:
-        def do_bind(): return server_factory()
+        def do_bind(*args, **kwargs): return server_factory(*args, **kwargs)
 
       processes, threads = (
         self.config.get('werkzeug', {}).get('serving', {}).get('processes', 1),

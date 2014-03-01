@@ -16,7 +16,7 @@
 
 '''
 
-# submodules
+# submodule
 from .meta import *
 from .transform import *
 from .api import *

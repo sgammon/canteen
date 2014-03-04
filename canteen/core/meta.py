@@ -316,8 +316,7 @@ class Loader(object):
     '''  '''
 
     global __loader__
-    if not __loader__:
-      __loader__ = object.__new__(cls, *args, **kwargs)
+    if not __loader__: __loader__ = object.__new__(cls, *args, **kwargs)
     return __loader__
 
   def __init__(self):

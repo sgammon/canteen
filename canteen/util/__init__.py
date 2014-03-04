@@ -57,6 +57,21 @@ def crawl(location=os.environ.get('CANTEEN_CONFIG', None)):
   return {}
 
 
+def permute(t):
+
+  '''  '''
+
+  permutations, terms = set(), t.split('.')
+  yield t
+
+  for base in xrange(0, len(terms)):
+    for i, term in enumerate(terms if not base else reversed(terms)):
+      next = '.'.join(terms[(base - 1) if base else base:(i + 1 if not base else (len(terms) - i))])
+      if base == i or next == t or next in permutations: continue
+      permutations.add(next)
+      yield next
+
+
 def say(*args):
 
   '''  '''

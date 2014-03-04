@@ -209,11 +209,22 @@ class MatchVisitor(ast.NodeVisitor):
     raise NotImplementedError('`%s.match` is abstract.' % self.__class__.__name__)
 
 
-class BlockScanner(MatchVisitor):
+class TermMatcher(MatchVisitor):
 
   '''  '''
 
   term = None  # term to scan for
+
+  def match(self, identifier):
+
+    '''  '''
+
+    return ((identifier in self.term) if isinstance(self.term, (frozenset, set, list, tuple)) else identifier == self.term)
+
+
+class BlockScanner(TermMatcher):
+
+  '''  '''
 
   def match(self, node):
 

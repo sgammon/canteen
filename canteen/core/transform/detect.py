@@ -15,6 +15,7 @@
 
 # stdlib
 import pdb  # @TODO(sgammon): remove this
+import itertools
 import ast as pyast
 
 # utils
@@ -26,22 +27,13 @@ _seen_keepers = set()
 _keeper_artifacts = set()
 
 
-class ArtifactMatcher(ast.MatchVisitor):
+class ArtifactMatcher(ast.TermMatcher):
 
   '''  '''
 
   # terms and node types to match against
   node_types = (pyast.Import, pyast.ImportFrom)
-  term = frozenset(('canteen', 'canteen.Page', 'Page', 'canteen.Service', 'Service', 'canteen.Logic', 'Logic'))
-
-  def match(self, identifier):
-
-    '''  '''
-
-    if any((term == identifier) for term in self.term):
-      print '!!! MATCH: `%s` in `%s` !!!' % (identifier, self.name)
-      return True
-    return False
+  term = 'canteen'
 
 
 @ast.chain(matcher=ArtifactMatcher)
@@ -50,24 +42,11 @@ class ArtifactTracker(ast.SpliceTransformer):
   '''  '''
 
   kept_modules = []
+  canteen_modules = []
 
   def __init__(self, loader, name, module):
 
     '''  '''
 
     self.name, self.module, self.loader, self.keep = name, module, loader, False
-    self.kept_modules.append((self.name, self.module))
-
-  def visit_Import(self, node):
-
-    '''  '''
-
-    print '   seen: import %s' % ', '.join((n.name for n in node.names))
-    return node
-
-  def visit_ImportFrom(self, node):
-
-    '''  '''
-
-    print '   seen: from %s import %s' % (node.module or '', ', '.join((n.name for n in node.names)))
-    return node
+    (self.kept_modules if not name.startswith('canteen.') else self.canteen_modules).append((self.name, self.module))

@@ -166,8 +166,6 @@ class Handler(object):
         'environment': self.template.environment
       },
 
-      'url_for': self.url_for,
-
       # Routing
       'link': self.url_for,
 

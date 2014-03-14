@@ -60,6 +60,11 @@ class Session(object):
       if 'established' not in kwargs: kwargs['established'] = kwargs['seen'] = int(time.time())
 
       if 'data' not in kwargs: kwargs['data'] = {}
+
+      for k, v in kwargs.iteritems():
+        if k not in frozenset(('seen', 'data', 'csrf', 'established', 'seen', 'agent', 'client', 'tombstoned')):
+          kwargs['data'][k] = v
+
       self.__session__ = model(key=Session.make_key(id, model), **kwargs)  # it's a class
       self.__id__ = self.__session__.key.id
 
@@ -163,17 +168,16 @@ class Session(object):
     return self.__session__.put(adapter=adapter)
 
   @classmethod
-  def load(cls, id, model=UserSession, strict=False):
+  def load(cls, id, model=UserSession, strict=False, data=None):
 
     '''  '''
 
     # manufacture our own session, by loading the model
     #_session = model.get(Session.make_key(id, model))
     _session = None  # @TODO(sgammon): fix this
-    if _session:
-      return cls(id, _session)
+    if _session: return cls(id, _session)
     if strict: return False  # possibly fail stuff hardcore
-    return cls()  # otherwise make a new one
+    return cls(id, data=dict(data.iteritems()))  # otherwise make a new one
 
   ## == Session IDs == ##
   @staticmethod

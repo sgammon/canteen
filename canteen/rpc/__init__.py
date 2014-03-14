@@ -220,7 +220,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       if javascript:  # generate javascript?
         import json as serializer
-        return "$.apptools.rpc.service.factory(%s);" % serializer.dumps(_services)
+        return "apptools.rpc.service.factory(%s);" % serializer.dumps(_services)
       return _services  # or return raw?
 
     @decorators.classproperty

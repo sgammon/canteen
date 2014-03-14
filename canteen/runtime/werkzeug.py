@@ -130,13 +130,6 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       if self.config.assets.get('config', {}).get('extra_assets'):
         paths.update(dict(self.config.assets['config']['extra_assets'].itervalues()))
 
-      # if we want to run the debugger, attach it
-      if __debug__ and self.config.get('werkzeug', {}).get('debugger', False):
-        if (isinstance(self.config.config['werkzeug']['debugger'], dict) and self.config.config['werkzeug']['debugger'].get('enabled', False)):
-          self.add_wrap(debug.DebuggedApplication, self.config.config['werkzeug']['debugger'].get('use_evalex', True))
-        elif self.config.config['werkzeug']['debugger']:
-          self.add_wrap(debug.DebuggedApplication)
-
       # if we have statics to serve, do it through shared data
       if paths: self.add_wrap(wsgi.SharedDataMiddleware, paths)
 
@@ -197,6 +190,13 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       def server_factory(*args, **kwargs):
         return server_target(*args, **kwargs).serve_forever()
+
+      # do we want to use the debugger? if so wrap it
+      if __debug__ and self.config.get('werkzeug', {}).get('debugger', False):
+        if (isinstance(self.config.config['werkzeug']['debugger'], dict) and self.config.config['werkzeug']['debugger'].get('enabled', False)):
+          self.add_wrap(debug.DebuggedApplication, self.config.config['werkzeug']['debugger'].get('use_evalex', True))
+        elif self.config.config['werkzeug']['debugger']:
+          self.add_wrap(debug.DebuggedApplication)
 
       # resolve hostname
       hostname = self.config.get('werkzeug', {}).get('serving', {}).get('hostname', 'localhost')

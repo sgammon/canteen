@@ -290,7 +290,11 @@ class Runtime(object):
       self.execute_hooks('handler', **{
         'handler': flow,
         'environ': environ,
-        'start_response': start_response
+        'start_response': start_response,
+        'endpoint': endpoint,
+        'arguments': arguments,
+        'request': request,
+        'http': http
       })
 
       # dispatch time: INCEPTION.
@@ -361,6 +365,17 @@ class Runtime(object):
       _foreign_runtime_bridge.arguments = arguments
       _foreign_runtime_bridge.start_response = start_response
 
+      # call handler hooks
+      self.execute_hooks('handler', **{
+        'handler': handler,
+        'environ': environ,
+        'start_response': _foreign_runtime_bridge,
+        'endpoint': endpoint,
+        'arguments': arguments,
+        'request': request,
+        'http': http
+      })
+
       # initialize foreign handler with replaced start_response
       return handler(environ, _foreign_runtime_bridge)
 
@@ -379,6 +394,17 @@ class Runtime(object):
         ('Response', response.__class__)):
 
         handler.__globals__[prop] = val  # inject all the things
+
+      # call handler hooks
+      self.execute_hooks('handler', **{
+        'handler': handler,
+        'environ': environ,
+        'start_response': _foreign_runtime_bridge,
+        'endpoint': endpoint,
+        'arguments': arguments,
+        'request': request,
+        'http': http
+      })
 
       # call with arguments only
       result = handler(**arguments)

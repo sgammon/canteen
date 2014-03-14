@@ -41,8 +41,16 @@ def url(name_or_route, route=None, **kwargs):
 
     '''  '''
 
+    wrap = None  # check wrap
+    if 'wrap' in kwargs:
+      wrap = kwargs['wrap']
+      del kwargs['wrap']
+
     for entry in ((route,) if not isinstance(route, tuple) else route):
       HTTPSemantics.add_route((entry, name), target, **kwargs)
+
+    if wrap:
+      return wrap(target)
     return target
 
   return inject
@@ -94,7 +102,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           if 'uuid' not in session_obj and 'id' not in session_obj:
             session_obj = None  # no ID or UUID == no session
           else:
-            session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'])
+            session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'], data=session_obj)
 
         if self.__session__:
 

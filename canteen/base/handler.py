@@ -176,24 +176,16 @@ class Handler(object):
 
     }
 
-  @property
-  def base_context(self):
-
-    '''  '''
-
-    if not self.__base_context__:
-      base = {}
-      map(base.update, (self.template.base_context, self.context))
-      self.__base_context__ = base
-
-    return self.__base_context__
-
   def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
 
     '''  '''
 
+    if not self.__base_context__:
+      self.__base_context__ = {}
+      map(self.__base_context__.update, (self.template.base_context, self.context))
+
     # merge template context
-    _merged_context = self.base_context
+    _merged_context = self.__base_context__
     map(_merged_context.update, (context, kwargs))
 
     # collapse and merge HTTP headers (base headers first)

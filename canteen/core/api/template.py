@@ -299,6 +299,9 @@ class TemplateAPI(CoreAPI):
           for group in zip(directive, output['syntax'][override]):
             setattr(j2env, *group)
 
+      # add-in filters
+      j2env.filters.update(self.base_filters)
+
       return j2env
 
   @staticmethod
@@ -364,7 +367,7 @@ class TemplateAPI(CoreAPI):
 
     }
 
-  @decorators.bind('template.base_filters')
+  @decorators.bind('template.base_filters', wrap=property)
   def base_filters(self):
 
     '''  '''

@@ -23,6 +23,7 @@ import hashlib
 import mimetypes
 
 # core API & util
+from . import content
 from . import CoreAPI
 from canteen.util import config
 from canteen.util import decorators
@@ -36,7 +37,7 @@ class AssetsAPI(CoreAPI):
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
   __prefixes__ = {}  # static asset type prefixes
-  __static_types__ = frozenset(('style', 'script', 'font', 'image'))
+  __static_types__ = frozenset(('style', 'script', 'font', 'image', 'video'))
 
   ### === Internals === ###
   @property
@@ -67,8 +68,9 @@ class AssetsAPI(CoreAPI):
 
     return config.Config().assets.get('assets', {})
 
-  ### === URL Bindings === ###
-  def bind_urls(self, runtime=None):
+  ### === Detection & Bindings === ###
+  @content.ContentFilter(initialize=True)
+  def bind_urls(self, runtime):
 
     '''  '''
 
@@ -93,7 +95,13 @@ class AssetsAPI(CoreAPI):
           'gif': 'image/gif',
           'jpeg': 'image/jpeg',
           'jpg': 'image/jpeg',
-          'webp': 'image/webp'
+          'webp': 'image/webp',
+          'webm': 'video/webm',
+          'avi': 'video/avi',
+          'mpeg': 'video/mpeg',
+          'mp4': 'video/mp4',
+          'flv': 'video/x-flv',
+          'appcache': 'text/cache-manifest'
         }
 
         def GET(self, asset):
@@ -166,7 +174,9 @@ class AssetsAPI(CoreAPI):
         'style': 'assets/style',
         'image': 'assets/img',
         'script': 'assets/script',
-        'font': 'assets/font'
+        'font': 'assets/font',
+        'video': 'assets/video',
+        'other': 'assets/ext'
       }
 
     else:

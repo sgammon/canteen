@@ -19,7 +19,6 @@ from ..core import injection
 # canteen util
 from ..util import debug
 from ..util import config
-from ..util import decorators
 
 
 ## Globals
@@ -32,6 +31,7 @@ class Handler(object):
   '''  '''
 
   logging  = _logger  # local logging shim
+  __agent__ = None  # current `agent` details
   __status__ = 200  # keen is an optimistic bunch ;)
   __config__ = None  # configuration for this handler
   __routes__ = None  # route map adapter from werkzeug
@@ -82,6 +82,13 @@ class Handler(object):
   app = runtime = property(lambda self: self.__runtime__)
   environment = environ = property(lambda self: self.__environ__)
   start_response = callback = property(lambda self: self.__callback__)
+
+  @property
+  def agent(self):
+
+    '''  '''
+
+    return self.__agent__
 
   @property
   def request(self):
@@ -175,6 +182,12 @@ class Handler(object):
       }
 
     }
+
+  def set_agent(self, fingerprint):
+
+    '''  '''
+
+    return setattr(self, '__agent__', fingerprint) or self
 
   def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
 

@@ -33,7 +33,10 @@ class CoreAPI(object):
 
 __all__ = (
   'CoreAPI',
+  'agent',
   'assets',
   'cache',
+  'content',
+  'session',
   'template'
 )

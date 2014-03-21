@@ -147,7 +147,7 @@ class Runtime(object):
 
     '''  '''
 
-    self.bridge.assets.bind_urls(self)
+    self.execute_hooks('initialize', runtime=self)
 
   def configure(self, config):
 

@@ -30,8 +30,7 @@ class CoreAPI(object):
 
   '''  '''
 
-  __owner__ = "CoreAPI"
-  __metaclass__ = Proxy.Component
+  __owner__, __metaclass__ = "CoreAPI", Proxy.Component
 
 
 __all__ = (
@@ -39,7 +38,6 @@ __all__ = (
   'agent',
   'assets',
   'cache',
-  'content',
   'session',
   'template'
 )

@@ -171,6 +171,9 @@ class Handler(object):
 
     '''  '''
 
+    # set mimetype
+    if content_type: self.response.mimetype = content_type
+
     # collapse and merge HTTP headers (base headers first)
     self.response.headers.extend(itertools.chain(
       iter(self.template.base_headers),
@@ -195,16 +198,11 @@ class Handler(object):
       _merged_context
     ), True
 
-    # set status code
-    setattr(self.response,
+    # set status code and return
+    return setattr(self.response,
       ('status_code' if isinstance(self.status, int) else 'status'),
       self.status
-    )
-
-    # set mimetype
-    if content_type: self.response.mimetype = content_type
-
-    return self.response
+    ) or self.response
 
   def __call__(self, url_args, direct=False):
 

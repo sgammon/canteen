@@ -67,8 +67,7 @@ class Session(object):
       self.__id__ = self.__session__.key.id
 
     elif not kwargs:
-      self.__session__ = model  # it's an instance
-      self.__id__ = id  # set the ID
+      self.__session__, self.__id__ = model, id  # it's an instance, set the ID and session
 
     else:
       raise RuntimeError('Cannot specify a session model instance and also additional kwargs.')
@@ -80,28 +79,11 @@ class Session(object):
 
     return config.Config().get('SessionAPI', {'debug': True})
 
-  @property
-  def id(self):
-
-    '''  '''
-
-    return self.__id__
-
-  @property
-  def data(self):
-
-    '''  '''
-
-    return self.__session__.data
-
-  @property
-  def csrf(self):
-
-    '''  '''
-
-    if not self.__session__.csrf:
-      self.__session__.csrf = self.generate_token()  # generate CSRF
-    return self.__session__.csrf
+  ## == Accessors == ##
+  id = property(lambda self: self.__id__)
+  data = property(lambda self: self.__session__.data)
+  csrf = property(lambda self: self.__session__.csrf or (
+    setattr(self.__session__, 'csrf', self.generate_token()) or self.__session__.csrf))
 
   ## == Get/Set == ##
   def set(self, key, value, exception=False):
@@ -182,7 +164,9 @@ class Session(object):
 
     '''  '''
 
-    return Session.config.get('hash', hashlib.sha256)(salt + reduce(operator.add, (random.choice(string.printable) for x in xrange(32)))).hexdigest()
+    return Session.config.get('hash', hashlib.sha256)(
+      salt + reduce(operator.add, (random.choice(string.printable) for x in xrange(32)))
+    ).hexdigest()
 
   @staticmethod
   def make_key(id=None, model=UserSession):
@@ -378,7 +362,7 @@ class SessionAPI(CoreAPI):
         engine.load(request=request, http=http)
 
   @decorators.bind('session.commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
-  def commit(cls, status, headers, request, http, response):
+  def commit(self, status, headers, request, http, response):
 
     '''  '''
 
@@ -389,7 +373,7 @@ class SessionAPI(CoreAPI):
         engine.commit(request=request, response=response, session=session)  # defer to engine to commit
 
   @decorators.bind('session.save', wrap=hooks.HookResponder('complete', context=('response', 'request', 'http', 'environ')))
-  def save(cls, response, request, http, environ):
+  def save(self, response, request, http, environ):
 
     '''  '''
 

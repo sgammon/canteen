@@ -29,7 +29,7 @@ from canteen.core.api.session import SessionEngine
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
-  @decorators.bind('etags')
+  @decorators.bind('http.etags')
   class ETags(logic.Logic):
 
     '''  '''

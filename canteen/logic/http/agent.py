@@ -2,8 +2,8 @@
 
 '''
 
-  canteen core agent API
-  ~~~~~~~~~~~~~~~~~~~~~~
+  canteen user-agent logic
+  ~~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013
@@ -14,7 +14,7 @@
 '''
 
 # canteen core & util
-from . import CoreAPI, hooks
+from canteen.base import logic
 from canteen.util import struct
 from canteen.util import decorators
 
@@ -84,7 +84,7 @@ class AgentOS(AgentInfo):
     self.name, self.vendor, self.version = name, vendor, version
 
   @classmethod
-  def scan(self, fingerprint):
+  def scan(cls, fingerprint):
 
     '''  '''
 
@@ -192,7 +192,7 @@ class AgentFingerprint(AgentInfo):
   capabilities = supports
 
   @classmethod
-  def scan(cls, handler, environ, request):
+  def scan(cls, user_agent):
 
     '''  '''
 
@@ -200,21 +200,16 @@ class AgentFingerprint(AgentInfo):
     return cls(**detected)
 
 
-@decorators.bind('user_agent')
-class AgentAPI(CoreAPI):
+@decorators.bind('http.agent')
+class UserAgent(logic.Logic):
 
   '''  '''
 
-  @hooks.HookResponder('handler', context=('handler', 'environ', 'request'))
-  def scan(self, handler, environ, request):
+  def scan(self, user_agent):
 
     '''  '''
 
-    from canteen.base import handler as base_handler
-
-    if isinstance(handler, base_handler.Handler):
-      # it's a canteen handler class - we can safely attach agent detection
-      handler._set_agent(AgentFingerprint.scan(handler, environ, request))
+    return AgentFingerprint.scan(user_agent)
 
 
 __all__ = (

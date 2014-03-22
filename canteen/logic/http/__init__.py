@@ -15,6 +15,7 @@
 
 # symbols
 from .etags import ETags
+from .agent import UserAgent
 from .caching import Caching
 from .cookies import Cookies
 from .redirects import Redirects
@@ -28,5 +29,6 @@ __all__ = (
   'Cookies',
   'Caching',
   'Redirects',
+  'UserAgent',
   'HTTPSemantics'
 )

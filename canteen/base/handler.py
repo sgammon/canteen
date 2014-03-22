@@ -87,17 +87,15 @@ class Handler(object):
   start_response = callback = property(lambda self: self.__callback__)
 
   # Context
-  agent = property(lambda self: self.__agent__)
   config = property(lambda self: config.Config().config)
   session = property(lambda self: self.request.session[0] if self.request.session else None)  # session is tuple of (session, engine)
+
+  # Agent
+  agent = property(lambda self: self.__agent__ if self.__agent__ else (setattr(self, '__agent__', self.http.agent.scan(self.request.user_agent)) or self.__agent__))
 
   # Request & Response
   request = property(lambda self: self.__request__ if self.__request__ else (setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))
   response = property(lambda self: self.__response__ if self.__response__ else (setattr(self, '__response__', self.http.new_response()) or self.__response__))
-
-  # Agent
-  agent = property(lambda self: self.__agent__)
-  _set_agent = lambda self, fingerprint: setattr(self, '__agent__', fingerprint) or self
 
   @property
   def template_context(self):

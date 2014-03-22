@@ -160,9 +160,6 @@ class ModelAdapter(object):
       :raises ValueError: In the case of an unknown or unregistered *kind*.
       :returns: New (or updated) key value for the target ``entity``. '''
 
-    if self.config.get('debug', False):  # pragma: no cover
-      self.logging.info("Saving entity: \"%s\"." % entity)
-
     # resolve model class
     _model = self.registry.get(entity.kind())
     if not _model: raise ValueError('Could not resolve model class "%s".' % entity.kind())

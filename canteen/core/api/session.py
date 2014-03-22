@@ -144,7 +144,8 @@ class Session(object):
     if 'REMOTE_ADDR' in environ: self.__session__.client = environ.get('REMOTE_ADDR')
     if 'HTTP_USER_AGENT' in environ: self.__session__.agent = environ.get('HTTP_USER_AGENT')
 
-    return self.__session__.put(adapter=adapter)
+    if self.config.get('storage', {}).get('enable'):
+      return self.__session__.put(adapter=adapter)
 
   @classmethod
   def load(cls, id, model=UserSession, strict=False, data=None):

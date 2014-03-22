@@ -24,7 +24,7 @@ from canteen.util import decorators
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
-  @decorators.bind('caching')
+  @decorators.bind('http.caching')
   class Caching(logic.Logic):
 
     '''  '''

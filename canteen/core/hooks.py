@@ -50,7 +50,7 @@ class HookResponder(object):
       # if there's no explicit argspec, inspect
       hook = args[0]
       _hook_i = inspect.getargspec(hook)
-      self.__argspec__ = self.__argspec__ or Context([i for i in _hook_i.args if i != 'self'], _hook_i.keywords is not None)
+      self.__argspec__ = self.__argspec__ or Context([i for i in _hook_i.args if i not in ('self', 'cls')], _hook_i.keywords is not None)
 
       def run_hook(*args, **kwargs):
 
@@ -71,42 +71,51 @@ class Context(object):
 
   __slots__ = (
     '__requested__',  # requested args
-    '__rollup__'  # acceptance of kwargs
+    '__rollup__',  # acceptance of kwargs
+    '__notify__'  # requested hookname
   )
 
-  def __init__(self, requested, rollup=True):
+  def __init__(self, requested, rollup=True, notify=False):
 
     '''  '''
 
-    self.__requested__, self.__rollup__ = (
-      requested, rollup
+    self.__requested__, self.__rollup__, self.__notify__ = (
+      requested, rollup, notify
     )
 
   def __call__(self, func):
 
     '''  '''
 
-    if func is object:
-      import pdb; pdb.set_trace()
-
     def with_context(*args, **context):
 
       '''  '''
+
+      # extract hookname from args (always 1st param)
+      hookname, args = args[0], args[1:]
 
       # calculate materialized args
       _args, _kwargs = [], {}
       if self.__requested__:
         for prop in self.__requested__:
           if prop not in context:
-            continue
+            raise RuntimeError('Cannot satisfy request for context entry `%s` in'
+                               ' hook `%s` for event point `%s`.' % (
+                                prop,
+                                (func if not isinstance(func, (classmethod, staticmethod)) else func.__func__).__name__,
+                                hookname))
           _args.append(context[prop])
 
       # honor kwargs
       if self.__rollup__: _kwargs = context
 
-      # dispatch!
-      if func is object:
-        import pdb; pdb.set_trace()
-      return (func if not isinstance(func, (classmethod, staticmethod)) else func.__func__)(*tuple(list(args) + _args), **_kwargs)
+      # resolve dispatch function
+      dispatch = (func if not isinstance(func, (classmethod, staticmethod)) else func.__func__)
+
+      # notify function of hookname, if requested
+      if self.__notify__: _args.insert(0, hookname)
+
+      # dispatch
+      return dispatch(*tuple(list(args) + _args), **_kwargs)
 
     return with_context

@@ -281,7 +281,7 @@ class Runtime(object):
       # send start_response
       start_response(result.status, result.headers)
 
-      # buffer and return (i guess)
+      # buffer and return (i guess) @TODO(sgammon): can we do this better?
       return (i.encode('utf-8').strip() for i in result.response)  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)

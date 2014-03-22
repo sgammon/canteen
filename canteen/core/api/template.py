@@ -138,9 +138,6 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       import jinja2
 
-      if __debug__:
-        print 'Loaded template module: "%s".' % template
-
       # Convert the path to a module name.
       prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.').replace('-', '_')).rsplit('.', 1)
       prefix, obj = str(prefix), str(obj)
@@ -322,7 +319,7 @@ class TemplateAPI(CoreAPI):
         yield block.strip()
 
     if _iter:
-      return iter((i for i in iter_sanitize()))  # return wrapped iterator
+      return iter_sanitize()  # return wrapped iterator
 
     return [block for block in iter_sanitize()]
 
@@ -335,7 +332,7 @@ class TemplateAPI(CoreAPI):
 
     return filter(lambda x: x and x[1], [
 
-      ('Vary', 'Accept-Encoding,Cookie'),
+      ('Vary', 'Accept-Encoding'),
       ('Cache-Control', 'no-cache; no-store')
 
     ])

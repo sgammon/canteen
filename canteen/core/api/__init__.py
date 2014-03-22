@@ -21,6 +21,9 @@
 from ..meta import Proxy
 from ..meta import decorators
 
+# core modules
+from .. import meta, hooks, runtime, injection
+
 
 @decorators.singleton
 class CoreAPI(object):

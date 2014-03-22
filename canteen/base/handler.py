@@ -13,7 +13,11 @@
 
 '''
 
+# stdlib
+import itertools
+
 # canteen core
+from ..core import hooks
 from ..core import injection
 
 # canteen util
@@ -43,11 +47,10 @@ class Handler(object):
   __response__ = None  # lazy-loaded response object
   __callback__ = None  # callback to send data (sync or async)
   __content_type__ = None  # response content type
-  __base_context__ = None  # base template render context
 
   __owner__, __metaclass__ = "Handler", injection.Compound
 
-  def __init__(self, environ=None, start_response=None, runtime=None, request=None, response=None):
+  def __init__(self, environ=None, start_response=None, runtime=None, request=None, response=None, **context):
 
     '''  '''
 
@@ -72,51 +75,32 @@ class Handler(object):
   runtime = property(lambda self: self.__runtime__)
   routes = property(lambda self: self.__runtime__.routes)
   status = property(lambda self: self.__status__)
-  content_type = property(lambda self: self.__content_type__)
   headers = property(lambda self: self.__headers__)
+  content_type = property(lambda self: self.__content_type__)
 
   # shortcuts & utilities
-  url_for = lambda self, endpoint, **args: self.routes.build(endpoint, args)
+  url_for = link = lambda self, endpoint, **args: self.routes.build(endpoint, args)
 
   # WSGI internals
   app = runtime = property(lambda self: self.__runtime__)
   environment = environ = property(lambda self: self.__environ__)
   start_response = callback = property(lambda self: self.__callback__)
 
-  @property
-  def agent(self):
+  # Context
+  agent = property(lambda self: self.__agent__)
+  config = property(lambda self: config.Config().config)
+  session = property(lambda self: self.request.session[0] if self.request.session else None)  # session is tuple of (session, engine)
 
-    '''  '''
+  # Request & Response
+  request = property(lambda self: self.__request__ if self.__request__ else (setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))
+  response = property(lambda self: self.__response__ if self.__response__ else (setattr(self, '__response__', self.http.new_response()) or self.__response__))
 
-    return self.__agent__
-
-  @property
-  def request(self):
-
-    '''  '''
-
-    if not self.__request__:
-      self.__request__ = self.http.new_request(self.__environ__)
-    return self.__request__
+  # Agent
+  agent = property(lambda self: self.__agent__)
+  _set_agent = lambda self, fingerprint: setattr(self, '__agent__', fingerprint) or self
 
   @property
-  def config(self):
-
-    '''  '''
-
-    return config.Config().config
-
-  @property
-  def session(self):
-
-    '''  '''
-
-    if self.request.session:
-      session, engine = self.request.session
-      return session
-
-  @property
-  def context(self):
+  def template_context(self):
 
     '''  '''
 
@@ -183,57 +167,51 @@ class Handler(object):
 
     }
 
-  def set_agent(self, fingerprint):
+  def render(self, template, headers={}, content_type='text/html', context={}, _direct=False, **kwargs):
 
     '''  '''
-
-    return setattr(self, '__agent__', fingerprint) or self
-
-  def render(self, template, headers={}, content_type=None, context={}, _direct=False, **kwargs):
-
-    '''  '''
-
-    if not self.__base_context__:
-      self.__base_context__ = {}
-      map(self.__base_context__.update, (self.template.base_context, self.context))
-
-    # merge template context
-    _merged_context = self.__base_context__
-    map(_merged_context.update, (context, kwargs))
 
     # collapse and merge HTTP headers (base headers first)
-    _merged_headers = dict(self.template.base_headers + self.config.get('http', {}).get('headers', {}).items())
+    self.response.headers.extend(itertools.chain(
+      iter(self.template.base_headers),
+      self.config.get('http', {}).get('headers', {}).iteritems(),
+      self.headers.iteritems(),
+      headers.iteritems()
+    ))
 
-    # handler-level headers next
-    if self.headers: _merged_headers.update(self.headers)
+    # merge template context
+    _merged_context = dict(itertools.chain(*(i.iteritems() for i in (
+      self.template.base_context,
+      self.template_context,
+      context,
+      kwargs
+    ))))
 
-    # finally, locally-passed headers
-    if headers: _merged_headers.update(headers)
-
-    # render template with merged context
-    content = self.template.render(*(
+    # render template and set as response data
+    self.response.response, self.response.direct_passthrough = self.template.render(
       self,
       self.runtime.config,
       template,
       _merged_context
-    ), _direct=_direct)
+    ), True
 
-    if _direct:
-      return (self.status, _merged_headers, content_type or self.content_type, content)
+    # set status code
+    setattr(self.response,
+      ('status_code' if isinstance(self.status, int) else 'status'),
+      self.status
+    )
 
-    else:
-      return self.response(content, **{
-        'status': self.status,
-        'headers': _merged_headers.items(),
-        'mimetype': content_type or self.content_type
-      })
+    # set mimetype
+    if content_type: self.response.mimetype = content_type
+
+    return self.response
 
   def __call__(self, url_args, direct=False):
 
     '''  '''
 
     # resolve method to call - try lowercase first
-    if not hasattr(self, self.request.method.lower()):
+    if not hasattr(self, self.request.method.lower().strip()):
       if not hasattr(self, self.request.method):
         return self.error(405)
       method = getattr(self, self.request.method)

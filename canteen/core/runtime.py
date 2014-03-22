@@ -191,108 +191,98 @@ class Runtime(object):
 
     from ..base import handler as base_handler
 
-    start, latency = time.clock(), lambda: "Responded in %sms." % (str(round((time.clock() - start) * 1000, 2)))  # start response clock
+    # setup hook context
+    context = {
+      'environ': environ,
+      'start_response': start_response,
+      'runtime': self
+    }
 
     # call dispatch hooks
-    self.execute_hooks('dispatch', environ=environ, start_response=start_response)
+    self.execute_hooks('dispatch', **context)
 
     # resolve URL via bound routes
-    http, request, response = self.bind_environ(environ)
+    http, request, response = (
+      context['http'],
+      context['request'],
+      context['response']
+    ) = self.bind_environ(environ)
 
     # call request hooks
-    self.execute_hooks('request', request=request, http=http)
+    self.execute_hooks('request', **context)
 
     # match route
-    endpoint, arguments = self.routes.match()
+    endpoint, arguments = (
+      context['endpoint'],
+      context['arguments']
+    ) = self.routes.match()
 
     # call match hooks
-    self.execute_hooks('match', environ=environ, endpoint=endpoint, arguments=arguments, request=request, http=http)
+    self.execute_hooks('match', **context)
 
     # resolve endpoint
-    handler = http.resolve_route(endpoint)
+    handler = context['handler'] = http.resolve_route(endpoint)
 
     if not handler:  # `None` for handler means it didn't match
 
-      # dispatch error hook for 404
-      self.execute_hooks(('error', 'complete'), **{
+      # update context
+      context.update({
         'code': 404,
         'error': True,
         'exception': None,
-        'http': http,
-        'request': request,
-        'runtime': self,
-        'endpoint': endpoint,
-        'environ': environ,
-        'arguments': arguments,
         'response': None
       })
 
+      # dispatch error hook for 404
+      self.execute_hooks(('error', 'complete'), **context)
       http.error(404)
 
     # class-based pages/handlers
     if isinstance(handler, type) and issubclass(handler, base_handler.Handler):
 
       # initialize handler
-      flow = handler(*(
-        environ,
-        start_response
-      ), **{
-        'runtime': self,
-        'request': request,
-        'response': response
-      })
+      flow = context['handler'] = handler(**context)
 
       # call handler hooks
-      self.execute_hooks('handler', **{
-        'handler': flow,
-        'environ': environ,
-        'start_response': start_response,
-        'endpoint': endpoint,
-        'arguments': arguments,
-        'request': request,
-        'http': http
-      })
+      self.execute_hooks('handler', **context)
 
       # dispatch time: INCEPTION.
       result = flow(arguments)
 
       if isinstance(result, tuple):
 
-        status, headers, content_type, content = result
+        status, headers, content_type, content = (
+          context['status'],
+          context['headers'],
+          context['content_type'],
+          context['content']
+        ) = result  # unpack response
 
-        _response = response.__class__(content, **{
+        _response = context['response'] = response.__class__(content, **{
           'status': status,
           'headers': headers,
           'mimetype': content_type
         })
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': headers,
-          'content': content,
-          'environ': environ,
-          'response': _response
-        })
-
-        print latency()
+        self.execute_hooks(('response', 'complete'), **context)
         return _response(environ, start_response)
 
-      # call response hooks
-      self.execute_hooks(('response', 'complete'), **{
-        'http': http,
-        'status': result.status,
-        'request': request,
-        'headers': result.headers,
-        'content': result.response,
-        'environ': environ,
-        'response': response
-      })
+      status, headers, content_type, content = (
+        context['status'],
+        context['headers'],
+        context['content_type'],
+        context['content']
+      ) = result.status, result.headers, result.content_type, result.response  # unpack response
 
-      print latency()
-      return result(environ, start_response)  # it's a werkzeug Response
+      # call response hooks
+      self.execute_hooks(('response', 'complete'), **context)
+
+      # send start_response
+      start_response(result.status, result.headers)
+
+      # buffer and return (i guess)
+      return (i.encode('utf-8').strip() for i in result.response)  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)
     elif isinstance(handler, type) or callable(handler):
@@ -301,8 +291,6 @@ class Runtime(object):
       def _foreign_runtime_bridge(status, headers):
 
         '''  '''
-
-        print latency()
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **{
@@ -377,7 +365,6 @@ class Runtime(object):
           'response': result
         })
 
-        print latency()
         return response(environ, start_response)  # it's a Response class - call it to start_response
 
       # a tuple bound to a URL - static response
@@ -399,8 +386,6 @@ class Runtime(object):
           })
 
           start_response(status, headers)
-
-          print latency()
           return iter([response])
 
         if len(result) == 3:  # it's (status_code, headers, response)
@@ -424,7 +409,6 @@ class Runtime(object):
 
           start_response(status, headers)
 
-          print latency()
           return iter([response])
 
       elif isinstance(result, basestring):
@@ -443,8 +427,6 @@ class Runtime(object):
         })
 
         start_response(status, headers)
-
-        print latency()
         return iter([result])
 
     # could be a bound response

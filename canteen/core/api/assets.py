@@ -23,8 +23,7 @@ import hashlib
 import mimetypes
 
 # core API & util
-from . import content
-from . import CoreAPI
+from . import CoreAPI, hooks
 from canteen.util import config
 from canteen.util import decorators
 
@@ -69,7 +68,7 @@ class AssetsAPI(CoreAPI):
     return config.Config().assets.get('assets', {})
 
   ### === Detection & Bindings === ###
-  @content.ContentFilter(initialize=True)
+  @hooks.HookResponder('initialize', context=('runtime',))
   def bind_urls(self, runtime):
 
     '''  '''

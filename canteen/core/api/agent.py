@@ -14,8 +14,7 @@
 '''
 
 # canteen core & util
-from . import content
-from . import CoreAPI
+from . import CoreAPI, hooks
 from canteen.util import struct
 from canteen.util import decorators
 
@@ -206,8 +205,8 @@ class AgentAPI(CoreAPI):
 
   '''  '''
 
-  @content.ContentFilter(handler=True)
-  def scan(self, handler, environ, start_response, endpoint, arguments, request, http):
+  @hooks.HookResponder('handler', context=('handler', 'environ', 'request'))
+  def scan(self, handler, environ, request):
 
     '''  '''
 
@@ -215,7 +214,7 @@ class AgentAPI(CoreAPI):
 
     if isinstance(handler, base_handler.Handler):
       # it's a canteen handler class - we can safely attach agent detection
-      handler.set_agent(AgentFingerprint.scan(handler, environ, request))
+      handler._set_agent(AgentFingerprint.scan(handler, environ, request))
 
 
 __all__ = (

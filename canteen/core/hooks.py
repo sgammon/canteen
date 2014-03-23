@@ -19,7 +19,8 @@ class HookResponder(object):
     '__func__',  # inner function
     '__wrap__',  # hook wrapper
     '__hooks__',  # event names to fire on
-    '__argspec__'  # argspec (explicit or implied)
+    '__argspec__',  # argspec (explicit or implied)
+    '__binding__'  # binding to carry through if wrap is a bind
   )
 
   def __init__(self, *events, **kwargs):
@@ -46,11 +47,18 @@ class HookResponder(object):
 
     '''  '''
 
+    from ..util import decorators
+
     if not hasattr(self, '__func__') or not getattr(self, '__func__'):
       # if there's no explicit argspec, inspect
       hook = args[0]
-      _hook_i = inspect.getargspec(hook)
-      self.__argspec__ = self.__argspec__ or Context([i for i in _hook_i.args if i not in ('self', 'cls')], _hook_i.keywords is not None)
+      if not self.__argspec__:
+        _hook_i = inspect.getargspec(hook)
+        self.__argspec__ = Context([i for i in _hook_i.args if i not in ('self', 'cls')], _hook_i.keywords is not None)
+
+      # carry through DI bindings
+      if isinstance(self.__wrap__, decorators.bind):
+        self.__binding__ = hook.__binding__
 
       def run_hook(*args, **kwargs):
 
@@ -59,9 +67,7 @@ class HookResponder(object):
         if self.__wrap__:
           return self.__argspec__(self.__wrap__(hook))(*args, **kwargs)
         return self.__argspec__(hook)(*args, **kwargs)
-
       return setattr(self, '__func__', run_hook) or self  # mount run_hook
-
     return self.__func__(*args, **kwargs)
 
 
@@ -117,5 +123,4 @@ class Context(object):
 
       # dispatch
       return dispatch(*tuple(list(args) + _args), **_kwargs)
-
     return with_context

@@ -17,11 +17,8 @@
 
 '''
 
-# core API
-from ..meta import Proxy
-from ..meta import decorators
-
-# core modules
+# core API & modules
+from ..meta import Proxy, decorators
 from .. import meta, hooks, runtime, injection
 
 

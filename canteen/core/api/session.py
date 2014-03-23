@@ -91,8 +91,7 @@ class Session(object):
     '''  '''
 
     try:
-      self.data[key] = value
-      return self
+      return setattr(self.data, key, value) or self
     except KeyError:
       if exception: raise exception('Could not write to session item "%s".' % key)
 
@@ -191,26 +190,10 @@ class SessionEngine(object):
 
     self.__path__, self.__config__, self.__api__ = name, config, api
 
-  @property
-  def config(self):
-
-    '''  '''
-
-    return self.__config__.get(self.__path__)
-
-  @property
-  def api(self):
-
-    '''  '''
-
-    return self.__api__
-
-  @property
-  def session_config(self):
-
-    '''  '''
-
-    return self.__config__
+  ## == Accessors == ##
+  api = property(lambda self: self.__api__)
+  config = property(lambda self: self.__config__.get(self.__path__))
+  session_config = property(lambda self: self.__config__)
 
   @staticmethod
   def configure(name, **config):
@@ -327,14 +310,14 @@ class SessionAPI(CoreAPI):
     raise RuntimeError('No such session runtime: "%s".' % name)
 
   ## == Injected Methods == ##
-  @decorators.bind('session.reset')
+  @decorators.bind('reset')
   def reset(self, redirect=None, save=True, engine=None):
 
     '''  '''
 
     pass
 
-  @decorators.bind('session.establish', wrap=hooks.HookResponder('match', context=('environ', 'endpoint', 'arguments', 'request', 'http')))
+  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=('environ', 'endpoint', 'arguments', 'request', 'http')))
   def establish(self, environ, endpoint, arguments, request, http):
 
     '''  '''
@@ -346,7 +329,7 @@ class SessionAPI(CoreAPI):
       if not session and self.config.get('always_establish', True):  # engine is loaded, but no session
         return request.set_session(Session(), engine)
 
-  @decorators.bind('session.load', wrap=hooks.HookResponder('request', 'message', context=('request', 'http')))
+  @decorators.bind('load', wrap=hooks.HookResponder('request', 'message', context=('request', 'http')))
   def load(self, request, http):
 
     '''  '''
@@ -362,7 +345,7 @@ class SessionAPI(CoreAPI):
         engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')  # default to cookie-based sessions (safest)
         engine.load(request=request, http=http)
 
-  @decorators.bind('session.commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
+  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
   def commit(self, status, headers, request, http, response):
 
     '''  '''
@@ -373,7 +356,7 @@ class SessionAPI(CoreAPI):
         session, engine = request.session  # extract engine and session
         engine.commit(request=request, response=response, session=session)  # defer to engine to commit
 
-  @decorators.bind('session.save', wrap=hooks.HookResponder('complete', context=('response', 'request', 'http', 'environ')))
+  @decorators.bind('save', wrap=hooks.HookResponder('complete', context=('response', 'request', 'http', 'environ')))
   def save(self, response, request, http, environ):
 
     '''  '''

@@ -180,24 +180,12 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
+    ## == Attributes == ##
     engine = jinja2  # we're using jinja :)
-
-    @property
-    def default_extensions(self):
-
-      '''  '''
-
-      return []  # nothing, for now @TODO(sgammon): add builtin caching etc
-
-    @property
-    def default_config(self):
-
-      '''  '''
-
-      return {
-        'optimized': True,
-        'autoescape': True
-      }
+    default_extensions = property(lambda self: [])
+    default_config = property(lambda self: {
+      'optimized': True, 'autoescape': True
+    })
 
     # default syntax support method
     def syntax(self, handler, environment_factory, j2config, config):
@@ -238,8 +226,7 @@ class TemplateAPI(CoreAPI):
         environment = environment_factory(**j2config)
 
         if config.debug:
-          environment.hamlish_mode = 'indented'
-          environment.hamlish_debug = True
+          environment.hamlish_mode, environment.hamlish_debug = 'indented', True
 
         # apply config overrides
         if 'TemplateAPI' in config.config and 'haml' in config.config['TemplateAPI']:
@@ -297,9 +284,7 @@ class TemplateAPI(CoreAPI):
             setattr(j2env, *group)
 
       # add-in filters
-      j2env.filters.update(self.base_filters)
-
-      return j2env
+      return j2env.filters.update(self.base_filters) or j2env
 
   @staticmethod
   def sanitize(content, _iter=True):
@@ -307,28 +292,23 @@ class TemplateAPI(CoreAPI):
     '''  '''
 
     # content should be a list of content blocks
-    if not isinstance(content, (tuple, list)):
-      content = [content]
+    content = [content] if not (
+      isinstance(content, (tuple, list))) else content
 
-    def iter_sanitize():
+    def sanitize():
 
       '''  '''
 
       # iteratively sanitize the response
-      for block in content:
-        yield block.strip()
+      for block in content: yield block.strip()
 
-    if _iter:
-      return iter_sanitize()  # return wrapped iterator
-
-    return [block for block in iter_sanitize()]
+    if _iter: return sanitize()  # return wrapped iterator
+    return [block for block in sanitize()]
 
   @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):
 
     '''  '''
-
-    import canteen
 
     return filter(lambda x: x and x[1], [
 

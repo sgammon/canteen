@@ -91,7 +91,7 @@ class Handler(object):
   session = property(lambda self: self.request.session[0] if self.request.session else None)  # session is tuple of (session, engine)
 
   # Agent
-  agent = property(lambda self: self.__agent__ if self.__agent__ else (setattr(self, '__agent__', self.http.agent.scan(self.request.user_agent)) or self.__agent__))
+  agent = property(lambda self: self.__agent__ if self.__agent__ else (setattr(self, '__agent__', self.http.agent.scan(self.request)) or self.__agent__))
 
   # Request & Response
   request = property(lambda self: self.__request__ if self.__request__ else (setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))

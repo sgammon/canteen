@@ -52,12 +52,9 @@ class Delegate(object):
         # @TODO(sgammon): make things not jank here (for instance, don't `collapse` every time)
         try:
           bridge = Proxy.Component.collapse(klass)
-          if key in bridge:
-            if isinstance(bridge[key], tuple):
-              return getattr(*bridge[key])  # bridge key is tuple of (responder, attribute)
-            return bridge[key]  # return value directly if it's not a tuple
-
-          raise AttributeError('Could not resolve attribute \'%s\'.' % key)
+          if isinstance(bridge[key], tuple):
+            return getattr(*bridge[key])  # bridge key is tuple of (responder, attribute)
+          return bridge[key]  # return value directly if it's not a tuple
         except KeyError:  # pragma: nocover
           raise AttributeError('Could not resolve attribute \'%s\''
                                ' on item \'%s\'.' % (key, klass))

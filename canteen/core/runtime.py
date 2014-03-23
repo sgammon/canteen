@@ -298,8 +298,8 @@ class Runtime(object):
           headers,
           None
         )
-        self.execute_hooks(('response', 'complete'), **context)
 
+        self.execute_hooks(('response', 'complete'), **context)
         return start_response(status, headers)
 
       # attach runtime, arguments and actual start_response to shim
@@ -308,10 +308,8 @@ class Runtime(object):
       _foreign_runtime_bridge.start_response = start_response
       context['start_response'] = _foreign_runtime_bridge
 
-      # call handler hooks
+      # call handler hooks, initialize foreign handler with replaced start_response
       self.execute_hooks('handler', **context)
-
-      # initialize foreign handler with replaced start_response
       return handler(environ, _foreign_runtime_bridge)
 
     # is it a function, maybe?

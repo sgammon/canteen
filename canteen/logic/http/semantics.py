@@ -73,7 +73,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    __aliases__ = {}  # aliases to routes
+    __aliases__ = {}  # aliases to routes  # @TODO(sgammon): rename this, it clashes with DI
     __map__ = None  # routing map cache
     __router__ = None  # route cache
 

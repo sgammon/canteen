@@ -279,7 +279,7 @@ class Runtime(object):
       self.execute_hooks(('response', 'complete'), **context)
 
       # send start_response
-      start_response(result.status, [bundle for bundle in result.headers])
+      start_response(result.status, [(k.encode('utf-8').strip(), v.encode('utf-8').strip()) for k, v in result.headers])
 
       # buffer and return (i guess) @TODO(sgammon): can we do this better?
       return (i.encode('utf-8').strip() for i in result.response)  # it's a werkzeug Response

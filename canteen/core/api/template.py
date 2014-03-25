@@ -311,10 +311,7 @@ class TemplateAPI(CoreAPI):
     '''  '''
 
     return filter(lambda x: x and x[1], [
-
-      ('Vary', 'Accept-Encoding'),
       ('Cache-Control', 'no-cache; no-store')
-
     ])
 
   @decorators.bind('template.base_context', wrap=property)

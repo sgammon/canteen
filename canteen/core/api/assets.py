@@ -23,9 +23,13 @@ import hashlib
 import mimetypes
 
 # core API & util
-from . import CoreAPI
+from . import CoreAPI, hooks
 from canteen.util import config
 from canteen.util import decorators
+
+
+## Globals
+_default_asset_path = os.path.join(os.getcwd(), 'assets')
 
 
 @decorators.bind('assets')
@@ -36,44 +40,21 @@ class AssetsAPI(CoreAPI):
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
   __prefixes__ = {}  # static asset type prefixes
-  __static_types__ = frozenset(('style', 'script', 'font', 'image'))
+  __static_types__ = frozenset(('style', 'script', 'font', 'image', 'video'))
 
   ### === Internals === ###
-  @property
-  def debug(self):
+  debug = property(lambda self: self.config.get('debug', True))
+  assets = property(lambda self: config.Config().assets.get('assets', {}))
+  config = property(lambda self: config.Config().assets.get('config', {'debug': True}))
+  path = property(lambda self: config.Config().app.get('paths', {}).get('assets', _default_asset_path))
+
+  ### === Detection & Bindings === ###
+  @hooks.HookResponder('initialize', context=('runtime',))
+  def bind_urls(self, runtime):
 
     '''  '''
 
-    return self.config.get('debug', True)
-
-  @property
-  def path(self):
-
-    '''  '''
-
-    return config.Config().app.get('paths', {}).get('assets', os.path.join(os.getcwd(), 'assets'))
-
-  @property
-  def config(self):
-
-    '''  '''
-
-    return config.Config().assets.get('config', {'debug': True})
-
-  @property
-  def assets(self):
-
-    '''  '''
-
-    return config.Config().assets.get('assets', {})
-
-  ### === URL Bindings === ###
-  def bind_urls(self, runtime=None):
-
-    '''  '''
-
-    from canteen import url
-    from canteen import handler
+    from canteen import url, handler
 
     ## asset handler
     def make_responder(asset_type, path_prefix=None):
@@ -93,18 +74,20 @@ class AssetsAPI(CoreAPI):
           'gif': 'image/gif',
           'jpeg': 'image/jpeg',
           'jpg': 'image/jpeg',
-          'webp': 'image/webp'
+          'webp': 'image/webp',
+          'webm': 'video/webm',
+          'avi': 'video/avi',
+          'mpeg': 'video/mpeg',
+          'mp4': 'video/mp4',
+          'flv': 'video/x-flv',
+          'appcache': 'text/cache-manifest'
         }
 
         def GET(self, asset):
 
           '''  '''
 
-          if not path_prefix:
-            fullpath = os.path.join(self.assets.path, asset_type, asset)
-          else:
-            fullpath = os.path.join(path_prefix, asset)
-
+          fullpath = os.path.join(path_prefix, asset) if path_prefix else os.path.join(self.assets.path, asset_type, asset)
           if fullpath in self.assets.__handles__:
 
             # extract cached handle/modtime/content
@@ -127,8 +110,7 @@ class AssetsAPI(CoreAPI):
 
             # try to guess with `mimetypes`
             content_type, encoding = mimetypes.guess_type(fullpath)
-            if not content_type:
-              content_type = 'application/octet-stream'
+            if not content_type: content_type = 'application/octet-stream'
 
           return self.response(contents, headers=[('ETag', fingerprint)], content_type=content_type)  # can return content directly
 
@@ -158,24 +140,18 @@ class AssetsAPI(CoreAPI):
 
       return AssetResponder
 
-    # map asset prefixes to asset responder
-    if 'asset_prefix' not in self.config:
-
-      # set default asset prefixes
-      asset_prefixes = {
-        'style': 'assets/style',
-        'image': 'assets/img',
-        'script': 'assets/script',
-        'font': 'assets/font'
-      }
-
-    else:
-      asset_prefixes = self.config['asset_prefix']
+    # set default asset prefixes
+    asset_prefixes = self.__prefixes__ = {
+      'style': 'assets/style',
+      'image': 'assets/img',
+      'script': 'assets/script',
+      'font': 'assets/font',
+      'video': 'assets/video',
+      'other': 'assets/ext'
+    } if 'asset_prefix' not in self.config else self.config['asset_prefix']
 
     for category, prefix in asset_prefixes.iteritems():
       url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
-
-    self.__prefixes__ = asset_prefixes
 
     if 'extra_assets' in self.config:
       for name, ext_cfg in self.config['extra_assets'].iteritems():
@@ -249,28 +225,27 @@ class AssetsAPI(CoreAPI):
     # should we use a CDN prefix?
     prefix = ''
     if self.config.get('serving_mode', 'local') == 'cdn':
-      if isinstance(self.config.get('cdn_prefix', None), (list, tuple)):
-        cdn_prefix = random.choice(self.config.get('cdn_prefix'))
-      else:
-        cdn_prefix = self.config.get('cdn_prefix')
-
-      prefix += cdn_prefix
+      prefix += random.choice(self.config.get('cdn_prefix')) if (
+        isinstance(self.config.get('cdn_prefix', None), (list, tuple))) else self.config.get('cdn_prefix')
 
     return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
 
-  @decorators.bind('assets.style_url')  # CSS
+  @decorators.bind()  # CSS
   def style_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
 
-  @decorators.bind('assets.script_url')  # JS
+  @decorators.bind()  # JS
   def script_url(self, *fragments, **arguments): return self.asset_url('script', fragments, arguments)
 
-  @decorators.bind('assets.font_url')  # Fonts
+  @decorators.bind()  # Fonts
   def font_url(self, *fragments, **arguments): return self.asset_url('font', fragments, arguments)
 
-  @decorators.bind('assets.image_url')  # Images
+  @decorators.bind()  # Images
   def image_url(self, *fragments, **arguments): return self.asset_url('image', fragments, arguments)
 
-  @decorators.bind('assets.static_url')  # Other
+  @decorators.bind()  # Video
+  def video_url(self, *fragments, **arguments): return self.asset_url('video', fragments, arguments)
+
+  @decorators.bind()  # Other
   def static_url(self, *fragments, **arguments): return self.asset_url('static', fragments, arguments)
 
 

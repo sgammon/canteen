@@ -215,11 +215,10 @@ class bind(object):
   __config__ = None  # optional *args and **kwargs to wrap ``config`` (above)
   __namespace__ = True  # do we namespace this property under it's superbind? (methods only)
 
-  def __init__(self, alias, namespace=True, *args, **kwargs):
+  def __init__(self, alias=None, namespace=True, *args, **kwargs):
 
     '''  '''
 
-    assert isinstance(alias, basestring)
     self.__alias__, self.__config__, self.__namespace__ = (
       alias,
       (args, kwargs) if (args or kwargs) else None,
@@ -238,6 +237,9 @@ class bind(object):
 
     from ..core import meta  # no deps in util. ever. :)
 
+    # default to binding name
+    self.__alias__ = self.__alias__ or target.__name__
+
     # install aliases
     target.__binding__, target.__target__, self.__target__ = self, self.__alias__, target
 
@@ -254,20 +256,23 @@ class bind(object):
 
         # scan for "bound" methods (bound for DI, not for Python)
         for mapping in (target.__dict__, target.__class__.__dict__):
+
           for k, v in mapping.iteritems():
+
+            if k.startswith('__'): continue
 
             # is this a wrapped method? unwrap it
             if isinstance(v, (staticmethod, classmethod)):
               v = v.__func__  # unwrap from wrapped class/static decorator
 
             # is this a bound (i.e. dependency-injected) method?
-            if hasattr(v, '__binding__'):
+            if hasattr(v, '__binding__') and v.__binding__:
               _bindings.add(k)
               if v.__binding__.__alias__:
                 _aliases[v.__binding__.__alias__] = k
 
             # is this a hook method? register with self
-            if hasattr(v, '__hooks__'):
+            if hasattr(v, '__hooks__') and v.__hooks__:
               v.__register__(target)
 
         # attach bindings to target class
@@ -280,6 +285,11 @@ class bind(object):
       raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
                       ' (anything meta-deriving from `Registry` or `Component`'
                       ' can be bound to injection names.')
+
+    # allow wrapping of hook responders
+    from ..core import hooks
+    if self.__config__ and self.__config__[1] and isinstance(self.__config__[1]['wrap'], hooks.HookResponder):
+      self.__config__[1]['wrap'].__binding__ = self
 
     # are we decorating a method?
     return self.__config__[1]['wrap'](target) if (self.__config__ and 'wrap' in self.__config__[1]) else target

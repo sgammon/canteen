@@ -43,7 +43,7 @@ class Runtime(object):
   __hooks__ = {}  # mapped hookpoints and methods to call
   __owner__ = "Runtime"  # metabucket owner name for subclasses
   __wrapped__ = None  # wrapped dispatch method calculated on first request
-  __singleton__ = False  # many runtimes can exist, so power
+  __singleton__ = False  # many runtimes can exist, _so power_
   __metaclass__ = Proxy.Component  # this should be injectable
 
   # == Abstract Properties == #
@@ -126,7 +126,7 @@ class Runtime(object):
             if not obj: raise RuntimeError('No matching singleton for hook method "%s".' % hook)
 
             # run in singleton context
-            hook(obj, *args, **kwargs)
+            hook(point, obj, *args, **kwargs)
 
         except Exception as e:
           if __debug__:
@@ -147,7 +147,7 @@ class Runtime(object):
 
     '''  '''
 
-    self.bridge.assets.bind_urls(self)
+    self.execute_hooks('initialize', runtime=self)
 
   def configure(self, config):
 
@@ -191,108 +191,98 @@ class Runtime(object):
 
     from ..base import handler as base_handler
 
-    start, latency = time.clock(), lambda: "Responded in %sms." % (str(round((time.clock() - start) * 1000, 2)))  # start response clock
+    # setup hook context
+    context = {
+      'environ': environ,
+      'start_response': start_response,
+      'runtime': self
+    }
 
     # call dispatch hooks
-    self.execute_hooks('dispatch', environ=environ, start_response=start_response)
+    self.execute_hooks('dispatch', **context)
 
     # resolve URL via bound routes
-    http, request, response = self.bind_environ(environ)
+    http, request, response = (
+      context['http'],
+      context['request'],
+      context['response']
+    ) = self.bind_environ(environ)
 
     # call request hooks
-    self.execute_hooks('request', request=request, http=http)
+    self.execute_hooks('request', **context)
 
     # match route
-    endpoint, arguments = self.routes.match()
+    endpoint, arguments = (
+      context['endpoint'],
+      context['arguments']
+    ) = self.routes.match()
 
     # call match hooks
-    self.execute_hooks('match', environ=environ, endpoint=endpoint, arguments=arguments, request=request, http=http)
+    self.execute_hooks('match', **context)
 
     # resolve endpoint
-    handler = http.resolve_route(endpoint)
+    handler = context['handler'] = http.resolve_route(endpoint)
 
     if not handler:  # `None` for handler means it didn't match
 
-      # dispatch error hook for 404
-      self.execute_hooks(('error', 'complete'), **{
+      # update context
+      context.update({
         'code': 404,
         'error': True,
         'exception': None,
-        'http': http,
-        'request': request,
-        'runtime': self,
-        'endpoint': endpoint,
-        'environ': environ,
-        'arguments': arguments,
         'response': None
       })
 
+      # dispatch error hook for 404
+      self.execute_hooks(('error', 'complete'), **context)
       http.error(404)
 
     # class-based pages/handlers
     if isinstance(handler, type) and issubclass(handler, base_handler.Handler):
 
       # initialize handler
-      flow = handler(*(
-        environ,
-        start_response
-      ), **{
-        'runtime': self,
-        'request': request,
-        'response': response
-      })
+      flow = context['handler'] = handler(**context)
 
       # call handler hooks
-      self.execute_hooks('handler', **{
-        'handler': flow,
-        'environ': environ,
-        'start_response': start_response,
-        'endpoint': endpoint,
-        'arguments': arguments,
-        'request': request,
-        'http': http
-      })
+      self.execute_hooks('handler', **context)
 
       # dispatch time: INCEPTION.
       result = flow(arguments)
 
       if isinstance(result, tuple):
 
-        status, headers, content_type, content = result
+        status, headers, content_type, content = (
+          context['status'],
+          context['headers'],
+          context['content_type'],
+          context['content']
+        ) = result  # unpack response
 
-        _response = response.__class__(content, **{
+        _response = context['response'] = response.__class__(content, **{
           'status': status,
           'headers': headers,
           'mimetype': content_type
         })
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': headers,
-          'content': content,
-          'environ': environ,
-          'response': _response
-        })
-
-        print latency()
+        self.execute_hooks(('response', 'complete'), **context)
         return _response(environ, start_response)
 
-      # call response hooks
-      self.execute_hooks(('response', 'complete'), **{
-        'http': http,
-        'status': result.status,
-        'request': request,
-        'headers': result.headers,
-        'content': result.response,
-        'environ': environ,
-        'response': response
-      })
+      status, headers, content_type, content = (
+        context['status'],
+        context['headers'],
+        context['content_type'],
+        context['content']
+      ) = result.status, result.headers, result.content_type, result.response  # unpack response
 
-      print latency()
-      return result(environ, start_response)  # it's a werkzeug Response
+      # call response hooks
+      self.execute_hooks(('response', 'complete'), **context)
+
+      # send start_response
+      start_response(result.status, [(k.encode('utf-8').strip(), v.encode('utf-8').strip()) for k, v in result.headers])
+
+      # buffer and return (i guess) @TODO(sgammon): can we do this better?
+      return (i.encode('utf-8').strip() for i in result.response)  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)
     elif isinstance(handler, type) or callable(handler):
@@ -302,37 +292,24 @@ class Runtime(object):
 
         '''  '''
 
-        print latency()
-
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': headers,
-          'environ': environ,
-          'response': None
-        })
+        context['status'], context['headers'], context['response'] = (
+          status,
+          headers,
+          None
+        )
 
+        self.execute_hooks(('response', 'complete'), **context)
         return start_response(status, headers)
 
       # attach runtime, arguments and actual start_response to shim
       _foreign_runtime_bridge.runtime = self
       _foreign_runtime_bridge.arguments = arguments
       _foreign_runtime_bridge.start_response = start_response
+      context['start_response'] = _foreign_runtime_bridge
 
-      # call handler hooks
-      self.execute_hooks('handler', **{
-        'handler': handler,
-        'environ': environ,
-        'start_response': _foreign_runtime_bridge,
-        'endpoint': endpoint,
-        'arguments': arguments,
-        'request': request,
-        'http': http
-      })
-
-      # initialize foreign handler with replaced start_response
+      # call handler hooks, initialize foreign handler with replaced start_response
+      self.execute_hooks('handler', **context)
       return handler(environ, _foreign_runtime_bridge)
 
     # is it a function, maybe?
@@ -352,120 +329,82 @@ class Runtime(object):
         handler.__globals__[prop] = val  # inject all the things
 
       # call handler hooks
-      self.execute_hooks('handler', **{
-        'handler': handler,
-        'environ': environ,
-        'start_response': _foreign_runtime_bridge,
-        'endpoint': endpoint,
-        'arguments': arguments,
-        'request': request,
-        'http': http
-      })
+      self.execute_hooks('handler', **context)
 
       # call with arguments only
-      result = handler(**arguments)
+      result = context['response'] = handler(**arguments)
+
       if isinstance(result, response.__class__):
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': result.headers,
-          'content': result.content,
-          'environ': environ,
-          'response': result
-        })
+        context['headers'], context['content'] = (
+          result.headers, result.response
+        )
 
-        print latency()
+        self.execute_hooks(('response', 'complete'), **context)
         return response(environ, start_response)  # it's a Response class - call it to start_response
 
       # a tuple bound to a URL - static response
       elif isinstance(result, tuple):
 
         if len(result) == 2:  # it's (status_code, response)
-          status, response = result
-          headers = [('Content-Type', 'text/html; charset=utf-8')]
+          status, response = (
+            context['status'],
+            context['response'],
+          ) = result
+
+          headers = context['headers'] = [
+            ('Content-Type', 'text/html; charset=utf-8')
+          ]
 
           # call response hooks
-          self.execute_hooks(('response', 'complete'), **{
-            'http': http,
-            'status': status,
-            'request': request,
-            'headers': headers,
-            'content': response,
-            'environ': environ,
-            'response': response
-          })
-
+          self.execute_hooks(('response', 'complete'), **context)
           start_response(status, headers)
-
-          print latency()
           return iter([response])
 
         if len(result) == 3:  # it's (status_code, headers, response)
-          status, headers, response = result
+          status, headers, response = (
+            context['status'],
+            context['headers'],
+            context['response']
+          ) = result
 
           if isinstance(headers, dict):
             headers = headers.items()
             if 'Content-Type' not in headers:
-              headers['Content-Type'] = 'text/html; charset=utf-8'
+              headers['Content-Type'] = context['headers']['Content-Type'] = 'text/html; charset=utf-8'
 
           # call response hooks
-          self.execute_hooks(('response', 'complete'), **{
-            'http': http,
-            'status': status,
-            'request': request,
-            'headers': headers,
-            'content': response,
-            'environ': environ,
-            'response': response
-          })
-
+          self.execute_hooks(('response', 'complete'), **context)
           start_response(status, headers)
-
-          print latency()
           return iter([response])
 
       elif isinstance(result, basestring):
 
-        status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
+        status, headers = (
+          context['status'],
+          context['headers'],
+          context['response']
+        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], result
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': headers,
-          'content': result,
-          'environ': environ,
-          'response': result
-        })
-
+        self.execute_hooks(('response', 'complete'), **context)
         start_response(status, headers)
-
-        print latency()
         return iter([result])
 
     # could be a bound response
     if not callable(handler):
       if isinstance(handler, basestring):
 
-        status, headers = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
+        status, headers = (
+          context['status'],
+          context['headers'],
+          context['response']
+        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], handler
 
         # call response hooks
-        self.execute_hooks(('response', 'complete'), **{
-          'http': http,
-          'status': status,
-          'request': request,
-          'headers': headers,
-          'content': handler,
-          'environ': environ,
-          'response': handler
-        })
-
-        # it's a static response!
-        return iter([handler])
+        self.execute_hooks(('response', 'complete'), **context)
+        return iter([handler])  # it's a static response!
 
     raise RuntimeError('Unrecognized handler type: "%s".' % type(handler))
 

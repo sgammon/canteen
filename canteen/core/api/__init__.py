@@ -17,9 +17,9 @@
 
 '''
 
-# core API
-from ..meta import Proxy
-from ..meta import decorators
+# core API & modules
+from ..meta import Proxy, decorators
+from .. import meta, hooks, runtime, injection
 
 
 @decorators.singleton
@@ -27,13 +27,13 @@ class CoreAPI(object):
 
   '''  '''
 
-  __owner__ = "CoreAPI"
-  __metaclass__ = Proxy.Component
+  __owner__, __metaclass__ = "CoreAPI", Proxy.Component
 
 
 __all__ = (
   'CoreAPI',
   'assets',
   'cache',
+  'session',
   'template'
 )

@@ -73,7 +73,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    __aliases__ = {}  # aliases to routes
+    __aliases__ = {}  # aliases to routes  # @TODO(sgammon): rename this, it clashes with DI
     __map__ = None  # routing map cache
     __router__ = None  # route cache
 
@@ -81,7 +81,11 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     HTTPException = exceptions.HTTPException
 
 
-    class HTTPRequest(wrappers.Request):
+    class HTTPRequest(wrappers.BaseRequest,
+                      wrappers.AcceptMixin,
+                      wrappers.UserAgentMixin,
+                      wrappers.AuthorizationMixin,
+                      wrappers.CommonRequestDescriptorsMixin):
 
       '''  '''
 
@@ -114,7 +118,11 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         return self
 
 
-    class HTTPResponse(wrappers.Response):
+    class HTTPResponse(wrappers.BaseResponse,
+                       wrappers.ETagResponseMixin,
+                       wrappers.ResponseStreamMixin,
+                       wrappers.WWWAuthenticateMixin,
+                       wrappers.CommonResponseDescriptorsMixin):
 
       '''  '''
 

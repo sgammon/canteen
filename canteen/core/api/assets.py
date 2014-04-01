@@ -102,7 +102,7 @@ class AssetsAPI(CoreAPI):
           # try to serve a 304, if possible
           if 'If-None-Match' in self.request.headers:
             if self.request.headers['If-None-Match'] == fingerprint:  # fingerprint matches, serve a 304
-              return self.response(status='304 Not Modified', headers=[('ETag', self.request.headers['If-None-Match'])])
+              return self.http.new_response(status='304 Not Modified', headers=[('ETag', self.request.headers['If-None-Match'])])
 
           # resolve content type by file extension, if possible
           content_type = self.content_types.get(fullpath.split('.')[-1])
@@ -112,7 +112,7 @@ class AssetsAPI(CoreAPI):
             content_type, encoding = mimetypes.guess_type(fullpath)
             if not content_type: content_type = 'application/octet-stream'
 
-          return self.response(contents, headers=[('ETag', fingerprint)], content_type=content_type)  # can return content directly
+          return self.http.new_response(contents, headers=[('ETag', fingerprint)], content_type=content_type)  # can return content directly
 
         def open_and_serve(self, filepath):
 

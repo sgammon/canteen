@@ -200,7 +200,7 @@ class Handler(object):
     return setattr(self.response,
       ('status_code' if isinstance(self.status, int) else 'status'),
       self.status
-    ) or self.response
+    ) or ((i.encode('utf-8').strip() for i in self.response.response), self.response)
 
   def __call__(self, url_args, direct=False):
 

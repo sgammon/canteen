@@ -128,7 +128,6 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       pass
 
-
     #### ==== Internals ==== ####
     @decorators.classproperty
     def config(cls):

@@ -247,9 +247,12 @@ class Runtime(object):
       self.execute_hooks('handler', **context)
 
       # dispatch time: INCEPTION.
-      result = flow(arguments)
+      result, iterator = flow(arguments), None
 
-      if isinstance(result, tuple):
+      if isinstance(result, tuple) and len(result) == 2:
+        iterator, result = result  # extract iterator and raw result
+
+      elif isinstance(result, tuple) and len(result) == 4:
 
         status, headers, content_type, content = (
           context['status'],
@@ -282,7 +285,7 @@ class Runtime(object):
       start_response(result.status, [(k.encode('utf-8').strip(), v.encode('utf-8').strip()) for k, v in result.headers])
 
       # buffer and return (i guess) @TODO(sgammon): can we do this better?
-      return (i.encode('utf-8').strip() for i in result.response)  # it's a werkzeug Response
+      return iterator or result.response  # it's a werkzeug Response
 
     # delegated class-based handlers (for instance, other WSGI apps)
     elif isinstance(handler, type) or callable(handler):

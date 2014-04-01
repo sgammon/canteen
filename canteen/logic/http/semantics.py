@@ -126,8 +126,28 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
-      pass
+      def __call__(self, *args, **kwargs):
 
+        '''  '''
+
+        # if it quacks like a duck...
+        if len(args) == 2 and isinstance(args[0], dict) and callable(args[1]):
+          # it's probably a WSGI pair
+          return self(*args, **kwargs)
+
+        # otherwise, we're probably wanting to update...
+        if kwargs:
+          if 'status' in kwargs: self.status = kwargs['status']
+          if 'mimetype' in kwargs: self.mimetype = kwargs['mimetype']
+          if 'mime_type' in kwargs: self.mimetype = kwargs['mimetype']
+          if 'headers' in kwargs: self.headers.extend(kwargs['headers'])
+          if 'content_type' in kwargs: self.content_type = kwargs['content_type']
+
+        if args and len(args) == 1:
+          # it's probably content
+          self.response = args[0]
+
+        return self
 
     #### ==== Internals ==== ####
     @decorators.classproperty

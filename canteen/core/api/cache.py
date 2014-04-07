@@ -248,7 +248,7 @@ class CacheAPI(CoreAPI):
     return self.config.get('debug', True)
 
   #### ==== Cache Management ==== ####
-  @decorators.bind('cache.spawn', wrap=staticmethod)
+  @decorators.bind(wrap=staticmethod)
   def spawn(name=None, target=None, engine=Threadcache, strategy=PersistentCache):
 
     '''  '''
@@ -265,7 +265,7 @@ class CacheAPI(CoreAPI):
     _caches[name] = engine(target=target or threading.local().__dict__, strategy=strategy())
     return _caches[name]
 
-  @decorators.bind('cache.clear', wrap=staticmethod)
+  @decorators.bind(wrap=staticmethod)
   def clear(name=None):
 
     '''  '''
@@ -278,7 +278,7 @@ class CacheAPI(CoreAPI):
       return _caches, _total
     _caches[name].clear()
 
-  @decorators.bind('cache.flush', wrap=staticmethod)
+  @decorators.bind(wrap=staticmethod)
   def flush():
 
     '''  '''
@@ -290,14 +290,14 @@ class CacheAPI(CoreAPI):
 
     return _caches, _default
 
-  @decorators.bind('cache.get', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def get(cls, key):
 
     '''  '''
 
     return cls.spawn().get(key)
 
-  @decorators.bind('cache.get_multi', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def get_multi(cls, keys):
 
     '''  '''
@@ -306,14 +306,14 @@ class CacheAPI(CoreAPI):
     _cache = cls.spawn()
     return [_cache.get(key) for key in keys]
 
-  @decorators.bind('cache.set', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def set(cls, key, value):
 
     '''  '''
 
     return cls.spawn().set(key, value)
 
-  @decorators.bind('cache.set_multi', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def set_multi(cls, map):
 
     '''  '''
@@ -322,14 +322,14 @@ class CacheAPI(CoreAPI):
     for key, value in map.iteritems():
       _cache.set(key, value)
 
-  @decorators.bind('cache.delete', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def delete(cls, key):
 
     '''  '''
 
     return cls.spawn().delete(key)
 
-  @decorators.bind('cache.delete_multi', wrap=classmethod)
+  @decorators.bind(wrap=classmethod)
   def delete_multi(cls, keys):
 
     '''  '''

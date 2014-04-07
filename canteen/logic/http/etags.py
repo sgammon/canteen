@@ -15,6 +15,7 @@
 
 # core runtime
 from canteen.base import logic
+from canteen.core import hooks
 from canteen.core import runtime
 
 # canteen utils
@@ -23,19 +24,18 @@ from canteen.util import decorators
 
 # core session API
 from canteen.core.api.session import SessionEngine
-from canteen.core.api.content import ContentFilter
 
 
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
-  @decorators.bind('etags')
-  class Etags(logic.Logic):
+  @decorators.bind('http.etags')
+  class ETags(logic.Logic):
 
     '''  '''
 
     @SessionEngine.configure('etags')
-    class EtagSessions(SessionEngine):
+    class ETagSessions(SessionEngine):
 
       '''  '''
 
@@ -61,14 +61,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       return config.Config().get('http', {}).get('etags', {'debug': True})
 
     ## == Non-session Management == ##
-    @ContentFilter(request=True)
+    @hooks.HookResponder('request', rollup=True)
     def request(self, **context):
 
       '''  '''
 
       pass
 
-    @ContentFilter(response=True)
+    @hooks.HookResponder('response', rollup=True)
     def response(self, **context):
 
       '''  '''

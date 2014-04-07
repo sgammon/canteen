@@ -138,9 +138,6 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       import jinja2
 
-      if __debug__:
-        print 'Loaded template module: "%s".' % template
-
       # Convert the path to a module name.
       prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.').replace('-', '_')).rsplit('.', 1)
       prefix, obj = str(prefix), str(obj)
@@ -183,24 +180,12 @@ class TemplateAPI(CoreAPI):
 
     '''  '''
 
+    ## == Attributes == ##
     engine = jinja2  # we're using jinja :)
-
-    @property
-    def default_extensions(self):
-
-      '''  '''
-
-      return []  # nothing, for now @TODO(sgammon): add builtin caching etc
-
-    @property
-    def default_config(self):
-
-      '''  '''
-
-      return {
-        'optimized': True,
-        'autoescape': True
-      }
+    default_extensions = property(lambda self: [])
+    default_config = property(lambda self: {
+      'optimized': True, 'autoescape': True
+    })
 
     # default syntax support method
     def syntax(self, handler, environment_factory, j2config, config):
@@ -241,8 +226,7 @@ class TemplateAPI(CoreAPI):
         environment = environment_factory(**j2config)
 
         if config.debug:
-          environment.hamlish_mode = 'indented'
-          environment.hamlish_debug = True
+          environment.hamlish_mode, environment.hamlish_debug = 'indented', True
 
         # apply config overrides
         if 'TemplateAPI' in config.config and 'haml' in config.config['TemplateAPI']:
@@ -299,7 +283,8 @@ class TemplateAPI(CoreAPI):
           for group in zip(directive, output['syntax'][override]):
             setattr(j2env, *group)
 
-      return j2env
+      # add-in filters
+      return j2env.filters.update(self.base_filters) or j2env
 
   @staticmethod
   def sanitize(content, _iter=True):
@@ -307,44 +292,26 @@ class TemplateAPI(CoreAPI):
     '''  '''
 
     # content should be a list of content blocks
-    if not isinstance(content, (tuple, list)):
-      content = [content]
+    content = [content] if not (
+      isinstance(content, (tuple, list))) else content
 
-    def iter_sanitize():
+    def sanitize():
 
       '''  '''
 
       # iteratively sanitize the response
-      for block in content:
-        yield block.strip()
+      for block in content: yield block.strip()
 
-    if _iter:
-      return iter((i for i in iter_sanitize()))  # return wrapped iterator
-
-    return [block for block in iter_sanitize()]
+    if _iter: return sanitize()  # return wrapped iterator
+    return [block for block in sanitize()]
 
   @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):
 
     '''  '''
 
-    import canteen
-
     return filter(lambda x: x and x[1], [
-
-      ('Vary', 'Accept-Encoding,Cookie'),
-      ('Cache-Control', 'no-cache; no-store'),
-      ('X-UA-Compatible', 'IE=edge,chrome=1'),
-      ('X-Debug', '1' if canteen.debug else '0'),
-      ('X-Framework', 'canteen/%s Python/%s' % (
-        '.'.join(map(unicode, canteen.__version__)),
-        '.'.join(map(unicode, (
-          sys.version_info.major,
-          sys.version_info.minor,
-          sys.version_info.micro
-        )))
-      )) if __debug__ else None
-
+      ('Cache-Control', 'no-cache; no-store')
     ])
 
   @decorators.bind('template.base_context', wrap=property)
@@ -374,7 +341,7 @@ class TemplateAPI(CoreAPI):
 
     }
 
-  @decorators.bind('template.base_filters')
+  @decorators.bind('template.base_filters', wrap=property)
   def base_filters(self):
 
     '''  '''

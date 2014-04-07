@@ -33,7 +33,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   securecookie = library.load('contrib.securecookie')
 
 
-  @decorators.bind('cookies')
+  @decorators.bind('http.cookies')
   class Cookies(logic.Logic):
 
     '''  '''

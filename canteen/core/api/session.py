@@ -22,9 +22,7 @@ import time, hashlib, base64
 import random, string, operator, abc
 
 # core & model APIs
-from . import cache
-from . import CoreAPI
-from .content import ContentFilter
+from . import hooks, CoreAPI
 from canteen import model as models
 
 # canteen utils
@@ -60,12 +58,16 @@ class Session(object):
       if 'established' not in kwargs: kwargs['established'] = kwargs['seen'] = int(time.time())
 
       if 'data' not in kwargs: kwargs['data'] = {}
+
+      for k, v in kwargs.iteritems():
+        if k not in frozenset(('seen', 'data', 'csrf', 'established', 'seen', 'agent', 'client', 'tombstoned')):
+          kwargs['data'][k] = v
+
       self.__session__ = model(key=Session.make_key(id, model), **kwargs)  # it's a class
       self.__id__ = self.__session__.key.id
 
     elif not kwargs:
-      self.__session__ = model  # it's an instance
-      self.__id__ = id  # set the ID
+      self.__session__, self.__id__ = model, id  # it's an instance, set the ID and session
 
     else:
       raise RuntimeError('Cannot specify a session model instance and also additional kwargs.')
@@ -77,28 +79,11 @@ class Session(object):
 
     return config.Config().get('SessionAPI', {'debug': True})
 
-  @property
-  def id(self):
-
-    '''  '''
-
-    return self.__id__
-
-  @property
-  def data(self):
-
-    '''  '''
-
-    return self.__session__.data
-
-  @property
-  def csrf(self):
-
-    '''  '''
-
-    if not self.__session__.csrf:
-      self.__session__.csrf = self.generate_token()  # generate CSRF
-    return self.__session__.csrf
+  ## == Accessors == ##
+  id = property(lambda self: self.__id__)
+  data = property(lambda self: self.__session__.data)
+  csrf = property(lambda self: self.__session__.csrf or (
+    setattr(self.__session__, 'csrf', self.generate_token()) or self.__session__.csrf))
 
   ## == Get/Set == ##
   def set(self, key, value, exception=False):
@@ -106,8 +91,7 @@ class Session(object):
     '''  '''
 
     try:
-      self.data[key] = value
-      return self
+      return setattr(self.data, key, value) or self
     except KeyError:
       if exception: raise exception('Could not write to session item "%s".' % key)
 
@@ -135,8 +119,7 @@ class Session(object):
     '''  '''
 
     # tombstone and clear CSRF
-    self.__session__.csrf = None
-    self.__session__.tombstoned = True
+    self.__session__.csrf, self.__session__.tombstoned = None, True
     if save: self.save(adapter)
     return
 
@@ -160,20 +143,20 @@ class Session(object):
     if 'REMOTE_ADDR' in environ: self.__session__.client = environ.get('REMOTE_ADDR')
     if 'HTTP_USER_AGENT' in environ: self.__session__.agent = environ.get('HTTP_USER_AGENT')
 
-    return self.__session__.put(adapter=adapter)
+    if self.config.get('storage', {}).get('enable'):
+      return self.__session__.put(adapter=adapter)
 
   @classmethod
-  def load(cls, id, model=UserSession, strict=False):
+  def load(cls, id, model=UserSession, strict=False, data=None):
 
     '''  '''
 
     # manufacture our own session, by loading the model
     #_session = model.get(Session.make_key(id, model))
     _session = None  # @TODO(sgammon): fix this
-    if _session:
-      return cls(id, _session)
+    if _session: return cls(id, _session)
     if strict: return False  # possibly fail stuff hardcore
-    return cls()  # otherwise make a new one
+    return cls(id, data=dict(data.iteritems()))  # otherwise make a new one
 
   ## == Session IDs == ##
   @staticmethod
@@ -181,7 +164,9 @@ class Session(object):
 
     '''  '''
 
-    return Session.config.get('hash', hashlib.sha256)(salt + reduce(operator.add, (random.choice(string.printable) for x in xrange(32)))).hexdigest()
+    return Session.config.get('hash', hashlib.sha256)(
+      salt + reduce(operator.add, (random.choice(string.printable) for x in xrange(32)))
+    ).hexdigest()
 
   @staticmethod
   def make_key(id=None, model=UserSession):
@@ -205,26 +190,10 @@ class SessionEngine(object):
 
     self.__path__, self.__config__, self.__api__ = name, config, api
 
-  @property
-  def config(self):
-
-    '''  '''
-
-    return self.__config__.get(self.__path__)
-
-  @property
-  def api(self):
-
-    '''  '''
-
-    return self.__api__
-
-  @property
-  def session_config(self):
-
-    '''  '''
-
-    return self.__config__
+  ## == Accessors == ##
+  api = property(lambda self: self.__api__)
+  config = property(lambda self: self.__config__.get(self.__path__))
+  session_config = property(lambda self: self.__config__)
 
   @staticmethod
   def configure(name, **config):
@@ -318,12 +287,9 @@ class SessionAPI(CoreAPI):
 
     '''  '''
 
-    if context:
-      _CONTEXT = True
-      _context_cfg = config.Config().get(context, {}).get('sessions', {})
-    else:
-      _CONTEXT = False
-      _context_cfg = {}
+    _CONTEXT, _context_cfg = (
+      (False, {}) if not context else (True, config.Config().get(context, {}).get('sessions', {}))
+    )
 
     # try looking in config if no engine is specified
     if not name: name = _context_cfg.get('engine', 'cookies')
@@ -344,14 +310,14 @@ class SessionAPI(CoreAPI):
     raise RuntimeError('No such session runtime: "%s".' % name)
 
   ## == Injected Methods == ##
-  @decorators.bind('session.reset')
+  @decorators.bind('reset')
   def reset(self, redirect=None, save=True, engine=None):
 
     '''  '''
 
     pass
 
-  @decorators.bind('session.establish', wrap=ContentFilter(match=True))
+  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=('environ', 'endpoint', 'arguments', 'request', 'http')))
   def establish(self, environ, endpoint, arguments, request, http):
 
     '''  '''
@@ -363,8 +329,8 @@ class SessionAPI(CoreAPI):
       if not session and self.config.get('always_establish', True):  # engine is loaded, but no session
         return request.set_session(Session(), engine)
 
-  @decorators.bind('session.load', wrap=ContentFilter(request=True, message=True))
-  def load(self, request=None, payload=None, http=None, realtime=None):
+  @decorators.bind('load', wrap=hooks.HookResponder('request', 'message', context=('request', 'http')))
+  def load(self, request, http):
 
     '''  '''
 
@@ -379,13 +345,8 @@ class SessionAPI(CoreAPI):
         engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')  # default to cookie-based sessions (safest)
         engine.load(request=request, http=http)
 
-    if realtime:  # realtime sessions
-
-      assert payload, "must have a payload to load a session"
-      raise NotImplementedError('Sessions are not yet supported for `realtime` dispatch schemes.')
-
-  @decorators.bind('session.commit', wrap=ContentFilter(response=True))
-  def commit(cls, status, headers, request, http, response=None, **extra):
+  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
+  def commit(self, status, headers, request, http, response):
 
     '''  '''
 
@@ -395,8 +356,8 @@ class SessionAPI(CoreAPI):
         session, engine = request.session  # extract engine and session
         engine.commit(request=request, response=response, session=session)  # defer to engine to commit
 
-  @decorators.bind('session.save', wrap=ContentFilter(complete=True))
-  def save(cls, response, request, http, environ, **extra):
+  @decorators.bind('save', wrap=hooks.HookResponder('complete', context=('response', 'request', 'http', 'environ')))
+  def save(self, response, request, http, environ):
 
     '''  '''
 

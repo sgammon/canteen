@@ -65,7 +65,7 @@ class Tool(object):
           objects provided by :py:mod:`argparse`. '''
 
       # initialize `Tool` regularly to apply this metaclass downwards
-      if name is 'Tool': return super(cls, cls).__new__(cls, name, bases, properties)
+      if name == 'Tool': return super(cls, cls).__new__(cls, name, bases, properties)
 
       _subtools, _arguments = [], []
       for key, value in properties.viewitems():
@@ -109,8 +109,7 @@ class Tool(object):
 
         elif not key.startswith('__') and not inspect.isfunction(value):
           # well those are the only two options
-          raise RuntimeError('Attached item to `Tool` subclass that is not '
-                             'an argument or subtool.')
+          continue
 
       klass = super(cls, cls).__new__(cls, name, bases, properties)  # construct class
 

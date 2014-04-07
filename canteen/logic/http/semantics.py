@@ -41,8 +41,16 @@ def url(name_or_route, route=None, **kwargs):
 
     '''  '''
 
+    wrap = None  # check wrap
+    if 'wrap' in kwargs:
+      wrap = kwargs['wrap']
+      del kwargs['wrap']
+
     for entry in ((route,) if not isinstance(route, tuple) else route):
       HTTPSemantics.add_route((entry, name), target, **kwargs)
+
+    if wrap:
+      return wrap(target)
     return target
 
   return inject
@@ -65,14 +73,19 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    __aliases__ = {}  # aliases to routes
+    __aliases__ = {}  # aliases to routes  # @TODO(sgammon): rename this, it clashes with DI
+    __map__ = None  # routing map cache
     __router__ = None  # route cache
 
     # == Base Classes == #
     HTTPException = exceptions.HTTPException
 
 
-    class HTTPRequest(wrappers.Request):
+    class HTTPRequest(wrappers.BaseRequest,
+                      wrappers.AcceptMixin,
+                      wrappers.UserAgentMixin,
+                      wrappers.AuthorizationMixin,
+                      wrappers.CommonRequestDescriptorsMixin):
 
       '''  '''
 
@@ -93,7 +106,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           if 'uuid' not in session_obj and 'id' not in session_obj:
             session_obj = None  # no ID or UUID == no session
           else:
-            session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'])
+            session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'], data=session_obj)
 
         if self.__session__:
 
@@ -105,12 +118,15 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         return self
 
 
-    class HTTPResponse(wrappers.Response):
+    class HTTPResponse(wrappers.BaseResponse,
+                       wrappers.ETagResponseMixin,
+                       wrappers.ResponseStreamMixin,
+                       wrappers.WWWAuthenticateMixin,
+                       wrappers.CommonResponseDescriptorsMixin):
 
       '''  '''
 
       pass
-
 
     #### ==== Internals ==== ####
     @decorators.classproperty
@@ -176,7 +192,9 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
-      return routing.Map([route for route in cls.routes])
+      if not cls.__map__:
+        cls.__map__ = routing.Map([route for route in cls.routes])
+      return cls.__map__
 
     #### ==== Utilities ==== ####
     @decorators.bind('error', wrap=classmethod)

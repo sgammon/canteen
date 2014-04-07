@@ -16,8 +16,7 @@
 '''
 
 # utils
-from ..util import struct
-from ..util import decorators
+from ..util import struct, decorators
 
 
 ## Globals
@@ -196,7 +195,7 @@ class Proxy(object):
 
             if hasattr(concrete, '__binding__'):
 
-              def do_pluck(klass, obj):
+              def do_pluck(klass, obj, pool):
 
                 '''  '''
 
@@ -207,13 +206,22 @@ class Proxy(object):
                   # dereference property aliases
                   if hasattr(klass, '__aliases__') and property_name in klass.__aliases__:
                     return getattr(obj, klass.__aliases__[property_name])
-                  return getattr(obj, property_name)  # pragma: nocover
+                  if hasattr(obj, property_name):
+                    return getattr(obj, property_name)  # pragma: nocover
 
-                setattr(pluck, 'target', klass)
-                return pluck
+                  if klass.__binding__ and klass.__binding__.__alias__:
+                    parent_ref = '.'.join((klass.__binding__.__alias__, property_name))
+                    if parent_ref in pool:
+                      return pool[parent_ref]
+
+                return setattr(pluck, 'target', klass) or pluck
 
               if concrete.__binding__:
-                property_bucket[concrete.__binding__.__alias__] = struct.CallbackProxy(do_pluck(concrete, responder))
+                property_bucket[concrete.__binding__.__alias__] = struct.CallbackProxy(do_pluck(*(
+                  concrete,
+                  responder,
+                  property_bucket
+                )))
 
                 if concrete.__binding__.__namespace__:
                   namespace = concrete.__binding__.__alias__
@@ -263,11 +271,6 @@ class Proxy(object):
                 func = cls.__dict__[prop] if not isinstance(cls.__dict__[prop], (staticmethod, classmethod)) else cls.__dict__[prop].__func__
                 do_namespace = func.__binding__.__namespace__ if cls.__binding__.__namespace__ else False
                 _injectable.add((prop, func.__binding__.__alias__ or prop, do_namespace))
-                continue
-            else:
-              # if no bindings are in use, bind all non-special stuff
-              if not prop.startswith('__'):
-                _injectable.add(prop)
 
       # return bound injectables or the whole set
       return concrete, _injectable or set(filter(lambda x: not x.startswith('__'), concrete.__dict__.iterkeys()))

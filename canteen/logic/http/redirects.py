@@ -27,7 +27,7 @@ from canteen.core.api.session import SessionEngine
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
-  @decorators.bind('redirects')
+  @decorators.bind('http.redirects')
   class Redirects(logic.Logic):
 
     '''  '''

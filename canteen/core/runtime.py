@@ -421,7 +421,7 @@ class Runtime(object):
       _dispatch = dispatch
 
       # == development wrappers
-      dev_config = self.config.app.get('dev', {})
+      dev_config = getattr(self.config, 'app', {}).get('dev', {})
 
       # profiler support
       if 'profiler' in dev_config:

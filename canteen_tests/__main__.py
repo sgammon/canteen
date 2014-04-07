@@ -2,19 +2,18 @@
 
 '''
 
-  canteen test runner
-  ~~~~~~~~~~~~~~~~~~~
+  canteen: test runner
+  ~~~~~~~~~~~~~~~~~~~~
 
   discovers canteen's tests, then runs them.
 
-  :author: Sam Gammon <sam@keen.io>
-  :copyright: (c) Keen IO, 2013
+  :author: Sam Gammon <sg@samgammon.com>
+  :copyright: (c) Sam Gammon, 2014
   :license: This software makes use of the MIT Open Source License.
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
 '''
-
 
 if __debug__:
 

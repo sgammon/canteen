@@ -2,8 +2,8 @@
 
 '''
 
-  canteen setup
-  ~~~~~~~~~~~~~
+  canteen: setup
+  ~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sam@keen.io>
   :copyright: (c) Keen IO, 2013

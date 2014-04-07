@@ -2,14 +2,14 @@
 
 '''
 
-  canteen core runtime tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  canteen: core runtime tests
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   tests canteen's runtime core, which is responsible for pulling
   the app together with glue and spit.
 
-  :author: Sam Gammon <sam@keen.io>
-  :copyright: (c) Keen IO, 2013
+  :author: Sam Gammon <sg@samgammon.com>
+  :copyright: (c) Sam Gammon, 2014
   :license: This software makes use of the MIT Open Source License.
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.

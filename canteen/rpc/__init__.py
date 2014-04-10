@@ -269,7 +269,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
         _status, _headers = status, headers
 
       # delegate to service application
-      return self.response(self.application(self.environment, _respond), **{
+      return self.response.__class__(self.application(self.environment, _respond), **{
         'status': _status,
         'headers': _headers
       })

@@ -651,7 +651,7 @@ class RedisAdapter(IndexedModelAdapter):
         # provision args, kwargs, and hash components containers
         args, kwargs, hash_c = [], {}, []
 
-        if btype is 'meta':
+        if btype == 'meta':
           # meta indexes are always unicode
           converter, write = unicode, element
         else:
@@ -802,6 +802,8 @@ class RedisAdapter(IndexedModelAdapter):
     ancestry_parent = model.Key.from_urlsafe(options.ancestor) if options.ancestor else None
     _data_frame = []  # allocate results window
 
+    _and_filters, _or_filters = [], []
+
     if filters:
       kinded_key = model.Key(kind, parent=ancestry_parent)
 
@@ -830,8 +832,6 @@ class RedisAdapter(IndexedModelAdapter):
       # process sorted sets first: leads to lower cardinality
       sorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'Z', _filters.iterkeys())])
       unsorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'S', _filters.iterkeys())])
-
-      _and_filters, _or_filters = [], []
 
       if sorted_indexes:
 

@@ -46,6 +46,7 @@ else:
   # map fields to basetypes
   _field_basetype_map = {
     int: pmessages.IntegerField,
+    long: pmessages.IntegerField,
     bool: pmessages.BooleanField,
     float: pmessages.FloatField,
     str: pmessages.StringField,

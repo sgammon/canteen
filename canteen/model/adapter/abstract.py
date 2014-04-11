@@ -390,13 +390,21 @@ class IndexedModelAdapter(ModelAdapter):
     ''' Map basetypes to indexer routines.
       :returns: Default basetype ``dict``. '''
 
+    from canteen import model
+
     return {
 
+      # -- basetypes -- #
       int: self.serializer.dumps,
       bool: self.serializer.dumps,
       long: self.serializer.dumps,
       float: self.serializer.dumps,
       basestring: self.serializer.dumps,
+
+      # -- model/key types -- #
+      model.Key: self.Indexer.convert_key,
+
+      # -- date/time types -- #
       datetime.date: self.Indexer.convert_date,
       datetime.time: self.Indexer.convert_time,
       datetime.datetime: self.Indexer.convert_datetime

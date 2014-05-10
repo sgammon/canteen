@@ -128,13 +128,14 @@ class AgentCapabilities(AgentInfo):
     '''  '''
 
     detected = {}  # detected capabilities
+    accept_string = request.headers['Accept'] if 'Accept' in request.headers else ''
 
     for datapoint, conditional in ((
 
       ('quic', user_agent.browser == 'chrome'),
       ('spdy', user_agent.browser in ('chrome', 'firefox', 'opera')),
       ('webm', user_agent.browser in ('chrome', 'firefox', 'opera')),
-      ('webp', user_agent.browser == 'chrome' or 'webp' in user_agent.accept),
+      ('webp', user_agent.browser == 'chrome' or 'webp' in accept_string),
 
       )):
 
@@ -281,7 +282,7 @@ class AgentFingerprint(AgentInfo):
       ('gecko', 'Gecko' in user_agent.string and ('WebKit' not in user_agent.string and 'Chrome' not in user_agent.string)),
 
       ## Environments
-      ('tablet', 'Tabl' in user_agent.string),
+      ('tablet', 'Tabl' in user_agent.string or 'iPad' in user_agent.string),
       ('crawler', user_agent.browser in ('google', 'yahoo', 'aol', 'ask')),
       ('mobile', 'Mobi' in user_agent.string or 'IEMobile' in user_agent.string or user_agent.platform.lower().strip() in ('ios', 'iphone', 'ipad'))
 

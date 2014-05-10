@@ -114,6 +114,7 @@ class Handler(object):
 
       # HTTP Context
       'http': {
+        'agent': self.agent,
         'request': self.request,
         'response': self.response
       },

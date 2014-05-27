@@ -197,6 +197,16 @@ class Handler(object):
       _merged_context
     ), True
 
+    return self.respond()
+
+  def respond(self, content=None):
+
+    '''  '''
+
+    # today is a good day
+    if not self.status: self.status = 200
+    if content: self.response.response = content
+
     # set status code and return
     return setattr(self.response,
       ('status_code' if isinstance(self.status, int) else 'status'),
@@ -206,6 +216,10 @@ class Handler(object):
   def __call__(self, url_args, direct=False):
 
     '''  '''
+
+    # run prepare hook, if specified
+    if hasattr(self, 'prepare'):
+      self.prepare(url_args, direct=direct)
 
     # resolve method to call - try lowercase first
     if not hasattr(self, self.request.method.lower().strip()):

@@ -277,26 +277,6 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
     GET = POST
 
 
-  class ServiceFactory(object):
-
-    '''  '''
-
-    service = None  # service class to factory
-    args, kwargs = None, None  # service init args
-
-    def __init__(self, service, *args, **kwargs):
-
-      '''  '''
-
-      self.service, self.args, self.kwargs = service, args, kwargs
-
-    def __call__(self):
-
-      '''  '''
-
-      return self.service(*self.args, **self.kwargs)
-
-
   class Exceptions(datastructures.ObjectProxy):
 
     '''  '''
@@ -366,7 +346,7 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       '''  '''
 
-      return ServiceFactory(cls, *args, **kwargs)
+      return ServiceFactory.construct(cls, *args, **kwargs)
 
     @property
     def config(self):
@@ -387,6 +367,44 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       '''  '''
 
       self.__state__ = state
+
+
+  class ServiceFactory(object):
+
+    '''  '''
+
+    service = Service  # service class to factory
+    args, kwargs = None, None  # service init args
+
+    def __new__(cls, *args, **kwargs):
+
+      '''  '''
+
+      return cls.service(*args, **kwargs)
+
+    @classmethod
+    def construct(cls, service, *args, **kwargs):
+
+      '''  '''
+
+      return type(service.__name__ + 'Factory', (cls,), {
+        'args': args,
+        'kwargs': kwargs,
+        'service': service
+      })
+
+    @decorators.classproperty
+    def service_class(cls):
+
+      '''  '''
+
+      return cls.service
+
+    def __call__(self):
+
+      '''  '''
+
+      return self.service(*self.args, **self.kwargs)
 
 
   class remote(object):
@@ -417,12 +435,18 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
 
       if not name:
 
+        request_klass, response_klass = None, None
         if isinstance(request, type) and issubclass(request, model.Model):
           request_klass = response_klass = request.to_message_model()
 
         if response and response != request:
           if isinstance(response, type) and issubclass(response, model.Model):
             response_klass = response.to_message_model()
+
+        request_klass, response_klass = (
+          request_klass or name_or_message,
+          response_klass or (response or name_or_message)
+        )
 
         def _remote_method_responder(method):
 

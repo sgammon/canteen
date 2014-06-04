@@ -286,7 +286,7 @@ class AbstractKey(object):
 
     # fail if we're already persisted (unless we're updating the owner)
     if self.__persisted__ and name != 'owner': raise exceptions.PersistedKey(name)
-    if name == 'parent' and isinstance(value, Model): value = model.key
+    if name == 'parent' and isinstance(value, Model): value = value.key
     setattr(self, '__%s__' % name, value)
     return self
 

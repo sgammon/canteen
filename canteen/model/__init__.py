@@ -285,8 +285,8 @@ class AbstractKey(object):
     ''' Set an internal property on a `Key`. '''
 
     # fail if we're already persisted (unless we're updating the owner)
-    if self.__persisted__ and name != 'owner':
-      raise exceptions.PersistedKey(name)
+    if self.__persisted__ and name != 'owner': raise exceptions.PersistedKey(name)
+    if name == 'parent' and isinstance(value, Model): value = model.key
     setattr(self, '__%s__' % name, value)
     return self
 
@@ -296,7 +296,7 @@ class AbstractKey(object):
     ''' Retrieve this Key's ancestry path. '''
 
     if self.__parent__:  # if we have a parent, yield upward
-      for i in self.__parent__.key.ancestry: yield i
+      for i in self.__parent__.ancestry: yield i
     yield self  # yield self to end the chain, and stop iteration
     raise StopIteration()
 

@@ -7,3 +7,5 @@ include/*
 .Python
 .DS_Store
 *.DS_Store
+build/
+canteen.egg-info/

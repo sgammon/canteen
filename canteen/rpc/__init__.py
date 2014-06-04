@@ -35,7 +35,7 @@ from canteen.util import struct as datastructures
 from .protocol import *
 
 
-with core.Library('protorpc', strict=True) as (protorpc, library):
+with core.Library('protorpc', strict=True) as (library, protorpc):
 
   #### ==== Dependencies ==== ####
 
@@ -367,6 +367,12 @@ with core.Library('protorpc', strict=True) as (protorpc, library):
       '''  '''
 
       self.__state__ = state
+      if hasattr(self, 'initialize'):
+        try:  # @TODO(sgammon): better logging here
+          self.initialize(state)  # hand down to initialize hook
+        except Exception as e:
+          if __debug__: raise
+          traceback.print_exc()
 
 
   class ServiceFactory(object):

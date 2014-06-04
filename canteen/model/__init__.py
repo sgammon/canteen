@@ -296,7 +296,7 @@ class AbstractKey(object):
     ''' Retrieve this Key's ancestry path. '''
 
     if self.__parent__:  # if we have a parent, yield upward
-      for i in self.__parent__.ancestry: yield i
+      for i in self.__parent__.key.ancestry: yield i
     yield self  # yield self to end the chain, and stop iteration
     raise StopIteration()
 

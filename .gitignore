@@ -9,3 +9,4 @@ include/*
 *.DS_Store
 build/
 canteen.egg-info/
+man/

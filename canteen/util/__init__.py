@@ -62,7 +62,7 @@ def walk(root=None, debug=__debug__):
     return (mod.__name__, is_package)
 
   if debug: print 'Preloading path "%s"...' % (root or '.')
-  return map((lambda x: say('Preloaded:', x[0]) if x[0] else None) if debug else (lambda x: x),
+  return map((lambda x: say('Preloaded:', x) if x else None) if debug else (lambda x: x),
           map(walker, pkgutil.walk_packages(root or '.')))
 
 

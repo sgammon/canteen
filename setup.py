@@ -51,18 +51,24 @@ if not CHECK_SETUPTOOLS():
                   'at least version "%s" is required. Attempting upgrade...' % (SETUPTOOLS_VERSION))
   dependencies.append('setuptools<=%s' % SETUPTOOLS_VERSION)
 
-  # force update/download
-  from ez_setup import use_setuptools
-  use_setuptools()
+  try:
+    # force update/download
+    from ez_setup import use_setuptools
+    use_setuptools()
 
-  # reload module and check version
-  reload(setuptools)
-  CURRENT_SETUPTOOLS_VERSION = setuptools.__version__
+    # reload module and check version
+    reload(setuptools)
+    CURRENT_SETUPTOOLS_VERSION = setuptools.__version__
+  except Exception as e:
+    log.error('Encountered exception using `ez_setup`...')
+    if __debug__:
+      traceback.print_exc()
 
   # fail hard if no suitable options
   if not CHECK_SETUPTOOLS():
     log.error('Failed to find a suitable version of setuptools.'
               ' Building without support for HAML or RPC.')
+    sys.exit(1)
 
 try:
   import protobuf

@@ -47,7 +47,8 @@ release: build test package
 
 dependencies:
 	# install pip dependencies
-	@pip install -r requirements.txt
+	@bin/pip install colorlog
+	@bin/pip install -r requirements.txt
 
 distclean: clean
 	@echo "Cleaning env..."

@@ -22,6 +22,17 @@ all: develop
 test: build
 	@nosetests $(TEST_FLAGS) canteen_tests
 
+clean:
+	@echo "Cleaning buildspace..."
+	@rm -fr build/
+
+	@echo "Cleaning egginfo..."
+	@rm -fr canteen.egg-info
+
+	@echo "Cleaning object files..."
+	@find . -name "*.pyc" -delete
+	@find . -name "*.pyo" -delete
+
 build: .Python dependencies
 	@python setup.py build
 
@@ -37,6 +48,16 @@ release: build test package
 dependencies:
 	# install pip dependencies
 	@pip install -r requirements.txt
+
+distclean: clean
+	@echo "Cleaning env..."
+	@rm -fr .Python lib include
+
+	@echo "Resetting codebase..."
+	@git reset --hard
+
+	@echo "Cleaning codebase..."
+	@git clean -xdf
 
 .Python:
 	# install pip/virtualenv if we have to

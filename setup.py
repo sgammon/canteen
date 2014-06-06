@@ -23,7 +23,7 @@ setup(name="canteen",
       author="Sam Gammon",
       author_email="sam@keen.io",
       url="https://github.com/sgammon/canteen",
-      packages=(
+      packages=[
         "canteen",
         "canteen.base",
         "canteen.core",
@@ -36,8 +36,13 @@ setup(name="canteen",
         "canteen.rpc.protocol",
         "canteen.runtime",
         "canteen.util",
-        "canteen_tests"
-      ),
+      ] + [
+        "canteen_tests",
+        "canteen_tests.test_adapters",
+        "canteen_tests.test_core",
+        "canteen_tests.test_model",
+        "canteen_tests.test_util",
+      ] if __debug__ else [],
       install_requires=(
         "jinja2",
         "werkzeug",

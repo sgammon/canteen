@@ -15,7 +15,6 @@
 
 # stdlib
 import json
-import zlib
 import datetime
 
 # adapter API
@@ -66,6 +65,12 @@ except ImportError:  # pragma: no cover
 
 
 ##### ==== compressors ==== #####
+
+# resolve zlib
+try:
+  import zlib; _support.zlib = zlib
+except ImportError:  # pragma: no cover
+  _support.zlib = False
 
 # resolve snappy
 try:

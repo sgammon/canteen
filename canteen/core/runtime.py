@@ -15,6 +15,9 @@
 
 '''
 
+# future
+from __future__ import print_function
+
 # stdlib
 import os
 import sys
@@ -167,7 +170,7 @@ class Runtime(object):
     try:
       server.serve_forever()
     except (KeyboardInterrupt, Exception):
-      print "Exiting."
+      print("Exiting.")
       sys.exit(0)
 
   def bind_environ(self, environ):

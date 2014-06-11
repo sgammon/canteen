@@ -16,6 +16,7 @@
 
 '''
 
+
 ## ``classproperty`` - use like ``@property``, but at the class-level.
 class classproperty(property):
 
@@ -161,7 +162,8 @@ def configured(debug=False, path=None):
                 :returns: Configuration ``dict``, from main appconfig,
                 or default ``dict`` of ``{'debug': True}``. '''
 
-            #return appconfig.config.get(path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__)), {'debug': True})
+            #return appconfig.config.get(path or cls._config_path if hasattr(cls, '_config_path')
+            # else '.'.join((cls.__module__, cls.__name__)), {'debug': True})
 
         def _logging(cls):
 
@@ -177,7 +179,8 @@ def configured(debug=False, path=None):
             #from apptools.util import debug
 
             # calculate configuration path
-            #_config_path = path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__))
+            #_config_path = path or cls._config_path if hasattr(cls, '_config_path')
+            # else '.'.join((cls.__module__, cls.__name__))
             #_csplit = _config_path.split('.')
 
             #return debug.AppToolsLogger(**{
@@ -299,6 +302,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
 
   '''  '''
 
+  import time, datetime
   from canteen.core.api import cache
 
   # process expiration
@@ -335,7 +339,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # check expiration - flush if we have to
       if expiration and not (time.time() < expiration):
 
-        print "Cache item expired: '%s'." % key
+        print("Cache item expired: '%s'." % key)
 
         cache.CacheAPI.delete(key)
         val = None
@@ -345,7 +349,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # refresh the cache if we have to
       if not val:
 
-        print "Cache miss: '%s'." % key
+        print("Cache miss: '%s'." % key)
 
         val = func(*args, **kwargs)
 
@@ -353,7 +357,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
           cache.CacheAPI.set(key, val)
 
       else:
-        print "Cache hit: '%s'." % key
+        print("Cache hit: '%s'." % key)
 
       return val
 

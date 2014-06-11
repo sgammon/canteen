@@ -15,6 +15,10 @@
 
 '''
 
+# future
+from __future__ import print_function
+
+
 if __debug__:
 
 
@@ -22,6 +26,7 @@ if __debug__:
   import os
   import sys
   import unittest
+  import traceback
 
   # registry magic
   from .core import meta
@@ -41,7 +46,12 @@ if __debug__:
     __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
 
 
-  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
+  def run(output=None,
+          suites=None,
+          scope=(AppTest, FrameworkTest),
+          format='text',
+          verbosity=1,
+          **kwargs):  # pragma: nocover
 
     '''  '''
 
@@ -116,7 +126,7 @@ if __debug__:
 
     if arguments:
       if len(arguments) > 2:
-        print "Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT."
+        print("Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT.")
         sys.exit(1)
       if len(arguments) == 2:
         format, output = tuple(arguments)
@@ -135,8 +145,8 @@ if __debug__:
         'format': format,
         'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
       })
-    except Exception as e:
-      print e
+    except Exception:
+      traceback.print_exc()
       sys.exit(1)
     else:
       sys.exit(0)

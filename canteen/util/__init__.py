@@ -16,6 +16,9 @@
 
 '''
 
+# future
+from __future__ import print_function
+
 # stdlib
 import os
 import sys
@@ -36,7 +39,7 @@ def say(*args):
 
   '''  '''
 
-  print ' '.join(map(lambda x: str(x), args))
+  print(' '.join(map(lambda x: str(x), args)))
 
 
 def walk(root=None, debug=__debug__):
@@ -53,17 +56,17 @@ def walk(root=None, debug=__debug__):
 
     try:
       return importlib.import_module(name).__name__ if not is_package else name
-    except ImportError as e:
+    except ImportError:
       if debug:
-        print 'Failed to preload path "%s"...' % (root or '.')
-        print e
+        print('Failed to preload path "%s"...' % (root or '.'))
+        traceback.print_exc()
         raise
       return
     return (mod.__name__, is_package)
 
-  if debug: print 'Preloading path "%s"...' % (root or '.')
+  if debug: print('Preloading path "%s"...' % (root or '.'))
   return map((lambda x: say('Preloaded:', x[0]) if x[0] else None) if debug else (lambda x: x),
-          map(walker, pkgutil.walk_packages(root or '.')))
+             map(walker, pkgutil.walk_packages(root or '.')))
 
 
 __all__ = (

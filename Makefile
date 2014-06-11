@@ -11,6 +11,7 @@
 
 
 ## Vars
+PYTHON ?= python2.7
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 
 ## Flags
@@ -36,11 +37,32 @@ release: build test package
 
 dependencies:
 	# install pip dependencies
-	@pip install -r requirements.txt
+	@bin/pip install -r requirements.txt
 
 .Python:
 	# install pip/virtualenv if we have to
 	@which pip || sudo easy_install pip
 	@which virtualenv || pip install virtualenv
 
-	@virtualenv .
+	@virtualenv --python=$(PYTHON) --prompt=" (canteen) " --always-copy .
+
+clean:
+	@echo "Cleaning object files..."
+	@find . -name "*.pyc" -delete
+	@find . -name "*.pyo" -delete
+
+	@echo "Cleaning stragglers..."
+	@find . -name ".DS_Store" -delete
+
+envclean: clean
+	@echo "Destroying virtualenv..."
+	@rm -fr bin/ lib/ include/ .Python man/
+
+distclean: clean envclean
+	@echo "Resetting codebase..."
+	@git reset --hard
+
+	@echo "Removing untracked files..."
+	@git clean -xdf
+
+	@echo "~~ Distribution cleaned to default state. ~~"

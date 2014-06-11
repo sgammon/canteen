@@ -45,13 +45,13 @@ class MetaFactory(type):
       del properties['__root__']  # treat as a root - init directly and continue
       return construct(cls, name, bases, properties)
 
-    # construct, yo. then unconditionally apply it to the metachain and return also, defer to the class'
+    # construct, yo. then unconditionally apply it to the metachain and return. also, defer to the class'
     #  ``initialize``, or any of its bases if they have ``initialize`, for constructing the actual class.
     return ((grab(properties['initialize'] if 'initialize' in properties else
-              getattr((x for x in bases if hasattr(x, 'initialize')).next(), 'initialize')))(*(
-                cls, name, bases, properties))) if (
+                  getattr((x for x in bases if hasattr(x, 'initialize')).next(), 'initialize')))(*(
+                  cls, name, bases, properties))) if (
                   'initialize' in properties or any((hasattr(b, 'initialize') for b in bases))
-                ) else metachain(cls, name, bases, properties)
+                  ) else metachain(cls, name, bases, properties)
 
   def mro(cls):
 
@@ -186,8 +186,8 @@ class Proxy(object):
 
         # otherwise, collapse and build one
         property_bucket = {}
-        for metabucket in Proxy.Registry.__chain__.iterkeys():
-          for concrete in filter(lambda x: issubclass(x.__class__, Proxy.Component), Proxy.Component.__chain__[metabucket]):
+        for metab in Proxy.Registry.__chain__.iterkeys():
+          for concrete in filter(lambda x: issubclass(x.__class__, Proxy.Component), Proxy.Component.__chain__[metab]):
 
             namespace = ''
             responder, properties = concrete.inject(concrete, cls.__target__, cls.__delegate__) or (None, {})
@@ -268,7 +268,8 @@ class Proxy(object):
           for prop, value in iterator:
             if cls.__bindings__:
               if prop in cls.__bindings__:
-                func = cls.__dict__[prop] if not isinstance(cls.__dict__[prop], (staticmethod, classmethod)) else cls.__dict__[prop].__func__
+                func = (cls.__dict__[prop] if not isinstance(cls.__dict__[prop], (staticmethod, classmethod))
+                        else cls.__dict__[prop].__func__)
                 do_namespace = func.__binding__.__namespace__ if cls.__binding__.__namespace__ else False
                 _injectable.add((prop, func.__binding__.__alias__ or prop, do_namespace))
 
@@ -283,7 +284,8 @@ class Proxy(object):
       if (not hasattr(target, '__binding__')) or target.__binding__ is None: return
 
       # resolve name, instantiate and register instance singleton
-      alias = target.__binding__.__alias__ if (hasattr(target.__binding__, '__alias__') and isinstance(target.__binding__, basestring)) else target.__name__
+      alias = (target.__binding__.__alias__ if (hasattr(target.__binding__, '__alias__')
+               and isinstance(target.__binding__, basestring)) else target.__name__)
 
       if hasattr(target, '__singleton__') and target.__singleton__:
         # if we already have a singleton, give that

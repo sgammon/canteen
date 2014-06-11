@@ -25,15 +25,15 @@ class RealtimeSemantics(logic.Logic):
 
   def on_connect(self, client):
 
-  	'''  '''
+    '''  '''
 
-  	pass
+    pass
 
   def on_message(self, client, message):
 
-  	'''  '''
+    '''  '''
 
-  	pass
+    pass
 
 
 __all__ = ('RealtimeSemantics',)

@@ -18,12 +18,9 @@
 
 # stdlib
 import os
-import sys
 import json
-import time
 import operator
 import importlib
-import itertools
 
 # core API & util
 from . import CoreAPI
@@ -34,7 +31,7 @@ from canteen.util import decorators
 
 ## Globals
 _conditionals = []
-average = lambda x: reduce(operator.add, x)/len(x)
+average = lambda x: reduce(operator.add, x) / len(x)
 
 
 with runtime.Library('jinja2', strict=True) as (library, jinja2):
@@ -93,7 +90,10 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           module = importlib.import_module(module)
         except ImportError:
           pass
-      self.cache, self.module = CacheAPI.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__), module
+      self.cache, self.module = (
+        CacheAPI.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__),
+        module
+      )
 
     def load(self, environment, filename, globals=None):
 
@@ -117,13 +117,16 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
         # manufacture new template object from cached module
         t = object.__new__(environment.template_class)
-        t.environment, t.globals, t.name, t.filename, t.blocks, t.root_render_func, t._module, t._debug_info, t._uptodate = (
+        t.environment, t.globals, t.name, t.filename, t.blocks, t.root_render_func = (
           environment,
           globals,
           mod.name,
           filename,
           blocks,
-          root,
+          root
+        )
+
+        t._module, t._debug_info, t._uptodate = (
           None,
           debug_info,
           lambda: True
@@ -188,12 +191,14 @@ class TemplateAPI(CoreAPI):
     })
 
     # default syntax support method
-    def syntax(self, handler, environment_factory, j2config, config):
+    def _no_syntax(self, handler, environment_factory, j2config, config):
 
       '''  '''
 
       # factory environment
       return environment_factory(**j2config)
+
+    syntax = _no_syntax
 
     # is there HAML syntax support?
     with runtime.Library('hamlish_jinja') as (haml_library, haml):
@@ -202,7 +207,7 @@ class TemplateAPI(CoreAPI):
 
       syntax_extension = (haml.HamlishExtension, haml.HamlishTagExtension)  # we're using haml :)
 
-      def syntax(self, handler, environment_factory, j2config, config):
+      def _hamlish_syntax(self, handler, environment_factory, j2config, config):
 
         '''  '''
 
@@ -241,11 +246,11 @@ class TemplateAPI(CoreAPI):
 
         return environment
 
+      syntax = _hamlish_syntax
+
     def environment(self, handler, config):
 
       '''  '''
-
-      import jinja2
 
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})

@@ -17,7 +17,6 @@
 import itertools
 
 # canteen core
-from ..core import hooks
 from ..core import injection
 
 # canteen util
@@ -34,7 +33,7 @@ class Handler(object):
 
   '''  '''
 
-  logging  = _logger  # local logging shim
+  logging = _logger  # local logging shim
   __agent__ = None  # current `agent` details
   __status__ = 200  # keen is an optimistic bunch ;)
   __config__ = None  # configuration for this handler
@@ -88,14 +87,18 @@ class Handler(object):
 
   # Context
   config = property(lambda self: config.Config().config)
-  session = property(lambda self: self.request.session[0] if self.request.session else None)  # session is tuple of (session, engine)
+  session = property(lambda self: self.request.session[0] if self.request.session else None)  # tuple(session, engine)
 
   # Agent
-  agent = property(lambda self: self.__agent__ if self.__agent__ else (setattr(self, '__agent__', self.http.agent.scan(self.request)) or self.__agent__))
+  agent = property(lambda self: self.__agent__ if self.__agent__ else (
+    setattr(self, '__agent__', self.http.agent.scan(self.request)) or self.__agent__))
 
   # Request & Response
-  request = property(lambda self: self.__request__ if self.__request__ else (setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))
-  response = property(lambda self: self.__response__ if self.__response__ else (setattr(self, '__response__', self.http.new_response()) or self.__response__))
+  request = property(lambda self: self.__request__ if self.__request__ else (
+    setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))
+
+  response = property(lambda self: self.__response__ if self.__response__ else (
+    setattr(self, '__response__', self.http.new_response()) or self.__response__))
 
   @property
   def template_context(self):
@@ -199,9 +202,9 @@ class Handler(object):
 
     # set status code and return
     return setattr(self.response,
-      ('status_code' if isinstance(self.status, int) else 'status'),
-      self.status
-    ) or ((i.encode('utf-8').strip() for i in self.response.response), self.response)
+                  ('status_code' if isinstance(self.status, int) else 'status'),
+                   self.status
+                   ) or ((i.encode('utf-8').strip() for i in self.response.response), self.response)
 
   def __call__(self, url_args, direct=False):
 

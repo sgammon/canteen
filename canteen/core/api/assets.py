@@ -87,7 +87,9 @@ class AssetsAPI(CoreAPI):
 
           '''  '''
 
-          fullpath = os.path.join(path_prefix, asset) if path_prefix else os.path.join(self.assets.path, asset_type, asset)
+          fullpath = (os.path.join(path_prefix, asset) if path_prefix
+                      else os.path.join(self.assets.path, asset_type, asset))
+
           if fullpath in self.assets.__handles__:
 
             # extract cached handle/modtime/content
@@ -102,7 +104,9 @@ class AssetsAPI(CoreAPI):
           # try to serve a 304, if possible
           if 'If-None-Match' in self.request.headers:
             if self.request.headers['If-None-Match'] == fingerprint:  # fingerprint matches, serve a 304
-              return self.http.new_response(status='304 Not Modified', headers=[('ETag', self.request.headers['If-None-Match'])])
+              return self.http.new_response(status='304 Not Modified', headers=[
+                ('ETag', self.request.headers['If-None-Match'])
+              ])
 
           # resolve content type by file extension, if possible
           content_type = self.content_types.get(fullpath.split('.')[-1])
@@ -112,7 +116,9 @@ class AssetsAPI(CoreAPI):
             content_type, encoding = mimetypes.guess_type(fullpath)
             if not content_type: content_type = 'application/octet-stream'
 
-          return self.http.new_response(contents, headers=[('ETag', fingerprint)], content_type=content_type)  # can return content directly
+          return self.http.new_response(contents, headers=[
+            ('ETag', fingerprint)
+          ], content_type=content_type)  # can return content directly
 
         def open_and_serve(self, filepath):
 
@@ -124,14 +130,20 @@ class AssetsAPI(CoreAPI):
 
                 # assign to cache location by file path
                 contents = fhandle.read()
-                self.assets.__handles__[filepath] = (os.path.getmtime(filepath), fhandle, contents, hashlib.md5(contents).hexdigest())
+                self.assets.__handles__[filepath] = (
+                  os.path.getmtime(filepath),
+                  fhandle,
+                  contents,
+                  hashlib.md5(contents).hexdigest()
+                )
+
                 return self.assets.__handles__[filepath]
 
-            except IOError as e:
+            except IOError:
               if __debug__: raise
               self.error(404)
 
-            except Exception as e:
+            except Exception:
               if __debug__: raise
               self.error(500)
 
@@ -216,7 +228,8 @@ class AssetsAPI(CoreAPI):
       }.get(len(fragments))(*fragments)
 
     if arguments:
-      raise RuntimeError('Keyword-based asset URLs are not yet supported.')  # @TODO(sgammon): make this named-parameter friendly
+      # @TODO(sgammon): make this named-parameter friendly
+      raise RuntimeError('Keyword-based asset URLs are not yet supported.')
 
     # build relative URL unless specified otherwise
     if arguments.get('absolute'):

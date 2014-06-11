@@ -18,7 +18,7 @@
 
 
 # stdlib
-import time, hashlib, base64
+import time, hashlib
 import random, string, operator, abc
 
 # core & model APIs
@@ -114,7 +114,7 @@ class Session(object):
     return key in self.__session__.data
 
   ## == Reset == ##
-  def reset(save=False, adapter=None):
+  def reset(self, save=False, adapter=None):
 
     '''  '''
 
@@ -123,7 +123,7 @@ class Session(object):
     if save: self.save(adapter)
     return
 
-  def reset_csrf(save=False, adapter=None):
+  def reset_csrf(self, save=False, adapter=None):
 
     '''  '''
 
@@ -317,7 +317,9 @@ class SessionAPI(CoreAPI):
 
     pass
 
-  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=('environ', 'endpoint', 'arguments', 'request', 'http')))
+  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=(
+    'environ', 'endpoint', 'arguments', 'request', 'http'
+  )))
   def establish(self, environ, endpoint, arguments, request, http):
 
     '''  '''
@@ -341,11 +343,13 @@ class SessionAPI(CoreAPI):
       session_cfg = http.config.get('sessions', {'enable': False})
       if session_cfg.get('enable', True):
 
-        # find us an engine, yo
-        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')  # default to cookie-based sessions (safest)
+        # find us an engine, yo (default to cookie-based sessions (safest))
+        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')
         engine.load(request=request, http=http)
 
-  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
+  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=(
+    'status', 'headers', 'request', 'http', 'response'
+  )))
   def commit(self, status, headers, request, http, response):
 
     '''  '''

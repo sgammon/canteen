@@ -113,6 +113,8 @@ class Cache(object):
 
   class Strategy(object):
 
+    '''  '''
+
     __metaclass__ = abc.ABCMeta
 
     #### ==== Expiration Methods ==== ####
@@ -238,6 +240,7 @@ class CacheAPI(CoreAPI):
 
     '''  '''
 
+    from canteen.util import config
     return config.Config().config.get('CacheAPI', {})
 
   @property

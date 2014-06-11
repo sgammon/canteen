@@ -23,13 +23,13 @@ class Vendor(struct.BidirectionalEnum):
 
   '''  '''
 
-  GOOGLE = 0  # Chrome
-  MOZILLA = 1  # Firefox
-  MICROSOFT = 2  # IE
-  OPERA = 3  # Opera
-  APPLE = 4  # Apple
-  OPEN = 5  # Open source
-  OTHER = 6  # Anything else
+  GOOGLE = 0x0  # Chrome
+  MOZILLA = 0x1  # Firefox
+  MICROSOFT = 0x2  # IE
+  OPERA = 0x3  # Opera
+  APPLE = 0x4  # Apple
+  OPEN = 0x5  # Open source
+  OTHER = 0x6  # Anything else
 
 
 class AgentInfo(object):
@@ -51,7 +51,8 @@ class AgentInfo(object):
     return "%s(%s)" % (
       self.__class__.__name__.replace('Agent', ''),
       ', '.join(
-        ('='.join((i, str(getattr(self, i) if (hasattr(self, i)) else None))) for i in self.__slots__ if not i.startswith('__'))
+        ('='.join((i, str(getattr(self, i) if (hasattr(self, i)) else None)))
+         for i in self.__slots__ if not i.startswith('__'))
       )
     )
 
@@ -234,8 +235,8 @@ class AgentFingerprint(AgentInfo):
     detected = {}  # holds detected truths/guesses
 
     # copy over raw strings
-    accept = detected['accept'] = request.headers.get('accept')
-    string = detected['string'] = request.headers.get('user-agent')
+    detected['accept'] = request.headers.get('accept')
+    detected['string'] = request.headers.get('user-agent')
 
     # copy over accept details
     detected['charsets'], detected['encodings'], detected['languages'], detected['mimetypes'] = (
@@ -279,13 +280,17 @@ class AgentFingerprint(AgentInfo):
       ('presto', user_agent.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
       ('webkit', user_agent.browser in ('safari', 'chrome', 'opera')),
       ('spidermonkey', user_agent.browser in ('firefox', 'seamonkey')),
-      ('gecko', 'Gecko' in user_agent.string and ('WebKit' not in user_agent.string and 'Chrome' not in user_agent.string)),
+      ('gecko', (
+        'Gecko' in user_agent.string and (
+          'WebKit' not in user_agent.string and 'Chrome' not in user_agent.string))),
 
       ## Environments
       ('tablet', 'Tabl' in user_agent.string or 'iPad' in user_agent.string),
       ('crawler', user_agent.browser in ('google', 'yahoo', 'aol', 'ask')),
-      ('mobile', 'Mobi' in user_agent.string or 'IEMobile' in user_agent.string or user_agent.platform.lower().strip() in ('ios', 'iphone', 'ipad'))
-
+      ('mobile', any((
+        'Mobi' in user_agent.string,
+        'IEMobile' in user_agent.string,
+        user_agent.platform.lower().strip() in ('ios', 'iphone', 'ipad'))))
       )):
       detected[datapoint] = condition
 

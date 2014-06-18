@@ -11,3 +11,4 @@ build/
 canteen.egg-info/
 man/
 dist/
+build/

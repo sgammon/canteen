@@ -1,0 +1,236 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 49.0,
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"list pack",
+				"Package Control: List Packages"
+			],
+			[
+				"package",
+				"Preferences: Browse Packages"
+			],
+			[
+				"package ",
+				"Package Control: Install Package"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"instl",
+				"Package Control: Install Package"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 435.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404' + 'e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": true,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/sam/Workspace/canteen/canteen/model/adapter/redis.py",
+		"/Users/sam/Workspace/canteen/canteen/model/adapter/abstract.py",
+		"/Users/sam/Workspace/canteen/canteen/logic/http/redirects.py",
+		"/Users/sam/Workspace/canteen/README.md",
+		"/Users/sam/Workspace/canteen/tox.ini",
+		"/Users/sam/Workspace/rpc-sample/sample/templates/base.html",
+		"/Users/sam/Workspace/rpc-sample/sample/base.py",
+		"/Users/sam/Workspace/rpc-sample/sample/logic/auth.py",
+		"/Users/sam/Workspace/rpc-sample/sample/pages.py",
+		"/Users/sam/Workspace/rpc-sample/sample/services/campaigns.py",
+		"/Users/sam/Workspace/rpc-sample/sample/__init__.py",
+		"/Users/sam/Workspace/rpc-sample/sample/config.py",
+		"/Users/sam/Workspace/rpc-sample/sample/dispatch.py",
+		"/Users/sam/Workspace/rpc-sample/sample/logic/__init__.py",
+		"/Users/sam/Workspace/rpc-sample/sample/logic/lowlevel.py",
+		"/Users/sam/Workspace/rpc-sample/sample/logic/provider.py",
+		"/Users/sam/Workspace/rpc-sample/sample/models.py",
+		"/Users/sam/Workspace/rpc-sample/sample/services/__init__.py",
+		"/Users/sam/Workspace/rpc-sample/sample/services/placements.py",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/Default (OSX).sublime-keymap",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/sam/Workspace/rpc-sample/tox.ini",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/Python Module.sublime-snippet",
+		"/Users/sam/Workspace/rpc-sample/rpc-sample.sublime-project",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/Python Header.sublime-snippet",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/RPC Service.sublime-snippet",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/User/Python 2.7.sublime-build",
+		"/Users/sam/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings"
+	],
+	"find":
+	{
+		"height": 26.0
+	},
+	"find_in_files":
+	{
+		"height": 95.0,
+		"where_history":
+		[
+			"/Users/sam/Workspace/rpc-sample"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"Claim",
+			"Keen IO",
+			"theme"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"momentum labs"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "canteen.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"redis.py",
+				"canteen/model/adapter/redis.py"
+			],
+			[
+				"base",
+				"sample/base.py"
+			],
+			[
+				"provi",
+				"sample/logic/provider.py"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 183.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

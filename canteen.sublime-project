@@ -1,0 +1,8 @@
+{
+	"folders": [{"follow_symlinks": true, "path": "."}],
+
+  "settings":
+  {
+    "python_interpreter_path": "/usr/bin/python"
+  }
+}

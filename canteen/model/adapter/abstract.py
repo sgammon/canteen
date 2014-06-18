@@ -16,7 +16,6 @@
 
 # stdlib
 import abc
-import zlib
 import time
 import json
 import base64
@@ -31,13 +30,28 @@ from canteen.util import decorators
 ## Globals
 _adapters = {}
 _adapters_by_model = {}
+_compressor = None  # compressor for data marked for compression
 _encoder = base64.b64encode  # encoder for key names and special strings, if enabled
-_compressor = zlib  # compressor for data values, if enabled
 _core_mixin_classes = ('Mixin', 'KeyMixin', 'ModelMixin', 'CompoundKey', 'CompoundModel')
 
 ## Computed Classes
 CompoundKey = None
 CompoundModel = None
+
+try:
+  import zlib; _compressor = zlib
+except ImportError:  # pragma: no cover
+  pass
+
+try:
+  import lz4; _compressor = lz4
+except ImportError:  # pragma: no cover
+  pass
+
+try:
+  import snappy; _compressor = snappy
+except ImportError:
+  pass
 
 
 class ModelAdapter(object):
@@ -119,7 +133,7 @@ class ModelAdapter(object):
     # immediately fail with no overriden `get`
     if not hasattr(self.__class__, 'get') and self.__class__ != ModelAdapter:  # pragma: no cover
       raise RuntimeError("ModelAdapter `%s` does not implement `get`,"
-                 "and thus cannot be used for reads." % self.__class__.__name__)
+                         " and thus cannot be used for reads." % self.__class__.__name__)
     else:
       # grab getter method
       getter = getattr(self.__class__, 'get')
@@ -181,7 +195,7 @@ class ModelAdapter(object):
 
     # delegate
     return self.put((self.encode_key(joined, flattened) or entity.key.urlsafe(joined), flattened),
-            entity._set_persisted(True), _model, **kwargs)
+                    entity._set_persisted(True), _model, **kwargs)
 
   def _delete(self, key, **kwargs):
 
@@ -623,8 +637,8 @@ class Mixin(object):
             if base not in frozenset((KeyMixin, ModelMixin)):
               ## mixins are only allowed to _directly_ extend `KeyMixin` or `ModelMixin`
               raise RuntimeError("Cannot inject classes for inheritance in between"
-                         " `KeyMixin` or `ModelMixin` and a concrete mixin class,"
-                         " or after a concrete mixin class.")
+                                 " `KeyMixin` or `ModelMixin` and a concrete mixin class,"
+                                 " or after a concrete mixin class.")
 
         # add to each registry that the mixin supports
         for base in bases:

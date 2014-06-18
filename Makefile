@@ -19,7 +19,7 @@ TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=
 
 all: develop
 
-test: build
+test:
 	@nosetests $(TEST_FLAGS) canteen_tests
 
 clean:
@@ -36,10 +36,10 @@ clean:
 build: .Python dependencies
 	@python setup.py build
 
-develop: build
+develop: build package
 	@python setup.py develop
 
-package:
+package: test
 	@python setup.py $(DISTRIBUTIONS)
 
 release: build test package

@@ -4,5 +4,6 @@ Werkzeug
 nose
 slimmer
 protorpc
+coverage
 git+ssh://git@github.com/keenlabs/protobuf.git#egg=protobuf
 git+ssh://git@github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja

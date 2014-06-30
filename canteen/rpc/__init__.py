@@ -283,10 +283,14 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     pass
 
-  ServerException = Exception
+  class ServerException(premote.ServerError):
+
+    '''  '''
+
+    pass
 
 
-  class ClientException(premote.ClientError):
+  class ClientException(premote.RequestError):
 
     '''  '''
 

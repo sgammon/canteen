@@ -277,6 +277,22 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     GET = POST
 
 
+  class Exception(premote.ApplicationError):
+
+    '''  '''
+
+    pass
+
+  ServerException = Exception
+
+
+  class ClientException(premote.ClientError):
+
+    '''  '''
+
+    pass
+
+
   class Exceptions(datastructures.ObjectProxy):
 
     '''  '''

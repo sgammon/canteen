@@ -19,7 +19,6 @@
 import os
 import sys
 import abc
-import time
 import inspect
 import importlib
 
@@ -128,9 +127,8 @@ class Runtime(object):
             # run in singleton context
             hook(point, obj, *args, **kwargs)
 
-        except Exception as e:
-          if __debug__:
-            raise
+        except Exception:
+          if __debug__: raise
 
     return
 

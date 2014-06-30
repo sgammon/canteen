@@ -84,10 +84,10 @@ except ImportError:
 
 
 tools.setup(name="canteen",
-      version="0.1-alpha",
+      version="0.2-alpha",
       description="Minimally complicated, maximally blasphemous approach to app development",
       author="Sam Gammon",
-      author_email="sam@keen.io",
+      author_email="sam@momentum.io",
       url="https://github.com/sgammon/canteen",
       packages=[
         "canteen",
@@ -109,7 +109,7 @@ tools.setup(name="canteen",
         "canteen_tests.test_model",
         "canteen_tests.test_util",
       ] if __debug__ else [],
-      install_requires=(
+      install_requires=([
         "jinja2",
         "werkzeug",
         "protorpc"

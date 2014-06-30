@@ -11,6 +11,8 @@
 
 
 ## Vars
+DEPS?=1
+VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 
 ## Flags
@@ -45,10 +47,15 @@ package: test
 release: build test package
 	@python setup.py $(DISTRIBUTIONS) upload
 
+ifeq ($(DEPS),1)
 dependencies:
 	# install pip dependencies
 	@bin/pip install colorlog
 	@bin/pip install -r requirements.txt
+else
+dependencies:
+	@echo "Skipping dependencies..."
+endif
 
 distclean: clean
 	@echo "Cleaning env..."
@@ -60,9 +67,14 @@ distclean: clean
 	@echo "Cleaning codebase..."
 	@git clean -xdf
 
+ifeq ($(VIRTUALENV),1)
 .Python:
 	# install pip/virtualenv if we have to
 	@which pip || sudo easy_install pip
 	@which virtualenv || pip install virtualenv
 
 	@virtualenv .
+else
+.Python:
+	@echo "Skipping env..."
+endif

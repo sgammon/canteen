@@ -39,6 +39,10 @@ build: .Python dependencies
 	@python setup.py build
 
 develop: build package
+	@echo "Installing development tools..."
+	@pip install -r dev_requirements.txt
+
+	@echo "Building..."
 	@python setup.py develop
 
 package: test

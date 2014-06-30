@@ -440,6 +440,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     name = None  # string name for target
     config = None  # config items for target
+    target = None  # contains a service if wrapping one
 
     def __init__(self, name, expose='public', **config):
 
@@ -545,6 +546,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     def __call__(self, target):
 
       '''  '''
+
+      self.target = target
 
       # finally, register the service (if it's a service class)
       if isinstance(target, type) and issubclass(target, Service):

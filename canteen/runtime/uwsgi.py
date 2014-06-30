@@ -15,34 +15,31 @@
 
 '''
 
-# core
-from . import werkzeug
+# core + util
 from ..util import debug
-from ..core import hooks
-from ..core import runtime
+from ..util import decorators
+from ..core import hooks, runtime
 
 
 try:
 
   with runtime.Library('uwsgi', strict=True) as (library, uwsgi):
 
-    class uWSGI(werkzeug.Werkzeug):
+    # logger
+    logging = debug.Logger('uWSGI')
+
+
+    @decorators.bind('uwsgi')
+    class uWSGI(runtime.Runtime):
 
       '''  '''
 
-      @property
-      def logging(self):
+      @classmethod
+      def register_rpc(cls, method):
 
         '''  '''
 
-        return debug.Logger(self.__class__.__name__)
-
-      @hooks.HookResponder('rpc-register', context=('service', 'method'))
-      def register_rpc(self, service, method):
-
-        '''  '''
-
-        self.logging.info("%s -> %s" % (service.__class__.__name__, method.__name__))
+        pass  # @TODO(sgammon): register methods
 
 
     uWSGI.set_precedence(True)  # if we make it here, we're running *inside* uWSGI

@@ -17,6 +17,7 @@
 '''
 
 # runtimes
+from . import uwsgi
 from . import gevent
 from . import wsgiref
 from . import tornado
@@ -24,6 +25,7 @@ from . import werkzeug
 
 
 __all__ = (
+  'uwsgi',
   'gevent',
   'wsgiref',
   'tornado',

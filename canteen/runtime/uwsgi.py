@@ -16,11 +16,38 @@
 '''
 
 # core
+from . import werkzeug
+from ..util import debug
+from ..core import hooks
 from ..core import runtime
 
 
-with runtime.Library('uwsgi'):
-  raise NotImplementedError('uwsgi is stubbed.')
+try:
+
+  with runtime.Library('uwsgi', strict=True) as (library, uwsgi):
+
+    class uWSGI(werkzeug.Werkzeug):
+
+      '''  '''
+
+      @property
+      def logging(self):
+
+        '''  '''
+
+        return debug.Logger(self.__class__.__name__)
+
+      @hooks.HookResponder('rpc-register', context=('service', 'method'))
+      def register_rpc(self, service, method):
+
+        '''  '''
+
+        self.logging.info("%s -> %s" % (service.__class__.__name__, method.__name__))
 
 
-  __all__ = tuple()
+    uWSGI.set_precedence(True)  # if we make it here, we're running *inside* uWSGI
+
+except ImportError:
+  pass
+
+__all__ = tuple()

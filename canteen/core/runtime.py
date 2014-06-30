@@ -44,6 +44,8 @@ class Runtime(object):
   __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, _so power_
   __metaclass__ = Proxy.Component  # this should be injectable
+  __precedence__ = False  # marked if a specific a runtime should win in selection
+  precedence = property(lambda self: self.__precedence__)  # protect writes to precedence
 
   # == Abstract Properties == #
   @abc.abstractproperty
@@ -58,7 +60,8 @@ class Runtime(object):
 
     '''  '''
 
-    return (cls.resolve() if cls is Runtime else cls)(app)  # if we're running as ``Runtime``, resolve a runtime first
+    # if we're running as ``Runtime``, resolve a runtime first
+    return (cls.resolve() if cls is Runtime else cls)(app)
 
   @classmethod
   def resolve(cls):
@@ -73,9 +76,20 @@ class Runtime(object):
         continue
       _preferred.append(child)
 
+    for item in _preferred:
+      if item.__precedence__:
+        return item  # usually uWSGI
     if _preferred:
       return _preferred[0]  # Werkzeug
     return _default  # WSGIref
+
+  @classmethod
+  def set_precedence(cls, status=True):
+
+    '''  '''
+
+    cls.__precedence__ = True
+    return cls
 
   @classmethod
   def add_hook(cls, hook, (context, func)):

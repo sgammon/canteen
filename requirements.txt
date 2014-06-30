@@ -1,8 +1,6 @@
 Jinja2
 MarkupSafe
 Werkzeug
-nose
-slimmer
 protorpc
 coverage
 git+ssh://git@github.com/keenlabs/protobuf.git#egg=protobuf

@@ -22,6 +22,7 @@ from canteen import base
 from canteen import model
 
 # canteen core
+from canteen.core import runtime
 from canteen.core import injection
 
 # canteen HTTP
@@ -444,13 +445,10 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       '''  '''
 
-      if expose != 'public':
-        raise NotImplementedError('Private remote methods are not yet implemented.')
-
       self.name, self.config = name, config
 
     @classmethod
-    def public(cls, name_or_message, response=None, **config):
+    def register(cls, name_or_message, response=None, **config):
 
       '''  '''
 
@@ -474,9 +472,19 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           response_klass or (response or name_or_message)
         )
 
-        def _remote_method_responder(method):
+        def _remote_method(method):
 
           '''  '''
+
+          # wrap responder
+          wrapped = premote.method(request_klass, response_klass)(method)
+
+          # make things transparent
+          wrapped.__name__, wrapped.__doc__, wrapped.__inner__ = (
+            method.__name__,
+            method.__doc__,
+            method
+          )
 
           def _respond(self, _request_message):
 
@@ -484,32 +492,55 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
             if isinstance(request, type) and issubclass(request, model.Model):
               # convert incoming message to model
-              result = method(self, request.from_message(_request_message))
+              result = wrapped(self, request.from_message(_request_message))
 
             else:
               # we're using regular messages always
-              result = method(self, _request_message)
+              result = wrapped(self, _request_message)
 
             # convert outgoing message to model if it isn't already
             if isinstance(result, model.Model):
               return result.to_message()
             return result
 
-          # wrap responder
-          return premote.method(request_klass, response_klass)(_respond)
+          _respond.__inner__ = wrapped
 
-        # wrap wrapper
-        return _remote_method_responder
+          # quack quack
+          _respond.__name__, _respond.__doc__, _respond.remote = (
+            method.__name__,
+            method.__doc__,
+            wrapped.remote
+          )
+
+          # just for backup
+          wrapped.__remote_name__, wrapped.__remote_doc__, wrapped.__remote__ = (
+            method.__name__,
+            method.__doc__,
+            wrapped.remote
+          )
+
+          return _respond
+        return _remote_method
 
       # wrap wrap wrapper
-      return cls(name, expose='public', **config)
+      config['expose'] = config.get('expose', 'public')
+      return cls(name, **config)
 
     @classmethod
-    def private(cls, name, **config):
+    def public(cls, *args, **config):
 
       '''  '''
 
-      return cls(name, expose='private', **config)
+      return cls.register(*args, expose='public', **config)
+
+    @classmethod
+    def private(cls, *args, **config):
+
+      '''  '''
+
+      return cls.register(*args, expose='private', **config)
+
+    method = service = register
 
     def __call__(self, target):
 
@@ -517,6 +548,14 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       # finally, register the service (if it's a service class)
       if isinstance(target, type) and issubclass(target, Service):
+
+        # call service registration hooks
+        runtime.Runtime.execute_hooks('rpc-service', service=target)
+
+        # call method registration hooks
+        for method in target.all_remote_methods():
+          runtime.Runtime.execute_hooks('rpc-method', service=target, method=method)
+
         ServiceHandler.add_service(self.name, target, **self.config)
 
       return target

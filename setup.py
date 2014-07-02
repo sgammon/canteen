@@ -71,7 +71,7 @@ if not CHECK_SETUPTOOLS():
     sys.exit(1)
 
 try:
-  import protobuf
+  import protorpc
 except ImportError:
   log.info('Protobuf not found. Adding custom version "%s"...' % PROTOBUF_VERSION)
   dependencies.append('protobuf==%s' % PROTOBUF_VERSION)

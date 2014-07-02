@@ -254,11 +254,11 @@ else:
 
     ''' Provides Msgpack serialization/deserialization support to `model.Model` and `model.Key`. '''
 
-    def to_msgpack(cls, *args, **kwargs):
+    def to_msgpack(self, *args, **kwargs):
 
       ''' Convert an entity to a Msgpack structure, where keys=>values map to properties=>values. '''
 
-      raise NotImplementedError()
+      return msgpack.dumps(self.to_dict(*args, **kwargs))
 
     @classmethod
     def to_msgpack_schema(cls, *args, **kwargs):

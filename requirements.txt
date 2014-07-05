@@ -3,5 +3,5 @@ MarkupSafe
 Werkzeug
 protorpc
 coverage
-git+ssh://git@github.com/keenlabs/protobuf.git#egg=protobuf
-git+ssh://git@github.com/keenlabs/hamlish-jinja.git#egg=hamlish_jinja
+git+ssh://git@github.com/sgammon/protobuf.git#egg=protobuf
+git+ssh://git@github.com/sgammon/hamlish-jinja.git#egg=hamlish_jinja

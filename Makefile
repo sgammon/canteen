@@ -24,7 +24,7 @@ all: develop
 
 ifeq ($(TESTS),1)
 test:
-	@nosetests $(TEST_FLAGS) canteen_tests
+	@-bin/nosetests $(TEST_FLAGS) canteen_tests
 else
 test:
 	@echo "Skipping tests."

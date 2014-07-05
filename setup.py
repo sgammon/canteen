@@ -88,6 +88,7 @@ tools.setup(name="canteen",
       description="Minimally complicated, maximally blasphemous approach to app development",
       author="Sam Gammon",
       author_email="sam@momentum.io",
+      zip_safe=True,
       url="https://github.com/sgammon/canteen",
       packages=[
         "canteen",

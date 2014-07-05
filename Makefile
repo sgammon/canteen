@@ -12,6 +12,7 @@
 
 ## Vars
 DEPS?=1
+TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 
@@ -21,8 +22,13 @@ TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=
 
 all: develop
 
+ifeq ($(TESTS),1)
 test:
 	@nosetests $(TEST_FLAGS) canteen_tests
+else
+test:
+	@echo "Skipping tests."
+endif
 
 clean:
 	@echo "Cleaning buildspace..."
@@ -38,12 +44,18 @@ clean:
 build: .Python dependencies
 	@python setup.py build
 
+ifeq ($(DEPS),1)
 develop: build package
 	@echo "Installing development tools..."
-	@pip install -r dev_requirements.txt
+	@bin/pip install -r dev_requirements.txt
 
 	@echo "Building..."
 	@python setup.py develop
+else
+develop: build package
+	@echo "Building..."
+	@python setup.py develop
+endif
 
 package: test
 	@python setup.py $(DISTRIBUTIONS)

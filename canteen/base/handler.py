@@ -2,8 +2,13 @@
 
 '''
 
-  canteen: handler base
-  ~~~~~~~~~~~~~~~~~~~~~
+  handler base
+  ~~~~~~~~~~~~
+
+  Presents a reasonable base class for a ``Handler`` object, which handles
+  responding to an arbitrary "request" for action. For example, ``Handler``
+  is useful for responding to HTTP requests *or* noncyclical realtime-style
+  requests, and acts as a base class for ``Page`` and ``ServiceHandler``.
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -16,28 +21,26 @@
 # stdlib
 import itertools
 
-# canteen core
-from ..core import hooks
+# canteen core & util
 from ..core import injection
-
-# canteen util
-from ..util import debug
-from ..util import config
+from ..util import decorators
 
 
-## Globals
-_logger = debug.Logger('Handler')
-_logger.addHandler(debug.logging.StreamHandler())
-
-
+@decorators.configured
 class Handler(object):
 
-  '''  '''
+  ''' Base class structure for a ``Handler`` of some request or desired action.
+      Specifies basic machinery for tracking a ``request`` alongside some form
+      of ``response``.
 
-  logging  = _logger  # local logging shim
+      Also keeps track of relevant ``environ`` (potentially from WSGI) and sets
+      up a jump off point for DI-provided tools like logging, config, caching,
+      template rendering, etc. '''
+
+  # @TODO(sgammon): HTTPify
+
   __agent__ = None  # current `agent` details
   __status__ = 200  # keen is an optimistic bunch ;)
-  __config__ = None  # configuration for this handler
   __routes__ = None  # route map adapter from werkzeug
   __logging__ = None  # internal logging slot
   __runtime__ = None  # reference up to the runtime
@@ -48,24 +51,57 @@ class Handler(object):
   __callback__ = None  # callback to send data (sync or async)
   __content_type__ = None  # response content type
 
+  # set owner and injection side
   __owner__, __metaclass__ = "Handler", injection.Compound
 
-  def __init__(self, environ=None, start_response=None, runtime=None, request=None, response=None, **context):
+  def __init__(self, environ=None,
+                     start_response=None,
+                     runtime=None,
+                     request=None,
+                     response=None, **context):
 
-    '''  '''
+    ''' Initialize a new ``Handler`` object with proper ``environ`` details and
+        inform it of larger world around it.
+
+        ``Handler`` objects (much like ``Runtime`` objects) are designed to be
+        usable independently as a WSGI-style callable. Note that the first two
+        position parameters of this ``__init__`` are the venerable ``environ``
+        and ``start_response`` - dispatching this way is totally possible, but
+        if ``runtime``, ``request`` and ``response`` are provided, much richer
+        integration is possible.
+
+        Args:
+          :param environ:
+          :type environ:
+
+          :param start_response:
+          :type start_response:
+
+          :param runtime:
+          :type runtime:
+
+          :param request:
+          :type request:
+
+          :param response:
+          :type response:
+
+        Kwargs:
+
+        '''
 
     # startup/assign internals
     self.__runtime__, self.__environ__, self.__callback__ = (
-      runtime,
-      environ,
-      start_response
+      runtime,  # reference to the active runtime
+      environ,  # reference to WSGI environment
+      start_response  # reference to WSGI callback
     )
 
     # setup HTTP/dispatch stuff
     self.__status__, self.__headers__, self.__content_type__ = (
-      200,
-      {},
-      'text/html'
+      200,  # default response stauts
+      {},  # default repsonse headers
+      'text/html; charset=utf-8'  # default content type
     )
 
     # request & response
@@ -79,7 +115,7 @@ class Handler(object):
   content_type = property(lambda self: self.__content_type__)
 
   # shortcuts & utilities
-  url_for = link = lambda self, endpoint, **args: self.routes.build(endpoint, args)
+  url_for = link = lambda self, end, **args: self.routes.build(end, args)
 
   # WSGI internals
   app = runtime = property(lambda self: self.__runtime__)
@@ -87,20 +123,34 @@ class Handler(object):
   start_response = callback = property(lambda self: self.__callback__)
 
   # Context
-  config = property(lambda self: config.Config().config)
-  session = property(lambda self: self.request.session[0] if self.request.session else None)  # session is tuple of (session, engine)
+  session = property(lambda self: (  # session is tuple of (session, engine)
+    self.request.session[0] if self.request.session else None))
 
   # Agent
-  agent = property(lambda self: self.__agent__ if self.__agent__ else (setattr(self, '__agent__', self.http.agent.scan(self.request)) or self.__agent__))
+  agent = property(lambda self: (
+    self.__agent__ if self.__agent__ else (
+      setattr(self, '__agent__', self.http.agent.scan(self.request)) or (
+        self.__agent__))))
 
   # Request & Response
-  request = property(lambda self: self.__request__ if self.__request__ else (setattr(self, '__request__', self.http.new_request(self.__environ__)) or self.__request__))
-  response = property(lambda self: self.__response__ if self.__response__ else (setattr(self, '__response__', self.http.new_response()) or self.__response__))
+  request = property(lambda self: (
+    self.__request__ if self.__request__ else (
+      setattr(self, '__request__', self.http.new_request(self.__environ__)) or (
+        self.__request__))))
+
+  response = property(lambda self: (
+    self.__response__ if self.__response__ else (
+      setattr(self, '__response__', self.http.new_response()) or (
+        self.__response__))))
 
   @property
   def template_context(self):
 
-    '''  '''
+    ''' Generate template context to be used in rendering source templates. The
+        ``template_context`` accessor is expected to return a ``dict`` of
+        ``name=>value`` pairs to present to the template API.
+
+        :returns: ``dict`` of template context. '''
 
     # for javascript context
     from canteen.rpc import ServiceHandler
@@ -166,9 +216,36 @@ class Handler(object):
 
     }
 
-  def render(self, template, headers={}, content_type='text/html', context={}, _direct=False, **kwargs):
+  def render(self, template,
+                   headers={},
+                   content_type='text/html',
+                   context={},
+                   _direct=False, **kwargs):
 
-    '''  '''
+    ''' Render a source ``template`` for the purpose of responding to this
+        ``Handler``'s request, given ``context`` and proper ``headers`` for
+        return.
+
+        Args:
+          :param template:
+          :type template:
+
+          :param headers:
+          :type headers:
+
+          :param content_type:
+          :type content_type:
+
+          :param context:
+          :type context:
+
+          :param _direct:
+          :type _direct:
+
+        Kwargs:
+
+
+        :returns: '''
 
     # set mimetype
     if content_type: self.response.mimetype = content_type
@@ -190,18 +267,26 @@ class Handler(object):
     ))))
 
     # render template and set as response data
-    self.response.response, self.response.direct_passthrough = self.template.render(
-      self,
-      self.runtime.config,
-      template,
-      _merged_context
-    ), True
+    self.response.response, self.response.direct_passthrough = (
+      self.template.render(
+        self,
+        self.runtime.config,
+        template,
+        _merged_context
+      )), True
 
     return self.respond()
 
   def respond(self, content=None):
 
-    '''  '''
+    ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
+        content. UTF-8 encoding happens if necessary.
+
+        Args:
+          :param content:
+          :type content:
+
+        :returns: '''
 
     # today is a good day
     if not self.status: self.status = 200
@@ -209,13 +294,24 @@ class Handler(object):
 
     # set status code and return
     return setattr(self.response,
-      ('status_code' if isinstance(self.status, int) else 'status'),
-      self.status
-    ) or ((i.encode('utf-8').strip() for i in self.response.response), self.response)
+                  ('status_code' if isinstance(self.status, int) else 'status'),
+                    self.status) or (
+                  (i.encode('utf-8').strip() for i in self.response.response),
+                  self.response)
 
   def __call__(self, url_args, direct=False):
 
-    '''  '''
+    ''' Kick off the local response dispatch process, and run any necessary
+        pre/post hooks (named ``prepare`` and ``destroy``, respectively).
+
+        Args:
+          :param url_args:
+          :type url_args:
+
+          :param direct:
+          :type direct:
+
+        :returns: '''
 
     # run prepare hook, if specified
     if hasattr(self, 'prepare'):
@@ -230,6 +326,11 @@ class Handler(object):
       method = getattr(self, self.request.method.lower())
 
     self.__response__ = method(**url_args)
+
+    # run destroy hook, if specified
+    if hasattr(self, 'destroy'):
+      self.destroy(self.__response__)
+
     return self.__response__ if not direct else self
 
 

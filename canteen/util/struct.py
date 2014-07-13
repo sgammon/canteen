@@ -589,6 +589,15 @@ class BidirectionalEnum(object):
 
         raise NotImplementedError('Not implemented')
 
+      def _iter(proxied_cls):
+
+        ''' Iterate over all enumerated values.
+
+            :returns: '''
+
+        for k, v in proxied_cls._plookup:
+          yield k, v
+
       # Map properties into data and lookup attributes
       map(lambda x: [mappings['_pmap'].update(dict(x)), mappings['_plookup'].append([x[0][0], x[1][0]])],
         (((attr, value), (value, attr)) for attr, value in mappings.items() if not attr.startswith('_')))
@@ -599,6 +608,8 @@ class BidirectionalEnum(object):
         mappings['__setitem__'] = _setitem
       if '__contains__' not in mappings:
         mappings['__contains__'] = _contains
+      if '__iter__' not in mappings:
+        mappings['__iter__'] = _iter
 
       return super(cls, cls).__new__(cls, name, chain, mappings)
 
@@ -637,7 +648,7 @@ class BidirectionalEnum(object):
 
       :returns: '''
 
-    return dict([(k, v) for k, v in dir(cls) if not k.startswith('_')])
+    return dict(((k, v) for k, v in cls._plookup if not k.startswith('_')))
 
   @classmethod
   def __json__(cls):

@@ -78,6 +78,20 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       type = (int, long, bool, basestring, dict, pmessages.Message)
 
 
+  ## StringOrIntegerField - a message field that allows *both* strings and ints
+  class StringOrIntegerField(ProtoField):
+
+      ''' Field definition for a field that can contain either a string or integer. '''
+
+      VARIANTS = frozenset([pmessages.Variant.STRING, pmessages.Variant.DOUBLE,
+                            pmessages.Variant.INT64, pmessages.Variant.INT32,
+                            pmessages.Variant.UINT64, pmessages.Variant.UINT32])
+
+      DEFAULT_VARIANT = pmessages.Variant.STRING
+
+      type = (int, long, basestring, dict, pmessages.Message)
+
+
   #### ==== Message Classes ==== ####
 
   ## Key - valid as a request or a response, specifies an apptools model key.
@@ -87,7 +101,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       encoded = pmessages.StringField(1)  # encoded (`urlsafe`) key
       kind = pmessages.StringField(2)  # kind name for key
-      id = pmessages.StringField(3)  # integer or string ID for key
+      id = StringOrIntegerField(3)  # integer or string ID for key
       namespace = pmessages.StringField(4)  # string namespace for key
       parent = pmessages.MessageField('Key', 5)  # recursive key message for parent
 

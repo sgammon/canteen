@@ -33,8 +33,7 @@ class BaseRuntimeTest(test.FrameworkTest):
 
   def test_exports(self):
 
-    ''' Test basic attributes that should always
-        be present on :py:mod:`canteen.core.runtime`. '''
+    ''' Test basic attributes that should always be present on `core.runtime` '''
 
     assert hasattr(runtime, 'Runtime')
     assert hasattr(runtime, 'Library')
@@ -48,36 +47,28 @@ class RuntimeLibraryTest(test.FrameworkTest):
 
   def test_good_library_string_lax(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly load
-        a known-good module by its path, without enforcing
-        ``strict`` mode. '''
+    ''' Test that `Library` can load a known-good module (by path) '''
 
     with runtime.Library('operator', strict=False) as (library, operator):
       assert hasattr(operator, 'eq')
 
   def test_good_library_string_strict(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly load
-        a known-good module by its path, while enforcing
-        ``strict`` mode. '''
+    ''' Test that `Library` can load a known-good module (by path) in `strict` mode '''
 
     with runtime.Library('operator', strict=True) as (library, operator):
       assert hasattr(operator, 'eq')
 
   def test_bad_library_string_lax(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly ignore
-        a known-bad module by its path, when not enforcing
-        ``strict`` mode. '''
+    ''' Test that `Library` can ignore a known-bad module (by path) '''
 
     with runtime.Library('i_do_not_exist_at_all_okay_never', strict=False) as (library, wat):
       assert True is True
 
   def test_bad_library_string_strict(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly ignore
-        a known-bad module by its path, when not enforcing
-        ``strict`` mode. '''
+    ''' Test that `Library` can ignore a known-bad module (by path) in `strict` mode '''
 
     with self.assertRaises(ImportError):
       with runtime.Library('i_do_not_exist_at_all_okay_never', strict=True) as (library, wat):
@@ -85,16 +76,14 @@ class RuntimeLibraryTest(test.FrameworkTest):
 
   def test_good_library_module_lax(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly load
-        a known-good module, without enforcing ``strict`` mode. '''
+    ''' Test that `Library` can load a known-good module (by mod) '''
 
     with runtime.Library(operator, strict=False) as (library, _operator):
       assert hasattr(_operator, 'eq')
 
   def test_good_library_module_strict(self):
 
-    ''' Test that :py:class:`runtime.Library` can properly load
-        a known-good module, while enforcing ``strict`` mode. '''
+    ''' Test that `Library` can load a known-good module (by mod) while enforcing `strict` mode '''
 
     with runtime.Library(operator, strict=True) as (library, _operator):
       assert hasattr(_operator, 'eq')

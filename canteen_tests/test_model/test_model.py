@@ -84,7 +84,7 @@ class ModelTests(FrameworkTest):
 
   def test_construct_model(self):
 
-    ''' Try constructing a Model manually. '''
+    ''' Test constructing a `Model` manually '''
 
     # construct our car record
     car = Car(make='BMW', model='M3', year=2013, color='white')
@@ -125,7 +125,7 @@ class ModelTests(FrameworkTest):
 
   def test_invalid_model_adapter(self):
 
-    ''' Try an invalid model adapter, which should raise `RuntimeError`. '''
+    ''' Test using invalid model adapter, which should raise `RuntimeError` '''
 
     with self.assertRaises(RuntimeError):
 
@@ -139,7 +139,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_inheritance(self):
 
-    ''' Make sure there's a proper inheritance structure for `model.Model`. '''
+    ''' Test proper inheritance structure for `Model` '''
 
     self.assertTrue(issubclass(Car, model.Model))
     self.assertTrue(issubclass(Person, model.Model))
@@ -147,7 +147,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_schema(self):
 
-    ''' Make sure there's a proper schema spec on `model.Model`. '''
+    ''' Test that there's a proper schema spec on `Model` '''
 
     # check lookup
     self.assertTrue(hasattr(Person, '__lookup__'))
@@ -175,7 +175,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_set_attribute(self):
 
-    ''' Try setting an unknown and known attribute. '''
+    ''' Test setting an unknown and known attribute on `Model` '''
 
     # try construction assignment
     john = Person(firstname='John')
@@ -191,7 +191,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_adapter(self):
 
-    ''' Make sure the adapter is attached correctly to `model.Model`. '''
+    ''' Test that adapter is attached correctly to `Model` '''
 
     # make sure it's on the classlevel
     self.assertTrue(hasattr(Person, '__adapter__'))
@@ -199,13 +199,13 @@ class ModelTests(FrameworkTest):
 
   def test_model_stringify(self):
 
-    ''' Test the string representation of a Model object. '''
+    ''' Test the string representation of a `Model` object '''
 
     self.assertIsInstance(Person().__repr__(), basestring)
 
   def test_model_kind(self):
 
-    ''' Make sure the `Model.kind` is properly set. '''
+    ''' Test that `Model.kind` is properly set '''
 
     # test class-level kind
     self.assertIsInstance(Person.kind(), basestring)
@@ -218,7 +218,7 @@ class ModelTests(FrameworkTest):
 
   def test_abstract_model(self):
 
-    ''' Make sure `model.AbstractModel` works abstractly. '''
+    ''' Test that `AbstractModel` works abstractly '''
 
     # make sure it's ABC-enabled
     self.assertTrue((not isinstance(model.Model, abc.ABCMeta)))
@@ -229,7 +229,7 @@ class ModelTests(FrameworkTest):
 
   def test_concrete_model(self):
 
-    ''' Make sure `model.Model` works concretely. '''
+    ''' Test that `Model` works concretely '''
 
     ## test simple construction
     self.assertIsInstance(Person(), Person)
@@ -265,7 +265,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict(self, method='to_dict'):
 
-    ''' Try flattening a Model into a raw dictionary. '''
+    ''' Test flattening a `Model` into a raw dictionary '''
 
     # sample person
     p = Person(firstname='John')
@@ -284,7 +284,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_all_arguments(self, method='to_dict'):
 
-    ''' Try using `Model.to_dict` with the `all` flag. '''
+    ''' Test using `Model.to_dict` with the `all` flag '''
 
     # sample person
     p = Person(firstname='John')
@@ -300,7 +300,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_filter(self, method='to_dict'):
 
-    ''' Try using `Model.to_dict` with a filter function. '''
+    ''' Test using `Model.to_dict` with a filter function '''
 
     # sample person
     p = Person(firstname='John')
@@ -318,7 +318,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_include(self, method='to_dict'):
 
-    ''' Try using `Model.to_dict` with an inclusion list. '''
+    ''' Test using `Model.to_dict` with an inclusion list '''
 
     # sample person
     p = Person(firstname='John')
@@ -337,7 +337,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_exclude(self, method='to_dict'):
 
-    ''' Try using `Model.to_dict` with an exclusion list. '''
+    ''' Test using `Model.to_dict` with an exclusion list '''
 
     # sample person
     p = Person(firstname='John')
@@ -355,7 +355,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_map(self, method='to_dict'):
 
-    ''' Try using `Model.to_dict` with a map function. '''
+    ''' Test using `Model.to_dict` with a map function '''
 
     # sample person
     p = Person(firstname='John')
@@ -371,7 +371,7 @@ class ModelTests(FrameworkTest):
 
   def test_JSON_model_format(self):
 
-    ''' Try serializing a Model into a JSON struct. '''
+    ''' Test serializing a `Model` into a JSON struct '''
 
     # sample person
     p = Person(firstname='John', lastname='Doe')
@@ -419,7 +419,7 @@ class ModelTests(FrameworkTest):
 
   def test_explicit(self):
 
-    ''' Test a Model's behavior in `explicit` mode. '''
+    ''' Test a `Model`'s behavior in `explicit` mode '''
 
     # sample people
     s = Person(firstname='Sam')
@@ -450,7 +450,7 @@ class ModelTests(FrameworkTest):
 
   def test_generator_implicit(self):
 
-    ''' Test a Model's behavior when used as an iterator. '''
+    ''' Test a `Model`'s behavior when used as an iterator '''
 
     # sample person
     p = Person(firstname='John')
@@ -466,7 +466,7 @@ class ModelTests(FrameworkTest):
 
   def test_generator_explicit(self):
 
-    ''' Test a Model's behavior when used as an iterator in `explicit` mode. '''
+    ''' Test a `Model`'s behavior when used as an iterator in `explicit` mode '''
 
     # sample person
     p = Person(firstname='John')
@@ -484,7 +484,7 @@ class ModelTests(FrameworkTest):
 
   def test_len(self):
 
-    ''' Test a Model's behavior when used with `len()`. '''
+    ''' Test a `Model`'s behavior when used with `len()` '''
 
     # sample person
     p = Person()
@@ -500,7 +500,7 @@ class ModelTests(FrameworkTest):
 
   def test_nonzero(self):
 
-    ''' Test a Model's falsyness with no properties. '''
+    ''' Test a `Model`'s falsyness with no properties '''
 
     # sample peron
     p = Person()
@@ -511,7 +511,7 @@ class ModelTests(FrameworkTest):
 
   def test_get_invalid_property(self):
 
-    ''' Try getting an invalid model property. '''
+    ''' Test getting an invalid `Model` property '''
 
     # sample person
     p = Person()
@@ -530,7 +530,7 @@ class ModelTests(FrameworkTest):
 
   def test_get_value_all_properties(self):
 
-    ''' Try getting *all* properties via `_get_value`. '''
+    ''' Test getting *all* properties via `_get_value` '''
 
     # sample person
     p = Person(firstname='John', lastname='Doe')
@@ -547,7 +547,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_getitem_setitem(self):
 
-    ''' Test a model's compliance with Python's Item API. '''
+    ''' Test a `Model`'s compliance with Python's Item API '''
 
     # sample person
     p = Person(firstname='John')
@@ -570,7 +570,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_setvalue(self):
 
-    ''' Test the protected method `_set_value`, which is used by Model API internals. '''
+    ''' Test the protected method `_set_value`, which is used by Model API internals '''
 
     # sample person
     p = Person(firstname='John')
@@ -589,7 +589,7 @@ class ModelTests(FrameworkTest):
 
   def test_model_setkey(self):
 
-    ''' Test the protected method `_set_key`, which is used by Model API internals. '''
+    ''' Test the protected method `_set_key`, which is used by Model API internals '''
 
     # sample person
     p = Person(firstname='John')
@@ -624,7 +624,7 @@ class ModelTests(FrameworkTest):
 
   def test_early_mutate(self):
 
-    ''' Try setting attributes and items on a model before it's ready (i.e. before instantiation). '''
+    ''' Test setting attributes and items on a model before it's ready '''
 
     ## EarlyMutateModel
     # Tests mutation of properties before instantiation, which should fail.
@@ -647,7 +647,7 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_required_properties(self):
 
-    ''' Try testing validation of required property. '''
+    ''' Test validation of required properties '''
 
     ## RequiredPropertyModel
     # Try validating properties marked as required.
@@ -671,7 +671,7 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_property_basetype(self):
 
-    ''' Try testing validation of property basetypes. '''
+    ''' Test validation of property basetypes '''
 
     ## BasetypedPropertyModel
     # Try validating properties by basetype.
@@ -717,7 +717,7 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_repeated_properties(self):
 
-    ''' Try testing validation of repeated properties. '''
+    ''' Test validation of repeated properties '''
 
     ## RepeatedPropertyModel
     # Try validating properties marked as repeated.
@@ -754,7 +754,7 @@ class ModelTests(FrameworkTest):
 
   def test_class_level_default_value(self):
 
-    ''' Try grabbing the value of a property with a default set at the class level. '''
+    ''' Test reading a property with a default set at the class level '''
 
     ## ClassDefaultSample
     # Try grabbing the value of a defaulted property at the class level.

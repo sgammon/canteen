@@ -33,7 +33,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def _make_handler(self, valid=False, _impl=handler.Handler, _environ=None):
 
-    ''' Mock up a quick ``Handler`` object. '''
+    ''' Mock up a quick `Handler` object. '''
 
     if not valid:  # don't need valid WSGI internals?
       environ, callback, _runtime, request, response = (
@@ -77,13 +77,13 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_base_handler(self):
 
-    ''' Test that ``Handler`` is exposed for import '''
+    ''' Test that `Handler` is exposed for import '''
 
     assert hasattr(handler, 'Handler')
 
   def test_construct_handler(self):
 
-    ''' Test various constructions of ``Handler`` '''
+    ''' Test various constructions of `Handler` '''
 
     ## try WSGI-style construction
     environ = {'sample': 'hi'}
@@ -109,7 +109,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_template_context(self):
 
-    ''' Test ``Handler.template_context`` '''
+    ''' Test `Handler.template_context` '''
 
     handler, request, response, runtime = self._make_handler()
     context = handler.template_context
@@ -138,7 +138,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_respond(self):
 
-    ''' Test ``Handler.respond`` interface '''
+    ''' Test `Handler.respond` interface '''
 
     handler, request, response, runtime = self._make_handler(True)
 
@@ -151,7 +151,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_dispatch(self):
 
-    ''' Test ``Handler`` __call__ dispatch '''
+    ''' Test `Handler` __call__ dispatch '''
 
     content = '<b>hi sup</b>'
 
@@ -175,7 +175,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_dispatch_direct(self):
 
-    ''' Test ``Handler`` direct __call__ dispatch '''
+    ''' Test `Handler` direct __call__ dispatch '''
 
     content = '<b>hi sup</b>'
 
@@ -200,7 +200,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_prepare_hook(self):
 
-    ''' Test that ``Handler.prepare`` is called before dispatch '''
+    ''' Test that `Handler.prepare` is called before dispatch '''
 
     content = '<b>hi sup</b>'
 
@@ -232,7 +232,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_destroy_hook(self):
 
-    ''' Test that ``Handler.destroy`` is called after dispatch '''
+    ''' Test that `Handler.destroy` is called after dispatch '''
 
     content = '<b>hi sup</b>'
 
@@ -264,7 +264,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_response_return(self):
 
-    ''' Test that ``Handler.GET/POST/etc`` can return a response '''
+    ''' Test that `Handler.GET/POST/etc` can return a response '''
 
     content = '<b>hi sup</b>'
     alt_content = '<b>goodbye_friend</b>'
@@ -287,7 +287,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
   def test_invalid_method(self):
 
-    ''' Test calling an invalid method on ``Handler`` (should raise HTTP405) '''
+    ''' Test calling an invalid method on `Handler` (should raise HTTP405) '''
 
     class SubHandler(handler.Handler):
 

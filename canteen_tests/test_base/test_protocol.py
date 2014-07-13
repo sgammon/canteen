@@ -30,7 +30,7 @@ class SomeValidProtocol(protocol.Protocol):
 
 class BaseProtocolTest(test.FrameworkTest):
 
-  ''' Tests ``base.protocol``. '''
+  ''' Tests `base.protocol`. '''
 
   def _make_protocol(self, valid=True):
 
@@ -51,26 +51,26 @@ class BaseProtocolTest(test.FrameworkTest):
 
   def test_base_protocol(self):
 
-    ''' Test that ``base`` exports ``Protocol`` '''
+    ''' Test that `base` exports `Protocol` '''
 
     assert hasattr(protocol, 'Protocol')
 
   def test_protocol_abstract(self):
 
-    ''' Test that ``base.Protocol`` is abstract '''
+    ''' Test that `Protocol` is abstract '''
 
     with self.assertRaises(TypeError):
       self._make_protocol(valid=False)()
 
   def test_protocol_extend(self):
 
-    ''' Test that ``base.Protocol`` can be extended '''
+    ''' Test that `Protocol` can be extended '''
 
     self._make_protocol()()
 
   def test_protocol_register(self):
 
-    ''' Test that ``base.Protocol`` registers properly '''
+    ''' Test that `Protocol` registers properly '''
 
     # simulate decorator
     protocol.Protocol.register('randorpc', (
@@ -80,7 +80,7 @@ class BaseProtocolTest(test.FrameworkTest):
 
   def test_protocol_all(self):
 
-    ''' Test that ``base.Protocol.all`` iterates over registered protocols '''
+    ''' Test that `Protocol.all` iterates over registered protocols '''
 
     # simulate decorator
     protocol.Protocol.register('randorpc', (
@@ -93,7 +93,7 @@ class BaseProtocolTest(test.FrameworkTest):
 
   def test_protocol_mapping(self):
 
-    ''' Test that ``base.Protocol.mapping`` returns a proper type=>protocol
+    ''' Test that `Protocol.mapping` returns a proper type=>protocol
         mapping '''
 
     # simulate decorator

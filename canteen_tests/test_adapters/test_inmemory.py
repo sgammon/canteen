@@ -43,7 +43,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_invalid_get(self):
 
-    ''' Test requesting a key that doesn't exist. '''
+    ''' Test requesting a key that doesn't exist '''
 
     # get missing entity
     model_key = model.Key("Sample", "_____")
@@ -52,7 +52,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_named_entity_get_put(self):
 
-    ''' Test putting and getting an entity with a named key. '''
+    ''' Test putting and getting an entity with a named key '''
 
     # put entity
     m = InMemoryModel(
@@ -92,7 +92,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_id_entity_get_put(self):
 
-    ''' Test putting and getting an entity with an ID'd key. '''
+    ''' Test putting and getting an entity with an ID'd key '''
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -117,7 +117,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_delete_existing_entity_via_key(self):
 
-    ''' Test deleting an existing entity via `Key.delete()`. '''
+    ''' Test deleting an existing entity via `Key.delete()` '''
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -135,7 +135,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_delete_existing_entity_via_model(self):
 
-    ''' Test deleting an existing entity via `Model.delete()`. '''
+    ''' Test deleting an existing entity via `Model.delete()` '''
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -153,7 +153,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_delete_invalid_entity(self):
 
-    ''' Test deleting an invalid entity. '''
+    ''' Test deleting an invalid entity '''
 
     # manufacture a key that shouldn't exist...
     m_k = model.Key("SampleKind", "____InvalidKey____")
@@ -170,7 +170,7 @@ class InMemoryAdapterTests(FrameworkTest):
 
   def test_allocate_ids(self):
 
-    ''' Allocate one and numerous ID's. '''
+    ''' Test allocating one and numerous ID's '''
 
     # try allocating one ID
     next = inmemory.InMemoryAdapter.allocate_ids("Sample", 1)

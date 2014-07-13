@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core assets API
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  core assets API
+  ~~~~~~~~~~~~~~~
 
   exposes a core API for easily accessing and managing static
   assets attached to a :py:mod:`canteen`-based product.

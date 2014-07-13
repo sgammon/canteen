@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core session API
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  core session API
+  ~~~~~~~~~~~~~~~~
 
   exposes an API for creating and maintaining session state for
   both cyclical and realtime connection models.

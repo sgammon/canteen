@@ -24,13 +24,14 @@ from canteen.base import handler
 from werkzeug import test as wtest
 from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
+from werkzeug.exceptions import MethodNotAllowed
 
 
 class BaseHandlerTest(test.FrameworkTest):
 
   ''' Tests for :py:mod:`canteen.base.handler`. '''
 
-  def _make_handler(self, valid=False):
+  def _make_handler(self, valid=False, _impl=handler.Handler, _environ=None):
 
     ''' Mock up a quick ``Handler`` object. '''
 
@@ -40,7 +41,10 @@ class BaseHandlerTest(test.FrameworkTest):
         object(), object()
       )
 
-      canteen_style = handler.Handler(*(
+      # allow environ overrides
+      if _environ: environ.update(_environ)
+
+      canteen_style = _impl(*(
         environ, callback, _runtime, request, response))
       return canteen_style, request, response, _runtime
 
@@ -48,6 +52,9 @@ class BaseHandlerTest(test.FrameworkTest):
       {},
       wtest.create_environ('/sample', 'http://localhost:8080/')
     )
+
+    # allow environ overrides
+    if _environ: environ.update(_environ)
 
     callback, _runtime, request, response = (
       lambda status, headers: (
@@ -58,7 +65,7 @@ class BaseHandlerTest(test.FrameworkTest):
       Response()
     )
 
-    canteen_style = handler.Handler(*(
+    canteen_style = _impl(*(
       environ,
       callback,
       _runtime,
@@ -141,3 +148,161 @@ class BaseHandlerTest(test.FrameworkTest):
     assert handler.status is 200
     assert handler.response.response == content
     assert handler.response.status_code is 200
+
+  def test_dispatch(self):
+
+    ''' Test ``Handler`` __call__ dispatch '''
+
+    content = '<b>hi sup</b>'
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        self.get_called = True
+        self.respond(content)
+
+    _handler, request, response, runtime = self._make_handler(True, SubHandler)
+    response = _handler({})
+
+    assert _handler.get_called
+    assert response.status_code is 200
+    assert response.response == content
+
+  def test_dispatch_direct(self):
+
+    ''' Test ``Handler`` direct __call__ dispatch '''
+
+    content = '<b>hi sup</b>'
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        self.get_called = True
+        self.respond(content)
+
+    _handler, request, response, runtime = self._make_handler(True, SubHandler)
+    response = _handler({}, direct=True)
+
+    assert response is _handler
+    assert _handler.status is 200
+    assert _handler.response.status_code is 200
+    assert _handler.response.response == content
+
+  def test_prepare_hook(self):
+
+    ''' Test that ``Handler.prepare`` is called before dispatch '''
+
+    content = '<b>hi sup</b>'
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def prepare(self, url_args, direct):
+
+        ''' I prepare things '''
+
+        self.prepare_tripped = True
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        if self.prepare_tripped:
+          self.get_called = True
+        self.respond(content)
+
+    _handler, request, response, runtime = self._make_handler(True, SubHandler)
+    response = _handler({})
+
+    assert response.status_code is 200
+    assert response.response == content
+    assert _handler.prepare_tripped is True
+    assert _handler.get_called is True
+
+  def test_destroy_hook(self):
+
+    ''' Test that ``Handler.destroy`` is called after dispatch '''
+
+    content = '<b>hi sup</b>'
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        self.get_called = True
+        self.respond(content)
+
+      def destroy(self, response):
+
+        ''' I prepare things '''
+
+        if self.get_called:
+          self.destroy_tripped = True
+
+    _handler, request, response, runtime = self._make_handler(True, SubHandler)
+    response = _handler({})
+
+    assert response.status_code is 200
+    assert response.response == content
+    assert _handler.destroy_tripped is True
+    assert _handler.get_called is True
+
+  def test_response_return(self):
+
+    ''' Test that ``Handler.GET/POST/etc`` can return a response '''
+
+    content = '<b>hi sup</b>'
+    alt_content = '<b>goodbye_friend</b>'
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        self.respond(content)
+        return alt_content  # cancels internal response
+
+    _handler, request, response, runtime = self._make_handler(True, SubHandler)
+    response = _handler({})
+
+    assert response == alt_content
+
+  def test_invalid_method(self):
+
+    ''' Test calling an invalid method on ``Handler`` (should raise HTTP405) '''
+
+    class SubHandler(handler.Handler):
+
+      ''' I am an example handler '''
+
+      def GET(self):
+
+        ''' I am an example GET method '''
+
+        pass
+
+    _handler, request, response, runtime = self._make_handler(
+      True,
+      SubHandler,
+      _environ={'REQUEST_METHOD': 'POST'})
+
+    with self.assertRaises(MethodNotAllowed):
+      _handler({})

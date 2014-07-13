@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core template API
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  core template API
+  ~~~~~~~~~~~~~~~~~
 
   exposes a core API for interfacing with template engines
   like :py:mod:`Jinja2`.

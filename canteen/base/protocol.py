@@ -166,7 +166,8 @@ with runtime.Library('protorpc') as (library, protorpc):
           config
         )
 
-        Protocol.__protocols__[name] = klass  # register :)
+        if name not in Protocol.__protocols__:
+          Protocol.__protocols__[name] = klass  # register :)
 
         return klass
 
@@ -209,7 +210,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
     ## == Abstract Methods == ##
     @abc.abstractmethod
-    def encode_message(self, message):
+    def encode_message(self, message):  # pragma: no cover
 
       ''' Encode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
@@ -230,7 +231,7 @@ with runtime.Library('protorpc') as (library, protorpc):
       raise NotImplementedError('Method `Protocol.encode_message` is abstract.')
 
     @abc.abstractmethod
-    def decode_message(self, message_type, encoded_message):
+    def decode_message(self, message_type, encoded_message):  # pragma: no cover
 
       ''' Decode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.

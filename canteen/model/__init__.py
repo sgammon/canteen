@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model
-  ~~~~~~~~~~~~~~
+  model
+  ~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -22,7 +22,6 @@ import operator
 
 # model components
 from . import query
-from . import adapter
 from . import exceptions
 
 # model adapters

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: protorpc model extensions
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  protorpc model extensions
+  ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

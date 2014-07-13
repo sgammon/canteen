@@ -19,9 +19,9 @@ app = None
 
 
 def spawn(app,
-        dev,
-        config=None,
-        root=None):
+          dev,
+          config=None,
+          root=None):
 
   '''  '''
 
@@ -34,11 +34,11 @@ def spawn(app,
 
 
 def run(app=None,
-    root=None,
-    interface='127.0.0.1',
-    port=8080,
-    dev=True,
-    config={}):
+        root=None,
+        interface='127.0.0.1',
+        port=8080,
+        dev=True,
+        config={}):
 
   '''  '''
 

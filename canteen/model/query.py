@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model queries
-  ~~~~~~~~~~~~~~~~~~~~~~
+  model queries
+  ~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

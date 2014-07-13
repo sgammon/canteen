@@ -2,8 +2,8 @@
 
 '''
 
-  canteen HTTP redirect logic
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  HTTP redirect logic
+  ~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

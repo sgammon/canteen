@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: injection core
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  core injection
+  ~~~~~~~~~~~~~~
 
   tools for dependency injection - essentially, walking the
   structure exposed by classes in :py:mod:`core.meta` to

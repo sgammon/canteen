@@ -32,7 +32,7 @@ with runtime.Library('wsgiref') as (library, wsgiref):
 
     __default__ = True
 
-    def bind(self, interface, port):
+    def bind(self, interface, port):  # pragma: no cover
 
       '''  '''
 

@@ -216,6 +216,28 @@ class Handler(object):
 
     }
 
+  def respond(self, content=None):
+
+    ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
+        content. UTF-8 encoding happens if necessary.
+
+        Args:
+          :param content:
+          :type content:
+
+        :returns: '''
+
+    # today is a good day
+    if not self.status: self.status = 200
+    if content: self.response.response = content
+
+    # set status code and return
+    return setattr(self.response,
+                  ('status_code' if isinstance(self.status, int) else 'status'),
+                    self.status) or (
+                  (i.encode('utf-8').strip() for i in self.response.response),
+                  self.response)
+
   def render(self, template,
                    headers={},
                    content_type='text/html',
@@ -279,28 +301,6 @@ class Handler(object):
 
     return self.respond()
 
-  def respond(self, content=None):
-
-    ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
-        content. UTF-8 encoding happens if necessary.
-
-        Args:
-          :param content:
-          :type content:
-
-        :returns: '''
-
-    # today is a good day
-    if not self.status: self.status = 200
-    if content: self.response.response = content
-
-    # set status code and return
-    return setattr(self.response,
-                  ('status_code' if isinstance(self.status, int) else 'status'),
-                    self.status) or (
-                  (i.encode('utf-8').strip() for i in self.response.response),
-                  self.response)
-
   def __call__(self, url_args, direct=False):
 
     ''' Kick off the local response dispatch process, and run any necessary
@@ -320,14 +320,10 @@ class Handler(object):
       self.prepare(url_args, direct=direct)
 
     # resolve method to call - try lowercase first
-    if not hasattr(self, self.request.method.lower().strip()):
-      if not hasattr(self, self.request.method):
-        return self.error(405)
-      method = getattr(self, self.request.method)
-    else:
-      method = getattr(self, self.request.method.lower())
-
-    self.__response__ = method(**url_args)
+    method = getattr(self, self.request.method)
+    _response = method(**url_args)
+    if _response is not None:
+      self.__response__ = _response
 
     # run destroy hook, if specified
     if hasattr(self, 'destroy'):

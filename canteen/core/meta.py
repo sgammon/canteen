@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: meta core
-  ~~~~~~~~~~~~~~~~~~
+  core meta
+  ~~~~~~~~~
 
   metaclass tools and APIs.
 

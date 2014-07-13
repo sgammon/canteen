@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core cache API
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  core cache API
+  ~~~~~~~~~~~~~~
 
   exposes a simple core API for caching objects in-memory or in
   caching engines like ``memcached``.

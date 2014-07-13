@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: abstract model adapters
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  abstract model adapters
+  ~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -152,11 +152,13 @@ class ModelAdapter(object):
     # pass off to delegated `get`
     try:
       entity = getter((encoded, flattened), **kwargs)
+    except NotImplementedError:  # pragma: no cover
+      raise RuntimeError("ModelAdapter `%s` does not implement `get`,"
+                         " and thus cannot be used for reads." % self.__class__.__name__)
     except RuntimeError:  # pragma: no cover
       raise
     else:
-      if entity is None:
-        return  # not found
+      if entity is None: return  # not found
 
       # inflate key + model and return
       key.__persisted__ = True

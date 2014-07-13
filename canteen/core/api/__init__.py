@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core APIs
-  ~~~~~~~~~~~~~~~~~~
+  core APIs
+  ~~~~~~~~~
 
   contains classes that provide core functionality to Canteen-based
   apps. includes stuff like ``output``, ``transport``, ``caching``,

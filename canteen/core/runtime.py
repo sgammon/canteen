@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: runtime core
-  ~~~~~~~~~~~~~~~~~~~~~
+  core runtime
+  ~~~~~~~~~~~~
 
   platform internals and logic to discover/load/inject.
 
@@ -14,6 +14,8 @@
             the root of the project.
 
 '''
+
+from __future__ import print_function
 
 # stdlib
 import os
@@ -92,10 +94,11 @@ class Runtime(object):
     return cls
 
   @classmethod
-  def add_hook(cls, hook, (context, func)):
+  def add_hook(cls, hook, context_and_func):
 
     '''  '''
 
+    context, func = context_and_func
     assert isinstance(hook, basestring), "hook name must be a string"
     if hook not in cls.__hooks__: cls.__hooks__[hook] = []
     cls.__hooks__[hook].append((context, func))
@@ -181,7 +184,7 @@ class Runtime(object):
     try:
       server.serve_forever()
     except (KeyboardInterrupt, Exception) as e:
-      print "Exiting."
+      print("Exiting.")
       sys.exit(0)
 
   def bind_environ(self, environ):

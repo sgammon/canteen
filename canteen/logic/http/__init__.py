@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: HTTP logic
-  ~~~~~~~~~~~~~~~~~~~
+  HTTP logic
+  ~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

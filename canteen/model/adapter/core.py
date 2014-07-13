@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core model adapters
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  core model adapters
+  ~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -265,7 +265,7 @@ else:
 
       ''' Convert a model or entity's schema to a dictionary, where keys=>values map to internal symbols representing properties=>descriptors. '''
 
-      raise NotImplementedError()
+      raise NotImplementedError()  # @TODO: msgpack schema support?
 
 
   # add to module exports

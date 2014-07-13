@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: struct tests
-  ~~~~~~~~~~~~~~~~~~~~~
+  struct tests
+  ~~~~~~~~~~~~
 
   tests for canteen's data structures utilities.
 

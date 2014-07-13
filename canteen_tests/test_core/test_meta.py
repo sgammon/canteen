@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core meta tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  core meta tests
+  ~~~~~~~~~~~~~~~
 
   tests canteen's core, which contains abstract/meta code for constructing
   and gluing together the rest of canteen.

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: RPC tests
-  ~~~~~~~~~~~~~~~~~~
+  RPC tests
+  ~~~~~~~~~
 
   tests canteen's server-side RPC layer.
 

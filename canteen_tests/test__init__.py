@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: init tests
-  ~~~~~~~~~~~~~~~~~~~
+  init tests
+  ~~~~~~~~~~
 
   tests things at the top-level package init for canteen.
 

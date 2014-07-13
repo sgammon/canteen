@@ -2,10 +2,8 @@
 
 '''
 
-  redis adapter tests
-  ~~~~~~~~~~~~~~~~~~~
-
-  tests canteen's redis adapter.
+  core asset API tests
+  ~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

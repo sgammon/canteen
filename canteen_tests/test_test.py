@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: test tests
-  ~~~~~~~~~~~~~~~~~~~
+  test tests
+  ~~~~~~~~~~
 
   tests, well, the upper class structure that powers unit and
   integration testing stuff.

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: abstract adapter tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  abstract adapter tests
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   tests abstract adapter classes, that enforce/expose
   interfaces known to the model engine proper.

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model query tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  model query tests
+  ~~~~~~~~~~~~~~~~~
 
   tests querying in canteen's model layer.
 

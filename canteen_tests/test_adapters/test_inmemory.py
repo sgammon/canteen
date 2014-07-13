@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: inmemory adapter tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  inmemory adapter tests
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   tests canteen's builtin inmemory DB engine.
 
@@ -55,7 +55,10 @@ class InMemoryAdapterTests(FrameworkTest):
     ''' Test putting and getting an entity with a named key. '''
 
     # put entity
-    m = InMemoryModel(key=model.Key(InMemoryModel.kind(), "NamedEntity"), string="suphomies", integer=[4, 5, 6, 7])
+    m = InMemoryModel(
+      key=model.Key(InMemoryModel.kind(), "NamedEntity"),
+      string="suphomies",
+      integer=[4, 5, 6, 7])
     m_k = m.put()
 
     self.assertTrue((m_k.urlsafe() in inmemory._metadata['__key__']))
@@ -174,7 +177,8 @@ class InMemoryAdapterTests(FrameworkTest):
     self.assertIsInstance(next, int)
 
     # try allocating 10 ID's
-    next_range = [i for i in inmemory.InMemoryAdapter.allocate_ids(model.Key, "Sample", 10)()]
+    next_range = [i for i in inmemory.InMemoryAdapter.allocate_ids(*(
+      model.Key, "Sample", 10))()]
     self.assertEqual(len(next_range), 10)
     for i in next_range:
       self.assertIsInstance(i, int)

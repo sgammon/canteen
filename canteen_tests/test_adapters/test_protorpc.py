@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: protorpc adapter tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  protorpc adapter tests
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   tests integration between canteen's model layer and
   Google's :py:mod:`protorpc`.

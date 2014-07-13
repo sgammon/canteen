@@ -2,10 +2,8 @@
 
 '''
 
-  redis adapter tests
-  ~~~~~~~~~~~~~~~~~~~
-
-  tests canteen's redis adapter.
+  HTTP etag logic tests
+  ~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

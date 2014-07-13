@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model tests
-  ~~~~~~~~~~~~~~~~~~~~
+  model tests
+  ~~~~~~~~~~~
 
   tests canteen's model classes.
 

@@ -2,10 +2,8 @@
 
 '''
 
-  canteen: main tests
-  ~~~~~~~~~~~~~~~~~~~
-
-  tests things at the top-level package main for canteen.
+  core hook tests
+  ~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

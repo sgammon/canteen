@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: adapter core tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  adapter core tests
+  ~~~~~~~~~~~~~~~~~~
 
   tests core adapter functionality, like MRO-based method
   injection into regular :py:class:`model.Key` and

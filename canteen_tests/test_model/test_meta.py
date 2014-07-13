@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model meta tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  model meta tests
+  ~~~~~~~~~~~~~~~~
 
   tests metacomponents of canteen's model layer.
 

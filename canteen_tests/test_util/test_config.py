@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: config tests
-  ~~~~~~~~~~~~~~~~~~~~~
+  config tests
+  ~~~~~~~~~~~~
 
   tests for canteen's data structures utilities.
 

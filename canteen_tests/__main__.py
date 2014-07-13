@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: test runner
-  ~~~~~~~~~~~~~~~~~~~~
+  test runner
+  ~~~~~~~~~~~
 
   discovers canteen's tests, then runs them.
 

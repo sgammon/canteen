@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model key tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  model key tests
+  ~~~~~~~~~~~~~~~
 
   tests canteen's model keys.
 

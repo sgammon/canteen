@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: cli tests
-  ~~~~~~~~~~~~~~~~~~
+  cli tests
+  ~~~~~~~~~
 
   tests for canteen's data structures utilities.
 

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core runtime tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  core runtime tests
+  ~~~~~~~~~~~~~~~~~~
 
   tests canteen's runtime core, which is responsible for pulling
   the app together with glue and spit.

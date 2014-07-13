@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model adapter tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  model adapter tests
+  ~~~~~~~~~~~~~~~~~~~
 
   tests canteen's model adapters.
 
@@ -53,7 +53,7 @@ class AdapterExportTests(FrameworkTest):
 
     else:
       self.assertIsInstance(adapter, type(os))  # `adapter` module
-      self.assertIsInstance(adapter.abstract, type(os))  # `adapter.abstract` export
+      self.assertIsInstance(adapter.abstract, type(os))  # `adapter.abstract`
       self.assertTrue(adapter.ModelAdapter)  # `ModelAdapter` parent class
 
 

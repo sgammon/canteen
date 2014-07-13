@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: decorator tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  decorator tests
+  ~~~~~~~~~~~~~~~
 
   tests for canteen's decorator utilities.
 

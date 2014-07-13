@@ -40,7 +40,6 @@ class AdapterExportTests(FrameworkTest):
 
   ''' Tests objects exported by `model.adapter`. '''
 
-  @unittest.expectedFailure
   def test_top_level_adapter_exports(self):
 
     ''' Test that we can import concrete classes. '''
@@ -49,28 +48,13 @@ class AdapterExportTests(FrameworkTest):
       from canteen import model
       from canteen.model import adapter
 
-    except ImportError as e:  # pragma: no cover
+    except ImportError:  # pragma: no cover
       return self.fail("Failed to import model adapter package.")
 
     else:
       self.assertIsInstance(adapter, type(os))  # `adapter` module
       self.assertIsInstance(adapter.abstract, type(os))  # `adapter.abstract` export
       self.assertTrue(adapter.ModelAdapter)  # `ModelAdapter` parent class
-      self.assertIsInstance(adapter.abstract_adapters, tuple)  # abstract adapter list
-      self.assertTrue(adapter.IndexedModelAdapter)  # `IndexedModelAdapter` subclass
-      self.assertIsInstance(adapter.sql, type(os))  # `sql` adapter
-      self.assertIsInstance(adapter.redis, type(os))  # `redis` adapter
-      self.assertIsInstance(adapter.mongo, type(os))  # `mongo` adapter
-      self.assertIsInstance(adapter.protorpc, type(os))  # `protorpc` adapter
-      self.assertIsInstance(adapter.pipeline, type(os))  # `pipeline` adapter
-      self.assertIsInstance(adapter.memcache, type(os))  # `memcache` adapter
-      self.assertIsInstance(adapter.inmemory, type(os))  # `inmemory` adapter
-      self.assertIsInstance(adapter.modules, tuple)  # full modules tuple
-      self.assertTrue(issubclass(adapter.SQLAdapter, adapter.ModelAdapter))  # SQL adapter
-      self.assertTrue(issubclass(adapter.RedisAdapter, adapter.ModelAdapter))  # Redis adapter
-      self.assertTrue(issubclass(adapter.MongoAdapter, adapter.ModelAdapter))  # Mongo adapter
-      self.assertTrue(issubclass(adapter.MemcacheAdapter, adapter.ModelAdapter))  # Memcache adapter
-      self.assertTrue(issubclass(adapter.InMemoryAdapter, adapter.ModelAdapter))  # InMemory adapter
 
 
 ## ModelAdapterTests

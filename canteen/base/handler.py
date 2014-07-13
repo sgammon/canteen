@@ -38,6 +38,7 @@ class Handler(object):
       template rendering, etc. '''
 
   # @TODO(sgammon): HTTPify
+  config = property(lambda self: {})
 
   __agent__ = None  # current `agent` details
   __status__ = 200  # keen is an optimistic bunch ;)
@@ -58,7 +59,7 @@ class Handler(object):
                      start_response=None,
                      runtime=None,
                      request=None,
-                     response=None, **context):
+                     response=None):
 
     ''' Initialize a new ``Handler`` object with proper ``environ`` details and
         inform it of larger world around it.
@@ -67,8 +68,8 @@ class Handler(object):
         usable independently as a WSGI-style callable. Note that the first two
         position parameters of this ``__init__`` are the venerable ``environ``
         and ``start_response`` - dispatching this way is totally possible, but
-        if ``runtime``, ``request`` and ``response`` are provided, much richer
-        integration is possible.
+        providing ``runtime``, ``request`` and ``response`` allow tighter
+        integration with the underlying runtime.
 
         Args:
           :param environ:
@@ -85,8 +86,6 @@ class Handler(object):
 
           :param response:
           :type response:
-
-        Kwargs:
 
         '''
 
@@ -159,12 +158,12 @@ class Handler(object):
 
       # Default Context
       'handler': self,
-      'config': self.runtime.config,
+      'config': getattr(self, 'config', {}),
       'runtime': self.runtime,
 
       # HTTP Context
       'http': {
-        'agent': self.agent,
+        'agent': getattr(self, 'agent', None),
         'request': self.request,
         'response': self.response
       },
@@ -172,6 +171,7 @@ class Handler(object):
       # WSGI internals
       'wsgi': {
         'environ': self.environ,
+        'callback': self.callback,
         'start_response': self.start_response
       },
 
@@ -247,6 +247,8 @@ class Handler(object):
 
         :returns: '''
 
+    from canteen.util import config
+
     # set mimetype
     if content_type: self.response.mimetype = content_type
 
@@ -270,7 +272,7 @@ class Handler(object):
     self.response.response, self.response.direct_passthrough = (
       self.template.render(
         self,
-        self.runtime.config,
+        getattr(self.runtime, 'config', config.Config()),
         template,
         _merged_context
       )), True

@@ -59,7 +59,7 @@ class Handler(object):
                      start_response=None,
                      runtime=None,
                      request=None,
-                     response=None):
+                     response=None, **context):
 
     ''' Initialize a new ``Handler`` object with proper ``environ`` details and
         inform it of larger world around it.

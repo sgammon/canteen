@@ -27,7 +27,6 @@ if __debug__:
 
   # import testsuite
   from . import test__init__
-  from . import test__main__
   from . import test_core
   from . import test_dispatch
   from . import test_rpc

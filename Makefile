@@ -50,7 +50,7 @@ develop: build package
 	@$(BINPATH)pip install -r dev_requirements.txt
 
 	@echo "Building..."
-	@python setup.py develop
+	@$(BINPATH)python setup.py develop
 else
 develop: build package
 	@echo "Building..."

@@ -15,16 +15,16 @@ DEPS?=1
 TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
+BINPATH?=bin/
 
 ## Flags
 TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=canteen_tests
-
 
 all: develop
 
 ifeq ($(TESTS),1)
 test:
-	@-bin/nosetests $(TEST_FLAGS) canteen_tests
+	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
 else
 test:
 	@echo "Skipping tests."
@@ -47,7 +47,7 @@ build: .Python dependencies
 ifeq ($(DEPS),1)
 develop: build package
 	@echo "Installing development tools..."
-	@bin/pip install -r dev_requirements.txt
+	@$(BINPATH)pip install -r dev_requirements.txt
 
 	@echo "Building..."
 	@python setup.py develop
@@ -66,8 +66,8 @@ release: build test package
 ifeq ($(DEPS),1)
 dependencies:
 	# install pip dependencies
-	@bin/pip install colorlog
-	@bin/pip install -r requirements.txt
+	@$(BINPATH)pip install colorlog
+	@$(BINPATH)pip install -r requirements.txt
 else
 dependencies:
 	@echo "Skipping dependencies..."

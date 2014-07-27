@@ -596,6 +596,52 @@ class IndexedModelAdapter(ModelAdapter):
     raise NotImplementedError()
 
 
+## GraphModelAdapter
+# Adapt apptools models to a Graph-based storage paradigm, defaulting to undirected.
+class GraphModelAdapter(ModelAdapter):
+
+  ''' Abstract base class for model adapters that support graph-type models. '''
+
+  @abc.abstractmethod
+  def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for ``key1``)
+        if no peer key is provided), optionally only of ``Edge`` type ``type``. '''
+
+    raise NotImplementedError()
+
+  @abc.abstractmethod
+  def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
+        optionally filtered by ``Edge`` type ``type``. '''
+
+    raise NotImplementedError()
+
+
+## DirectedGraphAdapter
+# Adapt apptools models to a directed-graph-based storage paradigm.
+class DirectedGraphAdapter(GraphModelAdapter):
+
+  ''' Abstract base class for model adpaters that support directed-graph-type models. '''
+
+  @abc.abstractmethod
+  def tails(cls, key, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all directed ``Edge``s that terminate at this node, optionally
+        filtering by ``Edge`` type ``type``. '''
+
+    raise NotImplementedError()
+
+  @abc.abstractmethod
+  def heads(cls, key, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all directed ``Edge``s that originate from this node, optionally
+        filtering by ``Edge`` type ``type``. '''
+
+    raise NotImplementedError()
+
+
 ## Mixin
 # Metaclass for registering mixins and applying them later.
 class Mixin(object):

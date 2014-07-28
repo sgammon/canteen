@@ -788,7 +788,7 @@ class Property(object):
                     self._required, self._repeated, self._indexed, **self._options)
 
   ## == Query Overrides (Operators) == ##
-  __sort__ = lambda self, other, direction: query.Sort(self, other, direction=(direction or query.Sort.ASCENDING))
+  __sort__ = lambda self, direction: query.Sort(self, operator=(direction or query.Sort.ASCENDING))
   __filter__ = lambda self, other, operator: query.Filter(self, other, operator=(operator or query.Filter.EQUALS))
 
 

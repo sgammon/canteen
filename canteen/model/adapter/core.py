@@ -131,6 +131,8 @@ class AdaptedModel(ModelMixin):
         else:
           raise RuntimeError('Cannot sort or filter based on arbitrary objects. Got: "%s".' % arg)
 
+      if 'options' in kwargs:
+        return query.Query(cls, filters=filters, sorts=sorts, options=kwargs['options'])
       return query.Query(cls, filters=filters, sorts=sorts, options=query.QueryOptions(**kwargs))
 
     context = (cls.__adapter__.__class__.__name__, cls.kind())

@@ -14,7 +14,7 @@
 '''
 
 
-__version__ = 'v3'
+__version__ = 'v4'
 
 
 # stdlib
@@ -82,7 +82,7 @@ class QueryOptions(object):
         :py:class:`Query`. '''
 
     # == Options == #
-    __slots__ = options = frozenset((
+    options = frozenset((
         '_keys_only',
         '_ancestor',
         '_limit',
@@ -92,6 +92,8 @@ class QueryOptions(object):
         '_plan',
         '_cursor'
     ))
+
+    __slots__ = frozenset(('__explicit__',)) | options
 
     option_names = frozenset(('_'.join(option.split('_')[1:]) for option in options))
 
@@ -124,8 +126,62 @@ class QueryOptions(object):
 
             :returns: Nothing, as this is a constructor. '''
 
+        self.__explicit__ = False  # initialize explicit flag
         map(lambda bundle: self._set_option(*bundle),
             map(lambda slot: (slot, kwargs.get(slot, datastructures._EMPTY)), self.option_names))
+
+    def __iter__(self):
+
+        ''' Iterate over options specified in this
+            :py:class:`QueryOptions` object. Imitates
+            the ``dict.iteritems`` interface, in that
+            it yields ``(k, v)`` pairs. '''
+
+        for option in self.option_names:
+            yield option, self._get_option(option)
+
+    def __enter__(self):
+
+        ''' Enter an iteration mode whereby default
+            *values* are omitted in favor of a sentinel
+            that indicates empty fields.
+
+            :returns: ``self``, in case an ``as`` block
+            is used. '''
+
+        self.__explicit__ = True
+        return self
+
+    def __exit__(self, type, value, traceback):
+
+        ''' Exit the special iteration mode whereby
+            default values are omitted.
+
+            :returns: ``True`` in the case of a successful
+            (read, non-excepting) enclosed block, else
+            ``False`` to propagate the exception. '''
+
+        self.__explicit__ = False
+        if traceback: return False
+        return True
+
+    def __repr__(self):
+
+        ''' Generate a pleasant string representation
+            of this :py:class:`QueryOptions` object.
+
+            :returns: Pleasant ``str`` label for this
+            object. '''
+
+        properties = []
+        with self:
+            for k, v in self:
+                if v is not datastructures._EMPTY:
+                    properties.append((k, v))
+
+        return "QueryOptions(%s)" % (
+            ", ".join(map(lambda (k, v): "=".join((k, str(v))), properties))
+        )
 
     ## == Protected Methods == ##
     def _set_option(self, name, value=datastructures._EMPTY):
@@ -183,7 +239,7 @@ class QueryOptions(object):
             :returns: Configuration value at ``name``,
             or ``default`` if no value was found. '''
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, basestring):  # pragma: no cover
             raise ValueError('Argument `name` of `_get_option` must '
                              'be a string internal property name. Got: "%s".' % str(name))
 
@@ -197,10 +253,35 @@ class QueryOptions(object):
 
         # return default value if empty slot was found, otherwise return value
         if val is datastructures._EMPTY:
+            if self.__explicit__:
+                return datastructures._EMPTY
             if default is datastructures._EMPTY:
                 return self._defaults.get(name, None)
             return default
         return val
+
+    def overlay(self, other, override=False):
+
+        ''' Combine this :py:class:`QueryOptions` object
+            with another one, by merging the ``other``
+            object's settings into this one.
+
+            :param other: Other :py:class:`QueryOptions`
+            object to collect overriden property values
+            from.
+
+            :returns: Resulting merged object, which is
+            simply ``self``. '''
+
+        with other:
+            with self:
+                for option, value in other:
+                    if value is not datastructures._EMPTY:
+                        this_value = self._get_option(option)
+                        if (this_value is datastructures._EMPTY) or override:
+                            self._set_option(option, value)
+        return self
+
 
     ## == Public Properties == ##
 
@@ -236,7 +317,7 @@ class AbstractQuery(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def filter(self, expression):
+    def filter(self, expression):  # pragma: no cover
 
         ''' Add a filter to the active :py:class:`Query`
             at ``self``.
@@ -248,7 +329,7 @@ class AbstractQuery(object):
         raise NotImplementedError('`filter` is abstract and may not be invoked directly.')
 
     @abc.abstractmethod
-    def sort(self, expression):
+    def sort(self, expression):  # pragma: no cover
 
         ''' Add a sort directive to the active :py:class:`Query`
             at ``self``.
@@ -260,7 +341,7 @@ class AbstractQuery(object):
         raise NotImplementedError('`sort` is abstract and may not be invoked directly.')
 
     @abc.abstractmethod
-    def hint(self, directive):
+    def hint(self, directive):  # pragma: no cover
 
         ''' Pass a hint to the query-planning subsystem for how
             this query could most efficiently be satisfied.
@@ -272,7 +353,7 @@ class AbstractQuery(object):
         raise NotImplementedError('`hint` is abstract and may not be invoked directly.')
 
     @abc.abstractmethod
-    def fetch(self, **options):
+    def fetch(self, **options):  # pragma: no cover
 
         ''' Fetch results for a :py:class:`Query`, via the
             underlying driver's :py:meth:`execute_query` method.
@@ -291,7 +372,7 @@ class AbstractQuery(object):
         raise NotImplementedError('`fetch` is abstract and may not be invoked directly.')
 
     @abc.abstractmethod
-    def get(self, **options):
+    def get(self, **options):  # pragma: no cover
 
         ''' Get a single result (by default, the first)
             matching a :py:class:`Query`.
@@ -348,10 +429,11 @@ class Query(AbstractQuery):
             :returns: String representation of
             the current :py:class:`Query`. '''
 
-        return "Query(%s, filter=%s, sort=%s)" % (
+        return "Query(%s, filter=%s, sort=%s, options=%s)" % (
             self.kind.kind(),
             '[' + ','.join((str(f) for f in self.filters)) + ']',
-            '[' + ','.join((str(s) for s in self.sorts)) + ']'
+            '[' + ','.join((str(s) for s in self.sorts)) + ']',
+            self.options.__repr__()
         )
 
     # @TODO(sgammon): async methods to execute
@@ -386,7 +468,10 @@ class Query(AbstractQuery):
             to this :py:class:`Query`. '''
 
         ## build query options
-        options = options or kwargs.get('options', QueryOptions(**kwargs) if kwargs else self.options)
+        if self.options and options:
+            options = self.options.overlay(options)
+        else:
+            options = options or kwargs.get('options', QueryOptions(**kwargs) if kwargs else self.options)
 
         ## fail for projection queries
         if options.projection:
@@ -429,6 +514,11 @@ class Query(AbstractQuery):
             :raises:
             :returns: '''
 
+        from canteen import model
+
+        if isinstance(expression, model.Property):
+            # default to descending sort
+            self.sorts.append(-expression)
         if isinstance(expression, Sort):
             self.sorts.append(expression)
         else:
@@ -465,7 +555,9 @@ class Query(AbstractQuery):
             matching the current :py:class:`Query`, or ``None``
             if no matching entities were found. '''
 
-        return self._execute(options=QueryOptions(**options))
+        result = self._execute(options=QueryOptions(**options))
+        if result: return result[0]
+        return result
 
     def fetch(self, **options):
 
@@ -561,7 +653,9 @@ class Filter(QueryComponent):
         ''' Generate a string representation of
             this :py:class:`Filter`. '''
 
-        return 'Filter(%s %s %s %s)' % (self.sub_operator.name if self.sub_operator else '', self.target.name, _operator_strings[self.operator], str(self.value))
+        return 'Filter(%s %s %s)' % (
+            (self.sub_operator.name + ' ') if self.sub_operator else '' + self.target.name,
+            _operator_strings[self.operator], str(self.value))
 
     def AND(self, filter_expression):
 
@@ -588,7 +682,7 @@ class Filter(QueryComponent):
 
         '''  '''
 
-        if self.operator not in _operator_map:
+        if self.operator not in _operator_map:  # pragma: no cover
             raise RuntimeError('Invalid comparison operator could not be matched: "%s".' % self.operator)
 
         try:
@@ -596,7 +690,8 @@ class Filter(QueryComponent):
             if isinstance(target, dict):
                 if self.target.name in target:
                     return _operator_map[self.operator](target[self.target.name], self.value.data)
-                return False  # no such property
+                # no such property
+                return False  # pragma: no cover
 
             # it's a model or something
             return _operator_map[self.operator](getattr(target, self.target.name), self.value.data)
@@ -637,4 +732,4 @@ class Sort(QueryComponent):
         ''' Generate a string representation of
             this :py:class:`Sort`. '''
 
-        return 'Sort(%s, %s)' % (self.target.name, self.direction)
+        return 'Sort(%s, %s)' % (self.target.name, self.operator)

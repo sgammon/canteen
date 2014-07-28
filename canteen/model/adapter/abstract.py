@@ -602,6 +602,18 @@ class GraphModelAdapter(ModelAdapter):
 
   ''' Abstract base class for model adapters that support graph-type models. '''
 
+  def _edges(self):
+
+    ''' '''
+
+    pass
+
+  def _neighbors(self):
+
+    '''  '''
+
+    pass
+
   @abc.abstractmethod
   def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
 
@@ -614,7 +626,7 @@ class GraphModelAdapter(ModelAdapter):
   def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
 
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
-        optionally filtered by ``Edge`` type ``type``. '''
+        optionally filtered by ``Edge`` type @``type``. '''
 
     raise NotImplementedError()
 
@@ -624,6 +636,12 @@ class GraphModelAdapter(ModelAdapter):
 class DirectedGraphAdapter(GraphModelAdapter):
 
   ''' Abstract base class for model adpaters that support directed-graph-type models. '''
+
+  def _heads_or_tails(self, tails=False):
+
+    '''  '''
+
+    pass
 
   @abc.abstractmethod
   def tails(cls, key, type=None, **kwargs):  # pragma: no cover

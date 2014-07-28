@@ -231,7 +231,7 @@ class Proxy(object):
               # clear vars
               prop, alias, _global = None, None, False
 
-              if not isinstance(bundle, tuple):
+              if not isinstance(bundle, tuple):  # pragma: no cover
                 property_bucket['.'.join((namespace, bundle)) if namespace else bundle] = (responder, bundle)
                 continue
 

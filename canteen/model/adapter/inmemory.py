@@ -14,8 +14,11 @@
 '''
 
 # stdlib
+import time
 import json
 import base64
+import datetime
+import itertools
 
 # adapter API
 from .abstract import IndexedModelAdapter
@@ -25,6 +28,20 @@ from .abstract import IndexedModelAdapter
 _init = False
 _metadata = {}
 _datastore = {}
+
+
+## Constants
+_sorted_types = (
+  int,
+  long,
+  float,
+  datetime.date,
+  datetime.datetime
+)
+
+
+## Utils
+_to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 
 ## InMemoryAdapter
@@ -189,17 +206,19 @@ class InMemoryAdapter(IndexedModelAdapter):
     return pointer
 
   @classmethod
-  def write_indexes(cls, writes, **kwargs):
+  def write_indexes(cls, writes, execute=True, **kwargs):
 
     ''' Write a set of generated indexes via `generate_indexes`. '''
 
     global _metadata
+    _write = {} if not execute else _metadata
 
     # extract indexes
     encoded, meta, properties = writes
 
     # write indexes one-by-one, generating reverse entries as we go
-    for write in meta + [value for serializer, value in properties]:
+    for serializer, write in itertools.chain(
+      ((None, _m) for _m in meta), (bundle for bundle in properties)):
 
       # filter out strings, convert to 1-tuples
       if isinstance(write, basestring):  # pragma: no cover
@@ -213,24 +232,33 @@ class InMemoryAdapter(IndexedModelAdapter):
         if isinstance(value, dict):  # pragma: no cover
           continue  # cannot index dictionaries
 
-        # init index hash (mostly covers custom indexes)
-        if index not in _metadata:  # pragma: no cover
-          _metadata[index] = {(path, value): set()}
+        # convert into a compound sorted index
+        if isinstance(value, _sorted_types):
 
-        elif (path, value) not in _metadata[index]:
-          _metadata[index][(path, value)] = set()
+          if isinstance(value, datetime.datetime):
+            value = _to_timestamp(value)
 
-        # write key to index
-        _metadata[index][(path, value)].add(encoded)
+          write = (index, path, (value, encoded))
 
-        # add reverse index
-        if encoded not in _metadata[cls._reverse_prefix]:  # pragma: no cover
-          _metadata[cls._reverse_prefix][encoded] = set()
-        _metadata[cls._reverse_prefix][encoded].add((index, path, value))
+        else:
+          # init index hash (mostly covers custom indexes)
+          if index not in _write:  # pragma: no cover
+            _write[index] = {(path, value): set()}
 
-        continue
+          elif (path, value) not in _write[index]:
+            _write[index][(path, value)] = set()
 
-      elif len(write) == 3:  # pragma: no cover
+          # write key to index
+          _write[index][(path, value)].add(encoded)
+
+          # add reverse index
+          if encoded not in _write[cls._reverse_prefix]:  # pragma: no cover
+            _write[cls._reverse_prefix][encoded] = set()
+          _write[cls._reverse_prefix][encoded].add((index, path, value))
+
+          continue
+
+      if len(write) == 3:  # pragma: no cover
         # @TODO(sgammon): Do we need this?
 
         # simple map index
@@ -239,20 +267,27 @@ class InMemoryAdapter(IndexedModelAdapter):
         index, dimension, value = write
 
         # init index hash
-        if index not in _metadata:
-          _metadata[index] = {dimension: set((value,))}
+        if index not in _write:
+          _write[index] = {dimension: set((value,))}
 
-        elif dimension not in _metadata[index]:
-          _metadata[index][dimension] = set((value,))
+        elif dimension not in _write[index]:
+          _write[index][dimension] = set((value,))
 
         else:
           # everything is there, map the value
-          _metadata[index][dimension].add(value)
+          _write[index][dimension].add(value)
+
+        # add sorted mark, if necessary
+        if isinstance(value, tuple) and isinstance(value[0], _sorted_types):
+          _mark = (dimension, '__sorted__')
+          if _mark not in _write[index]:
+            _write[index][_mark] = {}
+          _write[index][_mark][encoded] = value
 
         # add reverse index
-        if encoded not in _metadata[cls._reverse_prefix]:
-          _metadata[cls._reverse_prefix][encoded] = set()
-        _metadata[cls._reverse_prefix][encoded].add((index, dimension))
+        if encoded not in _write[cls._reverse_prefix]:
+          _write[cls._reverse_prefix][encoded] = set()
+        _write[cls._reverse_prefix][encoded].add((index, dimension))
         continue
 
       elif len(write) == 2:  # simple set index
@@ -261,23 +296,23 @@ class InMemoryAdapter(IndexedModelAdapter):
         index, value = write
 
         # init index hash
-        if index not in _metadata:  # pragma: no cover
-          _metadata[index] = {value: set()}
+        if index not in _write:  # pragma: no cover
+          _write[index] = {value: set()}
 
         # init value set
-        elif value not in _metadata[index]:
-          _metadata[index][value] = set()
+        elif value not in _write[index]:
+          _write[index][value] = set()
 
         # only provision if value and index are different
         if index != value:
 
           # add encoded key
-          _metadata[index][value].add(encoded)
+          _write[index][value].add(encoded)
 
         # add reverse index
-        if encoded not in _metadata[cls._reverse_prefix]:
-          _metadata[cls._reverse_prefix][encoded] = set()
-        _metadata[cls._reverse_prefix][encoded].add(index)
+        if encoded not in _write[cls._reverse_prefix]:
+          _write[cls._reverse_prefix][encoded] = set()
+        _write[cls._reverse_prefix][encoded].add(index)
         continue
 
       elif len(write) == 1:  # simple key mapping
@@ -287,25 +322,27 @@ class InMemoryAdapter(IndexedModelAdapter):
 
         # special case: key index
         if index == cls._key_prefix:
-          _metadata[index].add(encoded)
+          _write[index].add(encoded)
           continue
 
         # provision index
-        if index not in _metadata:  # pragma: no cover
-          _metadata[index] = {}
+        if index not in _write:  # pragma: no cover
+          _write[index] = {}
 
         # add value to index
-        _metadata[index][encoded] = set()  # provision with a one-index entry
+        _write[index][encoded] = set()  # provision with a one-index entry
 
         # add reverse index
-        if encoded not in _metadata[cls._reverse_prefix]:  # pragma: no cover
-          _metadata[cls._reverse_prefix][encoded] = set()
-        _metadata[cls._reverse_prefix][encoded].add((index,))
+        if encoded not in _write[cls._reverse_prefix]:  # pragma: no cover
+          _write[cls._reverse_prefix][encoded] = set()
+        _write[cls._reverse_prefix][encoded].add((index,))
         continue
 
       else:  # pragma: no cover
         raise ValueError("Index mapping tuples must have at least 2 entries,"
-                 "for a simple set index, or more for a hashed index.")
+                         " for a simple set index, or more for a hashed index.")
+
+    return _write
 
   @classmethod
   def clean_indexes(cls, writes, **kwargs):
@@ -366,7 +403,16 @@ class InMemoryAdapter(IndexedModelAdapter):
           index, value = i
 
           if index in _metadata and value in _metadata[index]:
-            _metadata[index][value].remove(encoded)  # remove from set at item in mapping
+
+            # check sorted-ness
+            svalue = (value, '__sorted__')
+            if svalue in _metadata[index]:
+              sorted_entry = _metadata[index][svalue].get(encoded)
+              if sorted_entry:
+                _metadata[index][value].remove(sorted_entry)
+
+            else:
+              _metadata[index][value].remove(encoded)  # remove from set at item in mapping
 
             # if there's no keys left in the index, trim it
             if len(_metadata[index][value]) == 0:
@@ -391,7 +437,183 @@ class InMemoryAdapter(IndexedModelAdapter):
 
     ''' Execute a query across one (or multiple) indexed properties. '''
 
-    raise NotImplementedError('Queries are not yet supported in `InMemoryAdapter`.')
+    from canteen import model
+    from canteen.model import query
+
+    # extract spec
+    filters, sorts = spec
+
+    # calculate ancestry parent
+    ancestry_parent = None
+    if isinstance(options.ancestor, basestring):
+      ancestry_parent = model.Key.from_urlsafe(options.ancestor)
+    elif isinstance(options.ancestor, model.Key):
+      ancestry_parent = options.ancestor
+    elif isinstance(options.ancestor, model.Model):
+      ancestry_parent = options.ancestor.key
+
+    # prepare workspace
+    _data_frame, _init = set(), False
+    _special_indexes, _sorted_indexes, _unsorted_indexes = [], [], []
+    _index_groups = (_special_indexes, _sorted_indexes, _unsorted_indexes)
+
+    ## apply ancestry first
+    if ancestry_parent:
+      _group_index = _metadata[cls._group_prefix].get(ancestry_parent.urlsafe())
+      if _group_index: _special_indexes.append(_group_index)
+
+    ## apply filters
+    if filters or ancestry_parent:
+
+      for _f in filters:
+
+        _filter_val = _f.value.data
+
+        if isinstance(_f.value.data, _sorted_types):
+
+          # convert timestamps
+          if isinstance(_f.value.data, (datetime.datetime, datetime.date)):
+            _filter_val = _to_timestamp(_f.value.data)
+
+          # valued index
+          _index_key = (kind.__name__, _f.target.name)
+          if _index_key in _metadata[cls._index_prefix]:
+            _sorted_indexes.append((
+              _f.target.name,
+              _f.operator,
+              _filter_val,
+              _metadata[cls._index_prefix][_index_key]))
+
+        else:
+
+          # devalued index
+          _index_key = ((kind.__name__, _f.target.name), _f.value.data)
+          if _index_key in _metadata[cls._index_prefix]:
+            _unsorted_indexes.append(_metadata[cls._index_prefix][_index_key])
+
+      for group in _index_groups:
+        for directive in group:
+
+          # sorted indexes
+          if isinstance(directive, tuple):
+            target, operator, value, index = directive
+            high_bound = (value if (operator in (
+              query.LESS_THAN, query.LESS_THAN_EQUAL_TO)) else None)
+            low_bound = (value if (operator in (
+              query.GREATER_THAN, query.GREATER_THAN_EQUAL_TO)) else None)
+
+            if low_bound and not high_bound:
+              evaluate = lambda (value, _): (low_bound < value)
+
+            elif low_bound and high_bound:
+              evaluate = lambda (value, _): (low_bound < value < high_bound)
+
+            elif high_bound:  # high-bound only
+              evaluate = lambda (value, _): (value < high_bound)
+
+            else:  # invalid filter
+              raise RuntimeError('Invalid sorted filter operation: "%s".' % operator)
+
+            if not _init:  # no frame yet, initialize
+              _init = True
+              _data_frame = set((value for _, value in filter(evaluate, index)))
+            else:  # otherwise, filter
+              _data_frame &= set((value for _, value in filter(evaluate, index)))
+
+          # unsorted indexes
+          else:
+
+            if not _init:  # no frame yet, initialize
+              _init = True
+              _data_frame = directive
+            else:  # otherwise, filter
+              _data_frame &= directive
+
+    elif not filters and not ancestry_parent:
+      # no filters - working with _all_ models of a kind as base
+      _data_frame = _metadata[cls._kind_prefix].get(kind.__name__)
+
+    ## inflate results (keys only)
+    if options.keys_only:
+      return (model.Key.from_urlsafe(k, _persisted=True) for k in _data_frame)
+
+    result_entities = []
+
+    ## inflate results (full models)
+    for key, entity in ((model.Key.from_urlsafe(k, _persisted=True), _datastore[k]) for k in _data_frame):
+
+      _seen_results = 0
+      if not entity: continue
+      if (options.limit > 0) and _seen_results >= options.limit:
+        break
+
+      # attach key, decode entity and construct
+      entity['key'] = key
+
+      _seen_results += 1
+      result_entities.append(kind(_persisted=True, **entity))
+
+    if not len(result_entities) > 1:
+      return result_entities  # no need to sort, obvs
+
+    ## apply sorts
+    if sorts:
+
+      def do_sort(sort, results):
+
+        '''  '''
+
+        _sort_i = set()
+        _sort_frame = []
+        _sort_values = {}
+
+        # build value index and map to keys
+        for result in results:
+          val = getattr(result, sort.target.name, None)
+          if val is not None:
+
+            if val not in _sort_values:
+              _sort_i.add(val)  # add to known values
+              _sort_values[val] = set()  # provision value -> obj map
+            _sort_values[val].add(result)  # add to map
+
+        _rvs = lambda d: reversed(sorted(d))
+        _fwd = lambda d: sorted(d)
+
+        if sort.target._basetype in (basestring, str, unicode):
+          sorter = (_rvs if (
+                    sort.operator is query.ASCENDING) else _fwd)
+
+        else:
+          sorter = (_fwd if (
+                    sort.operator is query.ASCENDING) else _rvs)
+
+        # choose iterator and start sorting
+        for value in sorter(_sort_i):
+
+          # quick optimization: no need to subgroup, just one sort
+          if len(sorts) == 1:
+            for _valued_result in _sort_values[value]:
+              _sort_frame.append(_valued_result)
+
+          # aww, we have to subgroup and subsort
+          if len(sorts) > 1:
+            _sort_frame.append((value, _sort_values[value]))  # add sorted groups of values
+
+        return _sort_frame
+
+      if len(sorts) == 1:
+        return do_sort(sorts[0], result_entities)
+
+      if len(sorts) > 1:
+
+        # sort atop the result of the last sort
+        _sort_base = []
+        for sort in sorts:
+          _sort_base = do_sort(sort, (_sort_base and result_entities) or _sort_base)
+        return _sort_base
+
+    return result_entities
 
 
 __all__ = ('InMemoryAdapter',)

@@ -804,8 +804,16 @@ class RedisAdapter(IndexedModelAdapter):
 
     # extract filter and sort directives and build ancestor
     filters, sorts = spec
-    ancestry_parent = model.Key.from_urlsafe(options.ancestor) if options.ancestor else None
     _data_frame = []  # allocate results window
+
+    # calculate ancestry parent
+    ancestry_parent = None
+    if isinstance(options.ancestor, basestring):
+      ancestry_parent = model.Key.from_urlsafe(options.ancestor)
+    elif isinstance(options.ancestor, model.Key):
+      ancestry_parent = options.ancestor
+    elif isinstance(options.ancestor, model.Model):
+      ancestry_parent = options.ancestor.key
 
     _and_filters, _or_filters = [], []
 
@@ -869,8 +877,8 @@ class RedisAdapter(IndexedModelAdapter):
                   cls.Operations.SORTED_RANGE_BY_SCORE,
                   None,
                   prop,
-                  min(_values),
-                  max(_values),
+                  lesser,
+                  greater,
                   options.offset,
                   options.limit
                 )))

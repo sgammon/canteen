@@ -338,6 +338,40 @@ class QueryTests(FrameworkTest):
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
     assert q.filters[0].match(matching_model)
 
+  def test_manual_filter_match_value(self):
+
+    ''' Test manually matching a raw value against a `Filter` '''
+
+    options = query.QueryOptions(limit=50, ancestor=model.Key(inmemory.InMemoryModel, 'hi'))
+    q = inmemory.InMemoryModel.query(options=options)
+
+    assert q.options.limit == 50
+    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+
+    q.filter(inmemory.InMemoryModel.number <= 5)
+    matching_model = inmemory.InMemoryModel(number=1, string='womp')
+
+    assert len(q.filters) == 1
+    assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
+    assert q.filters[0].match(matching_model.number)
+
+  def test_manual_filter_match_raw_entity(self):
+
+    ''' Test manually matching a raw entity against a `Filter` '''
+
+    options = query.QueryOptions(limit=50, ancestor=model.Key(inmemory.InMemoryModel, 'hi'))
+    q = inmemory.InMemoryModel.query(options=options)
+
+    assert q.options.limit == 50
+    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+
+    q.filter(inmemory.InMemoryModel.number <= 5)
+    matching_model = inmemory.InMemoryModel(number=1, string='womp')
+
+    assert len(q.filters) == 1
+    assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
+    assert q.filters[0].match(matching_model.to_dict())
+
   def test_sort_string_repr(self):
 
     ''' Test the string representation for a `Sort` '''

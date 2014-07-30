@@ -726,11 +726,14 @@ class Filter(QueryComponent):
         # no such property
         return False  # pragma: no cover
 
+      # it's a raw value of some sort
+      if isinstance(target, self.target._basetype):
+        return _operator_map[self.operator](target, self.value.data)
+
       # it's a model or something
       return _operator_map[self.operator](getattr(target, self.target.name), self.value.data)
 
-    except AttributeError:
-      raise
+    except AttributeError:  # pragma: no cover
       return False  # no such property
 
   def __call__(self, target):

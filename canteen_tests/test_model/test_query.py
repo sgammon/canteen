@@ -113,6 +113,72 @@ class QueryTests(FrameworkTest):
     assert q.options.limit == 50
     assert q.options.ancestor == model.Key('SampleModel', 'hi')
 
+  def test_interface_primitive_filter_objects(self):
+
+    ''' Test using primitive `query.Filter` objects in a `model.Query` '''
+
+    class SomeModel(model.Model):
+
+        ''' Some sample model '''
+
+        string = basestring
+        integer = int
+
+    filter_one = query.Filter(SomeModel.string, 'hi', operator=query.EQUALS)
+    filter_two = query.Filter(SomeModel.integer, 5, operator=query.GREATER_THAN)
+
+    q = SomeModel.query(filter_one, filter_two)
+
+    assert len(q.filters) == 2
+    assert filter_one in q.filters
+    assert filter_two in q.filters
+
+  def test_interface_primitive_sort_objects(self):
+
+    ''' Test using primitive `query.Sort` objects in a `model.Query` '''
+
+    class SomeModel(model.Model):
+
+        ''' Some sample model '''
+
+        string = basestring
+        integer = int
+
+    sort_one = query.Sort(SomeModel.string, operator=query.ASCENDING)
+    sort_two = query.Sort(SomeModel.integer, operator=query.DSC)
+
+    q = SomeModel.query(sort_one, sort_two)
+
+    assert len(q.sorts) == 2
+    assert sort_one in q.sorts
+    assert sort_two in q.sorts
+
+  def test_interface_primitive_both_objects(self):
+
+    ''' Test using primitive `query.Sort` inline with `query.Filter` objects in a `model.Query` '''
+
+    class SomeModel(model.Model):
+
+        ''' Some sample model '''
+
+        string = basestring
+        integer = int
+
+    filter_one = query.Filter(SomeModel.string, 'hi', operator=query.EQUALS)
+    filter_two = query.Filter(SomeModel.integer, 5, operator=query.GREATER_THAN)
+    sort_one = query.Sort(SomeModel.string, operator=query.ASCENDING)
+    sort_two = query.Sort(SomeModel.integer, operator=query.DSC)
+
+    q = SomeModel.query(filter_one, filter_two, sort_one, sort_two)
+
+    assert len(q.filters) == 2
+    assert filter_one in q.filters
+    assert filter_two in q.filters
+
+    assert len(q.sorts) == 2
+    assert sort_one in q.sorts
+    assert sort_two in q.sorts
+
   def test_interface_sort_default(self):
 
     ''' Test specifying a (default-direction) `Sort` '''

@@ -40,7 +40,7 @@ else:  # pragma: no cover
     config.config[k]['debug'] = True
 
 # canteen model API
-from canteen import model
+from canteen import model, core
 from canteen.model import adapter
 from canteen.model import exceptions
 
@@ -291,6 +291,15 @@ class ModelTests(FrameworkTest):
         raw_dict['lastname']
     return raw_dict
 
+  def test_model_to_dict_schema(self):
+
+    ''' Test flattening a `Model` class into a schema dictionary '''
+
+    schema = Person.to_dict_schema()
+    assert 'firstname' in schema
+    assert isinstance(schema['firstname'], model.Property)
+    assert schema['firstname']._basetype == basestring
+
   def test_model_to_dict_all_arguments(self, method='to_dict'):
 
     ''' Test using `Model.to_dict` with the `all` flag '''
@@ -425,6 +434,83 @@ class ModelTests(FrameworkTest):
     test_json_flow(test_structs['filtered_dict'])
     test_json_flow(test_structs['included_dict'])
     test_json_flow(test_structs['excluded_dict'])
+
+  def test_inflate_model_from_json(self):
+
+    ''' Test inflating a `Model` object from a JSON string '''
+
+    obj = {'firstname': 'John', 'lastname': 'Doe'}
+    json_string = json.dumps(obj)
+
+    # load into object
+    p = Person.from_json(json_string)
+    assert p.firstname == 'John'
+    assert p.lastname == 'Doe'
+
+  with core.Library('msgpack') as (library, msgpack):
+
+    import msgpack  # force re-import
+
+
+    def test_msgpack_model_format(self):
+
+      ''' Test serializing a `Model` into a msgpack struct '''
+
+      # sample person
+      p = Person(firstname='John', lastname='Doe')
+
+      # prepare mini testsuite
+      def test_msgpack_flow(original, mp=None):
+
+        if not mp:
+          # execute for the caller
+          original, mp = original('to_dict'), original('to_msgpack')
+
+        # test string
+        self.assertTrue(len(mp) > 0)
+        self.assertIsInstance(mp, basestring)
+
+        # test decode
+        decoded = self.msgpack.unpackb(mp)
+        self.assertIsInstance(decoded, dict)
+        self.assertEqual(len(original), len(decoded))
+
+        # test property values
+        for key in original:
+          self.assertEqual(original[key], decoded[key])
+
+      # test regular to_msgpack
+      test_msgpack_flow(p.to_dict(), p.to_msgpack())
+
+      # test all to_dict permutations with msgpack
+      test_structs = {
+        'raw_dict': self.test_model_to_dict,
+        'all_dict': self.test_model_to_dict_all_arguments,
+        'mapped_dict': self.test_model_to_dict_with_map,
+        'filtered_dict': self.test_model_to_dict_with_filter,
+        'included_dict': self.test_model_to_dict_with_include,
+        'excluded_dict': self.test_model_to_dict_with_exclude
+      }
+
+      # test each dict => msgpack flow
+      test_msgpack_flow(test_structs['raw_dict'])
+      test_msgpack_flow(test_structs['all_dict'])
+      test_msgpack_flow(test_structs['mapped_dict'])
+      test_msgpack_flow(test_structs['filtered_dict'])
+      test_msgpack_flow(test_structs['included_dict'])
+      test_msgpack_flow(test_structs['excluded_dict'])
+
+    def test_inflate_model_from_msgpack(self):
+
+      ''' Test inflating a `Model` object from a msgpack payload '''
+
+      obj = {'firstname': 'John', 'lastname': 'Doe'}
+      mpack = self.msgpack.dumps(obj)
+
+      # load into object
+      p = Person.from_msgpack(mpack)
+      assert p.firstname == 'John'
+      assert p.lastname == 'Doe'
 
   def test_explicit(self):
 

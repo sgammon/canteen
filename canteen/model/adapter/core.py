@@ -25,11 +25,6 @@ from .abstract import ModelMixin
 from .abstract import VertexMixin
 from .abstract import IndexedModelAdapter
 
-# canteen util
-
-# @TODO(sgammon): fix this
-#from canteen.util import json
-
 
 ## Globals
 _conditionals = []
@@ -137,9 +132,10 @@ class AdaptedModel(ModelMixin):
         return query.Query(cls, filters=filters, sorts=sorts, options=kwargs['options'])
       return query.Query(cls, filters=filters, sorts=sorts, options=query.QueryOptions(**kwargs))
 
-    context = (cls.__adapter__.__class__.__name__, cls.kind())
-    raise AttributeError("Adapter \"%s\" (currently selected for model \"%s\") does not support indexing, "
-                         " and therefore can't support `model.Query` objects." % context)
+    else:  # pragma: no cover
+      context = (cls.__adapter__.__class__.__name__, cls.kind())
+      raise AttributeError("Adapter \"%s\" (currently selected for model \"%s\") does not support indexing, "
+                           " and therefore can't support `model.Query` objects." % context)
 
   ## = Public Methods = ##
   def put(self, adapter=None, **kwargs):
@@ -162,17 +158,17 @@ class AdaptedVertex(VertexMixin):
 
   ''' Provides graph-oriented methods for ``Vertex`` objects. '''
 
-  def edges(self):
+  def edges(self):  # pragma: no cover
 
     ''' Retrieve edges for the current ``Vertex``. '''
 
-    pass
+    raise NotImplementedError('`edges` is currently stubbed')
 
-  def neighbors(self):
+  def neighbors(self):  # pragma: no cover
 
     ''' Retrieve neighbors (peered edges) for the current ``Vertex``. '''
 
-    pass
+    raise NotImplementedError('`neighbors` is currently stubbed')
 
 
 ## AdaptedEdge
@@ -180,11 +176,11 @@ class AdaptedEdge(EdgeMixin):
 
   ''' Provides graph-oriented methods for ``Edge objects``. '''
 
-  def peers(self):
+  def peers(self):  # pragma: no cover
 
     ''' Retrieve ``Vertex``(es) attached to the tail and head of this ``Edge``. '''
 
-    pass
+    raise NotImplementedError('`peers` is currently stubbed')
 
 
 ## DictMixin
@@ -249,11 +245,14 @@ class DictMixin(KeyMixin, ModelMixin):
     return dictionary
 
   @classmethod
-  def to_dict_schema(cls, *args, **kwargs):
+  def to_dict_schema(cls):
 
     ''' Convert a model or entity's schema to a dictionary, where keys=>values map to properties=>descriptors. '''
 
-    raise NotImplementedError()
+    schema = {}
+    for name in cls.__lookup__:
+      schema[name] = getattr(cls, name)
+    return schema
 
 
 ## JSONMixin
@@ -268,7 +267,14 @@ class JSONMixin(KeyMixin, ModelMixin):
     return json.dumps(self.to_dict(*args, **kwargs))
 
   @classmethod
-  def to_json_schema(cls, *args, **kwargs):
+  def from_json(cls, encoded):
+
+    ''' Inflate a JSON string into an entity. Expects a dictionary of properties=>values. '''
+
+    return cls(**json.loads(encoded))
+
+  @classmethod
+  def to_json_schema(cls, *args, **kwargs):  # pragma: no cover
 
     ''' Convert a model or entity's schema to a dictionary, where keys=>values map to JSON Schema representing properties=>descriptors. '''
 
@@ -283,6 +289,7 @@ except ImportError as e:  # pragma: no cover
 
 else:
 
+
   ## MsgpackMixin
   class MsgpackMixin(KeyMixin, ModelMixin):
 
@@ -295,7 +302,14 @@ else:
       return msgpack.dumps(self.to_dict(*args, **kwargs))
 
     @classmethod
-    def to_msgpack_schema(cls, *args, **kwargs):
+    def from_msgpack(cls, encoded):
+
+      ''' Inflate a msgpack payload into an entity. Expects a dictionary of properties=>values. '''
+
+      return cls(**msgpack.unpackb(encoded))
+
+    @classmethod
+    def to_msgpack_schema(cls, *args, **kwargs):  # pragma: no cover
 
       ''' Convert a model or entity's schema to a dictionary, where keys=>values map to internal symbols representing properties=>descriptors. '''
 

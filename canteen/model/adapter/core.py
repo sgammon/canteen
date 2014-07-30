@@ -158,6 +158,8 @@ class AdaptedVertex(VertexMixin):
 
   ''' Provides graph-oriented methods for ``Vertex`` objects. '''
 
+  __graph__ = __vertex__ = True  # mark as graph model and vertex
+
   def edges(self):  # pragma: no cover
 
     ''' Retrieve edges for the current ``Vertex``. '''
@@ -175,6 +177,8 @@ class AdaptedVertex(VertexMixin):
 class AdaptedEdge(EdgeMixin):
 
   ''' Provides graph-oriented methods for ``Edge objects``. '''
+
+  __graph__ = __edge__ = True  # mark as graph model and vertex
 
   def peers(self):  # pragma: no cover
 

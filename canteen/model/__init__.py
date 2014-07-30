@@ -36,8 +36,21 @@ from canteen.util.struct import _EMPTY
 # Globals / Sentinels
 _NDB = False  # `canteen.model` no longer supports NDB
 _MULTITENANCY = False  # toggle multitenant key namespaces
+Edge = Vertex = Model = AbstractModel = None  # must initially be `None`
 _DEFAULT_KEY_SCHEMA = tuple(['id', 'kind', 'parent'])  # default key schema
 _MULTITENANT_KEY_SCHEMA = tuple(['id', 'kind', 'parent', 'namespace', 'app'])
+
+
+def noglobal(name):
+
+  ''' Simple utility to interrogate the global context
+      and see if something is defined yet.
+
+      :param name: Name to check for global definition
+      in this module. '''
+
+  gl = globals()
+  return (name in gl and (not gl[name]))
 
 
 ## == Metaclasses == ##
@@ -363,7 +376,7 @@ class AbstractModel(object):
       _nondata_map = {}
 
       # core classes eval before being defined - must use string name :(
-      if name not in frozenset(['AbstractModel', 'Model', 'Vertex', 'Edge']):
+      if name not in frozenset(['AbstractModel', 'Model']):
 
         modelclass = {}
 
@@ -380,7 +393,7 @@ class AbstractModel(object):
           _nondata_map[prop] = value
 
         # merge and clone all basemodel properties, update dictionary with property map
-        if len(bases) > 1 or bases[0] not in frozenset((Model, Vertex, Edge)):
+        if len(bases) > 1 or bases[0] is not Model:
 
           # build a full property map, after reducing parents left -> right
           property_map = dict([(key, value) for key, value in reduce(lambda left, right: left + right,
@@ -404,17 +417,21 @@ class AbstractModel(object):
         modelclass.update(_nondata_map)  # update at class-level with non data properties
         modelclass.update(_model_internals)  # lastly, apply model internals (should always override)
 
-        if any((hasattr(b, '__graph__') for b in bases)):
-          object_graph_flag = '__%s__' % (
-            'vertex' if any((hasattr(b, '__vertex__') for b in bases)) else 'edge')
+        # for top-level graph objects
+        if name in ('Edge', 'Vertex'):
+          if noglobal(name):
+            graph_object_flag = '__%s__' % name.lower()  # make flag for edge/vertex class
+            properties['__graph__'] = properties[graph_object_flag] = True  # mark as graph model and according type
+
+        # for graph-object subclasses
+        elif any((hasattr(b, '__graph__') for b in bases)) or name in ('Edge', 'Vertex'):
+          object_owner = 'Vertex' if any((hasattr(b, '__vertex__') for b in bases)) else 'Edge'
+          object_graph_flag = '__%s__' % object_owner.lower()
+          _model_internals['__owner__'] = object_owner
           _model_internals['__graph__'] = _model_internals[object_graph_flag] = True
 
         impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)  # inject our own property map
         return impl.__adapter__._register(impl)
-
-      if name in ('Edge', 'Vertex'):
-        graph_object_flag = '__%s__' % name.lower()  # make flag for edge/vertex class
-        properties['__graph__'] = properties[graph_object_flag] = True  # mark as graph model and according type
 
       return name, bases, properties  # pass-through to `type`
 
@@ -423,23 +440,34 @@ class AbstractModel(object):
       ''' Generate a fully-mixed method resolution order for `AbstractModel` subclasses. '''
 
       if cls.__name__ != 'AbstractModel':  # must be a string, `AbstractModel` constructs here
-        if cls.__name__ == 'Vertex': return (cls, VertexMixin.compound, Model, object)  # hook up vertex
-        if cls.__name__ == 'Edge': return (cls, EdgeMixin.compound, Model, AbstractModel, object)  # hook up edge
-        if any((hasattr(b, '__graph__') for b in cls.__bases__)):  # handle graph-based models
+        if cls.__name__ == 'Model': return (
+          cls, AbstractModel, ModelMixin.compound, object)  # inheritance for `Model`
+        elif cls.__name__ == 'Vertex' and cls.__owner__ == 'Model' and noglobal('Vertex'): return (
+          cls, VertexMixin.compound, Model, ModelMixin.compound, AbstractModel, object)  # hook up vertex
+        elif cls.__name__ == 'Edge' and cls.__owner__ == 'Model' and noglobal('Edge'): return (
+          cls, EdgeMixin.compound, Model, ModelMixin.compound, AbstractModel, object)  # hook up edge
+        elif any((hasattr(b, '__graph__') for b in cls.__bases__)):  # handle graph-based models
           _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))  # test if this is a vertex
           return tuple([cls] + [i for i in cls.__bases__ if i not in (Vertex, Edge, Model, AbstractModel)] +
                        [(Vertex if _vertex else Edge), Model, AbstractModel, (
                          VertexMixin.compound if _vertex else EdgeMixin.compound), ModelMixin.compound, object])
-        if cls.__name__ not in frozenset(('Model', 'Vertex', 'Edge')):  # must be a string, same reason as above
+        if cls.__name__ not in frozenset(('Model', 'AbstractModel')):
           return tuple([cls] + [i for i in cls.__bases__ if i not in (Model, AbstractModel)] +
                        [Model, AbstractModel, ModelMixin.compound, object])  # full inheritance chain
-        return (cls, AbstractModel, ModelMixin.compound, object)  # inheritance for `Key`
-      return (cls, ModelMixin.compound, object)  # inheritance for `AbstractKey`
+      return (cls, ModelMixin.compound, object)  # inheritance for `AbstractModel`
 
-    # util: generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)".
-    __repr__ = lambda cls: '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__))
-                           if (cls.__name__ not in (
-                            'Model', 'AbstractModel', 'Vertex', 'Edge')) else "%s()" % cls.__name__)
+    def __repr__(cls):
+
+      ''' Generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)". '''
+
+      if cls.__name__ in frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge')):
+        if (cls.__name__ in frozenset(('Vertex', 'Edge')) and cls.__owner__ == 'Model') or (
+          cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
+          return "%s()" % cls.__name__
+      if not hasattr(cls, '__lookup__'): return 'Model<%s>' % cls.__name__  # primitive label before MRO
+      return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
+
+    __str__ = __unicode__ = __repr__
 
     def __setattr__(cls, name, value, exception=exceptions.InvalidAttributeWrite):
 

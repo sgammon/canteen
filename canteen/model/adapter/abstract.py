@@ -32,11 +32,19 @@ _adapters = {}
 _adapters_by_model = {}
 _compressor = None  # compressor for data marked for compression
 _encoder = base64.b64encode  # encoder for key names and special strings, if enabled
-_core_mixin_classes = ('Mixin', 'KeyMixin', 'ModelMixin', 'CompoundKey', 'CompoundModel')
+_core_mixin_classes = (
+    'Mixin',
+    'KeyMixin', 'ModelMixin',
+    'CompoundKey', 'CompoundModel',
+    'VertexMixin', 'EdgeMixin',
+    'CompoundVertex', 'CompoundEdge'
+)
 
 ## Computed Classes
 CompoundKey = None
 CompoundModel = None
+CompoundVertex = None
+CompoundEdge = None
 
 try:
   import zlib; _compressor = zlib
@@ -598,13 +606,19 @@ class IndexedModelAdapter(ModelAdapter):
 
 ## GraphModelAdapter
 # Adapt apptools models to a Graph-based storage paradigm, defaulting to undirected.
-class GraphModelAdapter(ModelAdapter):
+class GraphModelAdapter(IndexedModelAdapter):
 
   ''' Abstract base class for model adapters that support graph-type models. '''
 
   def _edges(self):
 
     ''' '''
+
+    pass
+
+  def _connect(self):
+
+    '''  '''
 
     pass
 
@@ -620,7 +634,15 @@ class GraphModelAdapter(ModelAdapter):
     ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for ``key1``)
         if no peer key is provided), optionally only of ``Edge`` type ``type``. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`edges` is abstract.')
+
+  @abc.abstractmethod
+  def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
+
+    ''' Connect two objects (espressed as ``key1`` and ``key2``) as ``Vertexes`` by
+        an ``Edge``. Accepts an ``Edge`` object to use for the connection. '''
+
+    raise NotImplementedError('`connect` is abstract.')
 
   @abc.abstractmethod
   def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
@@ -628,7 +650,7 @@ class GraphModelAdapter(ModelAdapter):
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
         optionally filtered by ``Edge`` type @``type``. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`neighbors` is abstract.')
 
 
 ## DirectedGraphAdapter
@@ -677,6 +699,8 @@ class Mixin(object):
     _mixin_lookup = set()
     _key_mixin_registry = {}
     _model_mixin_registry = {}
+    _vertex_mixin_registry = {}
+    _edge_mixin_registry = {}
 
     def __new__(cls, name, bases, properties):
 
@@ -695,16 +719,6 @@ class Mixin(object):
 
       # register mixin if it's not a concrete parent and is unregistered
       if name not in frozenset(_core_mixin_classes) and name not in cls._mixin_lookup:
-        if KeyMixin not in bases and ModelMixin not in bases:
-          ## we can only directly extend `Mixin` from `KeyMixin` and `ModelMixin`
-          raise RuntimeError("Cannot directly extend `Mixin` - you must extend `KeyMixin` or `ModelMixin`.")
-        elif len(bases) > 1:
-          for base in bases:
-            if base not in frozenset((KeyMixin, ModelMixin)):
-              ## mixins are only allowed to _directly_ extend `KeyMixin` or `ModelMixin`
-              raise RuntimeError("Cannot inject classes for inheritance in between"
-                                 " `KeyMixin` or `ModelMixin` and a concrete mixin class,"
-                                 " or after a concrete mixin class.")
 
         # add to each registry that the mixin supports
         for base in bases:
@@ -793,6 +807,28 @@ class ModelMixin(Mixin):
   __slots__ = tuple()
   __compound__ = 'CompoundModel'
   __registry__ = Mixin._model_mixin_registry
+
+
+## VertexMixin
+# Extendable, registered class that mixes in attributes to `Vertex`.
+class VertexMixin(Mixin):
+
+  ''' Allows injection of attributes into `Vertex`. '''
+
+  __slots__ = tuple()
+  __compound__ = 'CompoundVertex'
+  __registry__ = Mixin._vertex_mixin_registry
+
+
+## EdgeMixin
+# Extendable, registered class that mixes in attributes to `Edge`.
+class EdgeMixin(Mixin):
+
+  ''' Allows injection of attributes into `Edge`. '''
+
+  __slots__ = tuple()
+  __compound__ = 'CompoundEdge'
+  __registry__ = Mixin._edge_mixin_registry
 
 
 __all__ = (

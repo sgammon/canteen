@@ -27,6 +27,7 @@ from . import exceptions
 # model adapters
 from .adapter import abstract, concrete
 from .adapter import KeyMixin, ModelMixin
+from .adapter import VertexMixin, EdgeMixin
 
 # datastructures
 from canteen.util.struct import _EMPTY
@@ -362,7 +363,7 @@ class AbstractModel(object):
       _nondata_map = {}
 
       # core classes eval before being defined - must use string name :(
-      if name not in frozenset(['AbstractModel', 'Model']):
+      if name not in frozenset(['AbstractModel', 'Model', 'Vertex', 'Edge']):
 
         modelclass = {}
 
@@ -379,7 +380,7 @@ class AbstractModel(object):
           _nondata_map[prop] = value
 
         # merge and clone all basemodel properties, update dictionary with property map
-        if len(bases) > 1 or bases[0] != Model:
+        if len(bases) > 1 or bases[0] not in frozenset((Model, Vertex, Edge)):
 
           # build a full property map, after reducing parents left -> right
           property_map = dict([(key, value) for key, value in reduce(lambda left, right: left + right,
@@ -403,8 +404,17 @@ class AbstractModel(object):
         modelclass.update(_nondata_map)  # update at class-level with non data properties
         modelclass.update(_model_internals)  # lastly, apply model internals (should always override)
 
+        if any((hasattr(b, '__graph__') for b in bases)):
+          object_graph_flag = '__%s__' % (
+            'vertex' if any((hasattr(b, '__vertex__') for b in bases)) else 'edge')
+          _model_internals['__graph__'] = _model_internals[object_graph_flag] = True
+
         impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)  # inject our own property map
         return impl.__adapter__._register(impl)
+
+      if name in ('Edge', 'Vertex'):
+        graph_object_flag = '__%s__' % name.lower()  # make flag for edge/vertex class
+        properties['__graph__'] = properties[graph_object_flag] = True  # mark as graph model and according type
 
       return name, bases, properties  # pass-through to `type`
 
@@ -413,15 +423,23 @@ class AbstractModel(object):
       ''' Generate a fully-mixed method resolution order for `AbstractModel` subclasses. '''
 
       if cls.__name__ != 'AbstractModel':  # must be a string, `AbstractModel` constructs here
-        if cls.__name__ != 'Model':  # must be a string, same reason as above
+        if cls.__name__ == 'Vertex': return (cls, VertexMixin.compound, Model, object)  # hook up vertex
+        if cls.__name__ == 'Edge': return (cls, EdgeMixin.compound, Model, AbstractModel, object)  # hook up edge
+        if any((hasattr(b, '__graph__') for b in cls.__bases__)):  # handle graph-based models
+          _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))  # test if this is a vertex
+          return tuple([cls] + [i for i in cls.__bases__ if i not in (Vertex, Edge, Model, AbstractModel)] +
+                       [(Vertex if _vertex else Edge), Model, AbstractModel, (
+                         VertexMixin.compound if _vertex else EdgeMixin.compound), object])
+        if cls.__name__ not in frozenset(('Model', 'Vertex', 'Edge')):  # must be a string, same reason as above
           return tuple([cls] + [i for i in cls.__bases__ if i not in (Model, AbstractModel)] +
-                 [Model, AbstractModel, ModelMixin.compound, object])  # full inheritance chain
+                       [Model, AbstractModel, ModelMixin.compound, object])  # full inheritance chain
         return (cls, AbstractModel, ModelMixin.compound, object)  # inheritance for `Key`
       return (cls, ModelMixin.compound, object)  # inheritance for `AbstractKey`
 
     # util: generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)".
     __repr__ = lambda cls: '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__))
-                 if (cls.__name__ not in ('Model', 'AbstractModel')) else "%s()" % cls.__name__)
+                           if (cls.__name__ not in (
+                            'Model', 'AbstractModel', 'Vertex', 'Edge')) else "%s()" % cls.__name__)
 
     def __setattr__(cls, name, value, exception=exceptions.InvalidAttributeWrite):
 
@@ -829,9 +847,25 @@ class Model(AbstractModel):
   kind = classmethod(lambda cls: cls.__name__)
 
 
+## Vertex
+class Vertex(Model):
+
+  ''' Concrete Vertex class. '''
+
+  __owner__ = 'Vertex'
+
+
+## Edge
+class Edge(Model):
+
+  ''' Concrete Edge class. '''
+
+  __owner__ = 'Edge'
+
+
 # Module Globals
 __abstract__ = (abstract, MetaFactory, AbstractKey, AbstractModel)
-__concrete__ = (concrete, Property, KeyMixin, ModelMixin, Key, Model)
+__concrete__ = (concrete, Property, KeyMixin, ModelMixin, Key, Model, Vertex, Edge)
 
 # All modules
 __all__ = (
@@ -846,6 +880,8 @@ __all__ = (
   'ModelMixin',
   'Key',
   'Model',
+  'Vertex',
+  'Edge',
   'adapter',
   'exceptions'
 )

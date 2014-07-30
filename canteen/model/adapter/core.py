@@ -20,7 +20,9 @@ import collections
 
 # mixin adapters
 from .abstract import KeyMixin
+from .abstract import EdgeMixin
 from .abstract import ModelMixin
+from .abstract import VertexMixin
 from .abstract import IndexedModelAdapter
 
 # canteen util
@@ -137,7 +139,7 @@ class AdaptedModel(ModelMixin):
 
     context = (cls.__adapter__.__class__.__name__, cls.kind())
     raise AttributeError("Adapter \"%s\" (currently selected for model \"%s\") does not support indexing, "
-               "and therefore can't support `model.Query` objects." % context)
+                         " and therefore can't support `model.Query` objects." % context)
 
   ## = Public Methods = ##
   def put(self, adapter=None, **kwargs):
@@ -153,6 +155,36 @@ class AdaptedModel(ModelMixin):
 
     if not adapter: adapter = self.__class__.__adapter__  # Allow adapter override
     return adapter._delete(self.__key__, **kwargs)
+
+
+## AdaptedVertex
+class AdaptedVertex(VertexMixin):
+
+  ''' Provides graph-oriented methods for ``Vertex`` objects. '''
+
+  def edges(self):
+
+    ''' Retrieve edges for the current ``Vertex``. '''
+
+    pass
+
+  def neighbors(self):
+
+    ''' Retrieve neighbors (peered edges) for the current ``Vertex``. '''
+
+    pass
+
+
+## AdaptedEdge
+class AdaptedEdge(EdgeMixin):
+
+  ''' Provides graph-oriented methods for ``Edge objects``. '''
+
+  def peers(self):
+
+    ''' Retrieve ``Vertex``(es) attached to the tail and head of this ``Edge``. '''
+
+    pass
 
 
 ## DictMixin

@@ -21,11 +21,12 @@ import datetime
 import itertools
 
 # adapter API
-from .abstract import IndexedModelAdapter
+from .abstract import GraphModelAdapter
 
 
 ## Globals
 _init = False
+_graph = {}
 _metadata = {}
 _datastore = {}
 
@@ -45,7 +46,7 @@ _to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 
 ## InMemoryAdapter
-class InMemoryAdapter(IndexedModelAdapter):
+class InMemoryAdapter(GraphModelAdapter):
 
   ''' Adapt model classes to RAM. '''
 
@@ -614,6 +615,27 @@ class InMemoryAdapter(IndexedModelAdapter):
         return _sort_base
 
     return result_entities
+
+  def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for ``key1``)
+        if no peer key is provided), optionally only of ``Edge`` type ``type``. '''
+
+    raise NotImplementedError('`edges` is abstract.')
+
+  def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
+
+    ''' Connect two objects (espressed as ``key1`` and ``key2``) as ``Vertexes`` by
+        an ``Edge``. Accepts an ``Edge`` object to use for the connection. '''
+
+    raise NotImplementedError('`connect` is abstract.')
+
+  def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
+
+    ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
+        optionally filtered by ``Edge`` type @``type``. '''
+
+    raise NotImplementedError('`neighbors` is abstract.')
 
 
 __all__ = ('InMemoryAdapter',)

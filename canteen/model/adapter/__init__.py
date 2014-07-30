@@ -23,6 +23,8 @@ from . import abstract
 from .abstract import Mixin
 from .abstract import KeyMixin
 from .abstract import ModelMixin
+from .abstract import VertexMixin
+from .abstract import EdgeMixin
 from .abstract import ModelAdapter
 from .abstract import IndexedModelAdapter
 
@@ -49,7 +51,8 @@ from . import core
 from .core import DictMixin
 from .core import JSONMixin
 
+base_mixins = [KeyMixin, ModelMixin, VertexMixin, EdgeMixin]
 builtin_mixins = [DictMixin, JSONMixin]
 
 
-__adapters__ = tuple(abstract_adapters + modules + concrete + builtin_mixins)
+__adapters__ = tuple(abstract_adapters + modules + concrete + builtin_mixins + base_mixins)

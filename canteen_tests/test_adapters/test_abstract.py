@@ -40,7 +40,7 @@ class AbstractModelAdapterTests(FrameworkTest):
     if getattr(self, '__abstract__', False):
       with self.assertRaises(TypeError):
         self.subject()
-    else:
+    else:  # pragma: no cover
       self.subject()
 
   def test_utilities(self):

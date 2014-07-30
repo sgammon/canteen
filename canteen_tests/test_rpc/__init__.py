@@ -14,3 +14,13 @@
             the root of the project.
 
 '''
+
+# protocol tests
+from . import test_json
+from . import test_msgpack
+
+
+__all__ = (
+  'test_json',
+  'test_msgpack'
+)

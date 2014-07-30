@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: JSONRPC protocol
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  canteen: JSON protocol
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -38,16 +38,10 @@ with runtime.Library('protorpc') as (library, protorpc):
   protojson = library.load('protojson')
 
 
-  @protocol.Protocol.register('jsonrpc', _content_types)
-  class JSONRPC(protocol.Protocol, protojson.ProtoJson):
+  @protocol.Protocol.register('json', _content_types)
+  class JSON(protocol.Protocol, protojson.ProtoJson):
 
     '''  '''
-
-    class JSONMessageCodec(protojson.MessageJSONEncoder):
-
-      '''  '''
-
-      pass
 
     def encode_message(self, message):
 

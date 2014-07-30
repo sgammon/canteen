@@ -15,7 +15,7 @@
 
 # module constants
 __version__ = (0, 7)  # module version-string
-__doc__ = "Contains modules that adapt apptools models to various storage backends."
+__doc__ = "Contains modules that adapt canteen models to various storage backends."
 
 
 # abstract adapters

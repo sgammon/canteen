@@ -14,3 +14,13 @@
             the root of the project.
 
 '''
+
+# abstract test bases
+from .test_abstract import IndexedModelAdapterTests
+
+
+## RedisAdapterTests
+# Tests the `Redis` model adapter.
+class RedisAdapterTests(IndexedModelAdapterTests):
+
+  ''' Tests `model.adapter.redis.Redis` '''

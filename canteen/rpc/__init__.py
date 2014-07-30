@@ -60,7 +60,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
   ## VariantField - a hack that allows a fully-variant field in ProtoRPC message classes.
   class VariantField(ProtoField):
 
-      ''' Field definition for a completely variant field. '''
+      ''' Field definition for a completely variant field. Allows containment
+          of any valid Python value supported by Protobuf/ProtoRPC. '''
 
       VARIANTS = frozenset([pmessages.Variant.DOUBLE, pmessages.Variant.FLOAT, pmessages.Variant.BOOL,
                             pmessages.Variant.INT64, pmessages.Variant.UINT64, pmessages.Variant.SINT64,
@@ -76,7 +77,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
   ## StringOrIntegerField - a message field that allows *both* strings and ints
   class StringOrIntegerField(ProtoField):
 
-      ''' Field definition for a field that can contain either a string or integer. '''
+      ''' Field definition for a field that can contain either a string or integer.
+          Usually used for key names/IDs or message IDs/hashes. '''
 
       VARIANTS = frozenset([pmessages.Variant.STRING, pmessages.Variant.DOUBLE,
                             pmessages.Variant.INT64, pmessages.Variant.INT32,
@@ -89,10 +91,10 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   #### ==== Message Classes ==== ####
 
-  ## Key - valid as a request or a response, specifies an apptools model key.
+  ## Key - valid as a request or a response, specifies a canteen model key.
   class Key(ProtoMessage):
 
-      ''' Message for a :py:class:`apptools.model.Key`. '''
+      ''' Message for a :py:class:`canteen.model.Key`. '''
 
       encoded = pmessages.StringField(1)  # encoded (`urlsafe`) key
       kind = pmessages.StringField(2)  # kind name for key
@@ -112,8 +114,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
   ## expose message classes alias
   messages = datastructures.WritableObjectProxy(**{
 
-      # apptools-provided messages
-      'Key': Key,  # message class for an apptools model key
+      # canteen-provided messages
+      'Key': Key,  # message class for a canteen model key
       'Echo': Echo,  # echo message defaulting to `hello, world` for testing
 
       # builtin messages
@@ -141,9 +143,30 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   def service_mappings(services, registry_path='/_rpc/meta', protocols=None):
 
-    '''  '''
+    ''' Generates mappings from `url -> service` for registered Canteen RPC services.
+
+        Takes an iterable of URL and service mappings, wraps with appropriate WSGI
+        utilities, and registers with registry service for Endpoints/meta integration.
+
+        :param services: Iterable of services, preferably a ``list`` of ``tuples``, where
+        each is in the format ``(url, service)``. ``url`` should be a relative prefix for
+        matching requests, like ``/_rpc/hello`` for something called ``HelloService``.
+
+        :param registry_path: Path prefix for ``RegistryService``, which returns metadata
+        about registered RPC services. Required for integration with Google Cloud Endpoints
+        or the various ProtoRPC client-side library generation options out there.
+
+        :param protocols: Protocols to use for dispatching services. Custom protocol
+        implementations are supported and two are shipped with canteen - ``JSON`` and
+        ``msgpack`` RPC formats (note: not necessarily affiliated with any standards that
+        are actually called "msgpack-rpc" or "jsonrpc").
+
+        :returns: WSGI application prepared by :py:mod:`protorpc`, which, upon dispatch,
+        will attempt to delegate response to the first matching ``Service`` implementation,
+        as governed by the mappings generated in this function from ``services``. '''
 
     if not protocols:
+      # load canteen builtin protocols
       from canteen.base import protocol
       protocols = protocol.Protocol.mapping
 
@@ -176,41 +199,97 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     return pwsgi_util.first_found(final_mapping)
 
 
-  @http.url('rpc', r'/_rpc/v1/<string:service>.<string:method>')
+  @http.url('rpc', r'/_rpc/<string:version>/<string:service>.<string:method>')
   class ServiceHandler(base.Handler):
 
-    '''  '''
+    ''' Builtin concrete :py:class:`base.Handler` for use with RPC services. As
+        services are bound to names, they are registered here and eventually
+        mapped URLs are generated (via `service_mappings`).
+
+        Normally this handler is mapped at ``/_rpc/<version>/<service>.<method>``,
+        which supports both service types ('concrete' and 'registry') at the
+        following URLs (with examples inline):
+
+        - concrete: ``/_rpc/v1/hello.hi`` for a ``HelloService`` with ``hi`` method
+        - meta: ``/_rpc/meta/registry.services`` to describe a service's methods '''
 
     __services__ = {}  # holds services mapped to their names
 
     @classmethod
-    def add_service(cls, name, service, **config):
+    def add_service(cls, name, service, config={}, **kwargs):
 
-      '''  '''
+      ''' Add a service to this handler's local dispatch registry.
+          Called from ``@rpc.service`` to mount a service to dispatch.
 
+          :param name: Simple string name for the service. For instance,
+          ``hello`` for ``HelloService``.
+
+          :param service: Service class to be registered.
+
+          :param config: Configuration can be passed as a dictionary
+          (at ``config``) or with ``kwargs``, which override items in
+          ``config``.
+
+          :returns: The service class passwd at ``service``. '''
+
+      config.update(kwargs)
       cls.__services__[name] = (service, config)
       return service
 
     @decorators.classproperty
-    def get_service(cls, name):
-
-      '''  '''
-
-      if name in cls.__services__:
-        return cls.__services__[name]
-
-    @decorators.classproperty
     def services(cls):
 
-      '''  '''
+      ''' Iterator for all locally-registered services, presented as
+          a class-level property.
+
+          :yields: Each named service, in the tupled format
+          ``name, service``, much like ``dict.iteritems``. '''
 
       for name, service in cls.__services__.iteritems():
         yield name, service
 
     @classmethod
-    def describe(cls, json=False, javascript=False):
+    def get_service(cls, name):
 
-      '''  '''
+      ''' Retrieve a locally-registered service by name.
+
+          :param name: Short name for the service. For instance,
+          ``hello`` for ``HelloService``.
+
+          :returns: Registered ``rpc.Service`` class at that name,
+          or ``None`` if no matching service could be located. '''
+
+      if name in cls.__services__:
+        return cls.__services__[name][0]
+
+    @classmethod
+    def describe(cls, json=False, javascript=False, callable='apptools.rpc.service.factory'):
+
+      ''' Describe locally-registered services in various formats.
+          Exposed to template context as ``services.describe``, so that
+          frontends can easily be notified of supported RPC services.
+
+          Omitting both ``json`` and ``javascript`` will return a ``list``
+          of ``tuples`` describing each service, as ``(name, methods, config)``.
+
+          Passing ``json`` *and* ``javascript`` is unsupported and raises
+          a ``TypeError`` describing your foolishness.
+
+          :param json: Describe the services as a JSON string, suitable for
+          placement on an HTML page. Boolean, defaults to ``False``.
+
+          :param javascript: Generate JS that calls a function (assumed to
+          already be present on ``window``) with a structure describing
+          locally registered services, suitable for placement on an HTML
+          page. Boolean, defaults to ``False``.
+
+          :param callable: Opportunity to change the frontend callable function
+          that will be passed the service manifest. Defaults to the hard-coded
+          value ``apptools.rpc.service.factory`` for backwards compatibility.
+
+          :returns: ``list`` of ``tuples`` if requesting structured description,
+          or a JSON string of that structure if ``json=True`` is passed, or JS
+          code invoked with that JSON structure if ``javascript=True`` is passed.'''
 
       _services = []
       for name, service in cls.services:
@@ -222,7 +301,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
         ))
 
       if json and javascript:
-        raise RuntimeError('Please pick between "JSON" and "JavaScript" output for services.')
+        raise TypeError('Please pick between "JSON" and "JavaScript" output for services.')
 
       if json:  # generate JSON only?
         import json as serializer
@@ -230,13 +309,25 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       if javascript:  # generate javascript?
         import json as serializer
-        return "apptools.rpc.service.factory(%s);" % serializer.dumps(_services)
+        return "%s(%s);" % (callable, serializer.dumps(_services))
       return _services  # or return raw?
 
     @decorators.classproperty
     def application(cls):
 
-      '''  '''
+      ''' Utility for generating a WSGI application capable of dispatching
+          locally-registered services on ``ServiceHandler``, exposed as a class-
+          level property.
+
+          Uses :py:mod:`protorpc`'s fantastic `wsgi.utils.first_found`, which will
+          dispatch `rpc.Service` applications one at a time until a non-404 error
+          occurs, in which case response is delegated to that application.
+
+          If no application can be found to match the given WSGI state, an ``HTTP
+          404`` is raised.
+
+          :returns: Prepared ``protorpc.wsgi.utils.first_found`` WSGI application
+          closure.  '''
 
       _services = []
       for name, service in cls.services:
@@ -246,36 +337,60 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
         # Update docstring so that it is easier to debug.
         full_class_name = '%s.%s' % (service.__module__, service.__name__)
-        service_factory.func_doc = (
-            'Creates new instances of service %s.\n\n'
-            'Returns:\n'
-            '  New instance of %s.'
-            % (service.__name__, full_class_name))
+        if __debug__:
+          service_factory.func_doc = (
+              'Creates new instances of service %s.\n\n'
+              'Returns:\n'
+              '  New instance of %s.'
+              % (service.__name__, full_class_name))
 
         # Update name so that it is easier to debug the factory function.
         service_factory.func_name = '%s_service_factory' % service.__name__
 
         service_factory.service_class = service
 
-        _services.append((r'/_rpc/v1/%s' % name, service_factory))
+        # resolve service version
+        _version = config.get('version', 'v1')
+        if isinstance(_version, int): _version = 'v' + str(_version)
+        _services.append((r'/_rpc/%s/%s' % (_version, name), service_factory))
 
       return service_mappings(_services, registry_path='/_rpc/meta/registry')
 
-    def OPTIONS(self, service, method):
+    def OPTIONS(self, version, service, method):
 
-      '''  '''
+      ''' Dispatch handler for ``HTTP OPTIONS`` requests. Specifies available
+          HTTP methods as ``OPTIONS`` and ``POST``, since (by default) only
+          RPC-like functionality is supported.
 
-      return self.response('GET, HEAD, OPTIONS, PUT, POST')
+          :param version: Service version, as specified in the URL.
+          :param service: Service name, as specified in the URL.
+          :param method: Service method to dispatch, as specified in the URL.
 
-    def POST(self, service, method):
+          :returns: Suitable HTTP response for an ``HTTP OPTIONS`` request. '''
 
-      '''  '''
+      return self.response('OPTIONS, POST')
+
+    def POST(self, version, service, method):
+
+      ''' Dispatch handler for ``HTTP POST`` requests. Main entrypoint into
+          the RPC framework via HTTP, as requests are ``POST``ed in a supported
+          ``Content-Type`` for an attached ``Protocol``.
+
+          :param version: Service version, as specified in the URL.
+          :param service: Service name, as specified in the URL.
+          :param method: Service method to dispatch, as specified in the URL.
+
+          :returns: Suitable HTTP response for an ``HTTP POST`` request.  '''
 
       _status, _headers = None, None
 
       def _respond(status, headers):
 
-        '''  '''
+        ''' Inner response closure that overrides normal ``start_response``.
+
+            :param status: HTTP status for response.
+            :param headers: Iterable of ``(name, value)`` pairs for HTTP
+            response headers. '''
 
         _status, _headers = status, headers
 

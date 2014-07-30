@@ -64,7 +64,7 @@ except ImportError:
 
 class ModelAdapter(object):
 
-  ''' Abstract base class for classes that adapt apptools models to a particular storage backend. '''
+  ''' Abstract base class for classes that adapt canteen models to a particular storage backend. '''
 
   registry = {}
   __metaclass__ = abc.ABCMeta
@@ -81,10 +81,10 @@ class ModelAdapter(object):
   def logging(cls):
 
     ''' Named logging pipe.
-      :returns: Customized :py:mod:`apptools.util.debug.AppToolsLogger` instance,
+      :returns: Customized :py:mod:`canteen.util.debug.Logger` instance,
             with a proper ``name``/``path``/``condition``. '''
 
-    #return debug.AppToolsLogger(**{
+    #return debug.Logger(**{
     #  'path': '.'.join(psplit[0:-1]),
     #  'name': psplit[-1]})._setcondition(cls.config.get('debug', True))
     return logging
@@ -335,7 +335,7 @@ class ModelAdapter(object):
 
 
 ## IndexedModelAdapter
-# Adapt apptools models to a storage backend that supports indexing.
+# Adapt canteen models to a storage backend that supports indexing.
 class IndexedModelAdapter(ModelAdapter):
 
   ''' Abstract base class for model adapters that support additional indexing APIs. '''
@@ -348,7 +348,7 @@ class IndexedModelAdapter(ModelAdapter):
   _reverse_prefix = '__reverse__'
 
   ## Indexer
-  # Holds routines and data type tools for indexing apptools models in Redis.
+  # Holds routines and data type tools for indexing canteen models in Redis.
   class Indexer(object):
 
     ''' Holds methods for indexing and handling index data types. '''
@@ -605,7 +605,7 @@ class IndexedModelAdapter(ModelAdapter):
 
 
 ## GraphModelAdapter
-# Adapt apptools models to a Graph-based storage paradigm, defaulting to undirected.
+# Adapt canteen models to a Graph-based storage paradigm, defaulting to undirected.
 class GraphModelAdapter(IndexedModelAdapter):
 
   ''' Abstract base class for model adapters that support graph-type models. '''
@@ -654,7 +654,7 @@ class GraphModelAdapter(IndexedModelAdapter):
 
 
 ## DirectedGraphAdapter
-# Adapt apptools models to a directed-graph-based storage paradigm.
+# Adapt canteen models to a directed-graph-based storage paradigm.
 class DirectedGraphAdapter(GraphModelAdapter):
 
   ''' Abstract base class for model adpaters that support directed-graph-type models. '''
@@ -764,10 +764,12 @@ class Mixin(object):
 
       :returns: Factoried compound ``Mixin`` class. '''
 
+    global CompoundKey, CompoundModel, CompoundVertex, CompoundEdge
+
     if isinstance(cls.__compound__, basestring):
 
       # if we've never generated a `CompoundModel` or if it's been changed, regenerate...
-      cls.__compound__ = globals()[cls.__compound__.__name__] = cls.internals._compound[cls] = type(*(
+      cls.__compound__ = cls.internals._compound[cls] = type(*(
         cls.__compound__,
         (cls, object),
         dict([
@@ -775,6 +777,15 @@ class Mixin(object):
           ('__slots__', tuple()),
         ] + [(k, v) for k, v in cls.methods])
       ))
+
+      if cls.__compound__.__name__ == 'CompoundKey':
+        CompoundKey = cls.__compound__
+      elif cls.__compound__.__name__ == 'CompoundModel':
+        CompoundModel = cls.__compound__
+      elif cls.__compound__.__name__ == 'CompoundVertex':
+        CompoundVertex = cls.__compound__
+      elif cls.__compound__.__name__ == 'CompoundEdge':
+        CompoundEdge = cls.__compound__
 
     return cls.__compound__
 

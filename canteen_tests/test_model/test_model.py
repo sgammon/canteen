@@ -33,10 +33,10 @@ else:  # pragma: no cover
   config = Config()
   config.config = {}
 
-  if 'apptools.model' not in config.config:
-    config.config['apptools.model'] = {}
-  config.config['apptools.model']['debug'] = True
-  for k in filter(lambda x: x.startswith('apptools.model'), config.config.iterkeys()):
+  if 'canteen.model' not in config.config:
+    config.config['canteen.model'] = {}
+  config.config['canteen.model']['debug'] = True
+  for k in filter(lambda x: x.startswith('canteen.model'), config.config.iterkeys()):
     config.config[k]['debug'] = True
 
 # canteen model API

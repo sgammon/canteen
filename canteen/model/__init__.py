@@ -184,7 +184,7 @@ class AbstractKey(object):
   ## = Encapsulated Classes = ##
 
   ## AbstractKey.__metaclass__
-  # Constructs Key classes for use in the AppTools model subsystem.
+  # Constructs Key classes for use in the canteen model subsystem.
   class __metaclass__(MetaFactory):
 
     ''' Metaclass for model keys. '''
@@ -199,7 +199,7 @@ class AbstractKey(object):
 
       # resolve adapter
       _adapter = cls.resolve(name, bases, pmap)
-      _module = pmap.get('__module__', 'apptools.model')
+      _module = pmap.get('__module__', 'canteen.model')
 
       if name == 'AbstractKey':  # <-- must be a string
         return name, bases, dict([('__adapter__', _adapter)] + pmap.items())

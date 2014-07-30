@@ -142,7 +142,7 @@ def configured(path=None, debug=__debug__):
       def inject(klass):
 
           ''' Injection closure that prepares ``klass``
-              with basic apptools structure.
+              with basic canteen structure.
 
               :param klass: Target class slated for injection.
               :returns: Injected class structure. '''
@@ -151,7 +151,7 @@ def configured(path=None, debug=__debug__):
 
               ''' Named config pipe. Resolves configuration
                   at the local class' :py:attr:`cls._config_path`,
-                  if any, which is usually injected by apptools
+                  if any, which is usually injected by canteen
                   utils or provided manually.
 
                   :returns: Configuration ``dict``, from main appconfig,
@@ -166,17 +166,17 @@ def configured(path=None, debug=__debug__):
                   grained control of logging output, even at the individual
                   class level.
 
-                  :returns: Customized :py:class:`debug.AppToolsLogger` class,
+                  :returns: Customized :py:class:`debug.Logger` class,
                   attached with injectee's module path and name (or config
                   path, if configured). '''
 
-              #from apptools.util import debug
+              #from canteen.util import debug
 
               # calculate configuration path
               #_config_path = path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__))
               #_csplit = _config_path.split('.')
 
-              #return debug.AppToolsLogger(**{
+              #return debug.Logger(**{
               #    'path': '.'.join(_csplit[:-1]),
               #    'name': _csplit[-1]
               #})._setcondition(cls.config.get('debug', True))

@@ -15,7 +15,12 @@
 
 '''
 
-# canteen core & model
+# stdlib
+import json
+import inspect
+
+# canteen
+from canteen import rpc
 from canteen import model
 from canteen.core import Library
 
@@ -26,6 +31,7 @@ from canteen.test import FrameworkTest
 with Library('protorpc', strict=True) as (library, protorpc):
 
   # load messages library
+  premote = library.load('remote')
   messages = library.load('messages')
 
   # JSON protocol
@@ -47,7 +53,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
     string = basestring
     integer = int
 
-  """
+
   ## BaseRPCTests
   # Tests the basics of the RPC framework.
   class BaseRPCTests(FrameworkTest):
@@ -58,19 +64,92 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       ''' Test basic RPC exports '''
 
-      pass
+      assert hasattr(rpc, 'VariantField')
+      assert hasattr(rpc, 'StringOrIntegerField')
+      assert hasattr(rpc, 'Key')
+      assert hasattr(rpc, 'Echo')
+      assert hasattr(rpc, 'messages')
+
+    def test_export_classes(self):
+
+      ''' Test basic RPC class exports '''
+
+      assert hasattr(rpc, 'ServiceHandler')
+      assert hasattr(rpc, 'Exception')
+      assert hasattr(rpc, 'ServerException')
+      assert hasattr(rpc, 'ClientException')
+      assert hasattr(rpc, 'Exceptions')
+      assert hasattr(rpc, 'AbstractService')
+      assert hasattr(rpc, 'Service')
+      assert hasattr(rpc, 'remote')
 
     def test_service_construction(self):
 
       ''' Test basic `rpc.Service` construction '''
 
-      pass
+      class SampleService(rpc.Service):
+
+        ''' Sample RPC service '''
+
+      SampleService()
 
     def test_service_mappings(self):
 
       ''' Test generation of `rpc.Service` mappings '''
 
-      pass
+      class SampleService(rpc.Service):
+
+        ''' Sample RPC service '''
+
+      class SampleServiceTwo(rpc.Service):
+
+        ''' Sample RPC service 2 '''
+
+      mappings = (
+        ('/_rpc/sample1', SampleService),
+        ('/_rpc/sample2', SampleServiceTwo)
+      )
+
+      rpc.service_mappings(mappings)
+
+    def test_service_mappings_with_dict(self):
+
+      ''' Test generation of `rpc.Service` mappings from a dict '''
+
+      class SampleService(rpc.Service):
+
+        ''' Sample RPC service '''
+
+      class SampleServiceTwo(rpc.Service):
+
+        ''' Sample RPC service 2 '''
+
+      mappings = {
+        '/_rpc/sample1': SampleService,
+        '/_rpc/sample2': SampleServiceTwo
+      }
+
+      rpc.service_mappings(mappings)
+
+    def test_service_mappings_duplicate_uris(self):
+
+      ''' Test invalid URIs with service mappings generator '''
+
+      class SampleService(rpc.Service):
+
+        ''' Sample RPC service '''
+
+      class SampleServiceTwo(rpc.Service):
+
+        ''' Sample RPC service 2 '''
+
+      mappings = (
+        ('/_rpc/sample1', SampleService),
+        ('/_rpc/sample1', SampleServiceTwo)
+      )
+
+      with self.assertRaises(premote.ServiceConfigurationError):
+        rpc.service_mappings(mappings)
 
 
   ## ServiceHandlerTests
@@ -83,50 +162,132 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       ''' Test constructing an `rpc.ServiceHandler` '''
 
-      pass
+      rpc.ServiceHandler()  # pretty simple
 
     def test_add_service(self):
 
       ''' Test `ServiceHandler.add_service` '''
 
-      pass
+      class SampleService(rpc.Service): pass
+
+      # add service to handler
+      handler = rpc.ServiceHandler()
+      handler.add_service('sample', SampleService, **{'sample': True})
+
+      return handler, SampleService
 
     def test_get_service(self):
 
       ''' Test `ServiceHandler.get_service` '''
 
-      pass
+      handler, svc = self.test_add_service()
+
+      # try to get sample service
+      sample = handler.get_service('sample')
+
+      assert sample is svc
 
     def test_services_iter(self):
 
       ''' Test `ServiceHandler.services` as an iterator '''
 
-      pass
+      handler, svc = self.test_add_service()
+
+      # iterate and make sure sample appears
+      services = []
+      for name, (service, config) in handler.services:
+        services.append(service)
+
+      assert svc in services, "failed to find sample in %s" % services
 
     def test_describe_struct(self):
 
       ''' Test describing `Service` definitions as a dictionary '''
 
-      pass
+      handler, svc = self.test_add_service()
+
+      # describe as dictionary and interrogate
+      manifest = handler.describe(json=False, javascript=False)
+      assert len(manifest) == 1
+      assert manifest[0][0] == 'sample'
+      assert manifest[0][-1]['sample'] is True
 
     def test_describe_json(self):
 
       ''' Test describing `Service` definitions as JSON '''
 
-      pass
+      handler, svc = self.test_add_service()
+
+      # describe as dictionary and interrogate
+      manifest = json.loads(handler.describe(json=True, javascript=False))
+      assert len(manifest) == 1
+      assert manifest[0][0] == 'sample'
+      assert manifest[0][-1]['sample'] is True
 
     def test_describe_javascript(self):
 
       ''' Test describing `Service` definitions via JavaScript '''
 
-      pass
+      handler, svc = self.test_add_service()
+
+      # describe as dictionary and interrogate
+      manifest = handler.describe(json=False, javascript=True)
+      assert 'sample' in manifest  # service name
+      assert 'true' in manifest  # in config
+      assert 'apptools.rpc.service.factory(' in manifest
+
+      manifest = json.loads(manifest.replace('apptools.rpc.service.factory(', '').replace(');', ''))
+      assert len(manifest) == 1
+      assert manifest[0][0] == 'sample'
+      assert manifest[0][-1]['sample'] is True
+
+    def test_describe_invalid_format(self):
+
+      ''' Test describing `Service` definitions with an invalid format '''
+
+      handler, svc = self.test_add_service()
+
+      # describe as dictionary and interrogate
+      with self.assertRaises(TypeError):
+        handler.describe(json=True, javascript=True)
+
+    def test_describe_javascript_with_custom_callable(self):
+
+      ''' Test describing `Service` definitions via JavaScript with a custom callable '''
+
+      handler, svc = self.test_add_service()
+
+      # describe as dictionary and interrogate
+      manifest = handler.describe(json=False, javascript=True, callable='testing')
+      assert 'sample' in manifest  # service name
+      assert 'true' in manifest  # in config
+      assert 'testing(' in manifest
+
+      manifest = json.loads(manifest.replace('testing(', '').replace(');', ''))
+      assert len(manifest) == 1
+      assert manifest[0][0] == 'sample'
+      assert manifest[0][-1]['sample'] is True
 
     def test_build_wsgi_application(self):
 
       ''' Test assembling a WSGI application for `Service` dispatch '''
 
-      pass
+      handler, svc = self.test_add_service()
 
+      # describe as dictionary and interrogate
+      manifest = handler.describe(json=False, javascript=False)
+      assert len(manifest) == 1
+      assert manifest[0][0] == 'sample'
+      assert manifest[0][-1]['sample'] is True
+
+      # describe as application and interrogate
+      wsgi_app = handler.application
+
+      # basic tests
+      assert callable(wsgi_app)
+      assert inspect.isfunction(wsgi_app)
+
+  """
     def test_submit_HTTP_HEAD(self):
 
       ''' Test submitting an `HTTP HEAD` to the RPC layer '''
@@ -156,6 +317,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
       ''' Test submitting an `HTTP POST` to the RPC layer '''
 
       pass
+  """
 
 
   ## AbstractServiceTests
@@ -167,6 +329,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
     pass
 
 
+  """
   ## BaseServiceTests
   # Tests the `rpc.Service` class.
   class BaseServiceTests(FrameworkTest):

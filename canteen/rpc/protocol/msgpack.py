@@ -60,7 +60,7 @@ with runtime.Library('msgpack') as (library, msgpack):
         '''  '''
 
         # garbage in, garbage out
-        if not encoded_message.strip():
+        if not encoded_message.strip():  # pragma: no cover
           return message_type()
 
         dictionary = msgpack.unpackb(encoded_message)

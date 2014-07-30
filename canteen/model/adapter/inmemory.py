@@ -416,7 +416,7 @@ class InMemoryAdapter(GraphModelAdapter):
               _metadata[index][value].remove(encoded)  # remove from set at item in mapping
 
             # if there's no keys left in the index, trim it
-            if len(_metadata[index][value]) == 0:
+            if len(_metadata[index][value]) == 0:  # pragma: no cover
               del _metadata[index][value]
 
           continue

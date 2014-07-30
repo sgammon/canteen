@@ -16,6 +16,9 @@
 
 '''
 
+# stdlib
+import datetime
+
 # canteen test
 from canteen.test import FrameworkTest
 
@@ -82,6 +85,63 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
     assert hasattr(self.subject, 'write_indexes')
     assert hasattr(self.subject, 'clean_indexes')
     assert hasattr(self.subject, 'execute_query')
+
+  def test_attached_indexer_compliance(self):
+
+    ''' Test `IndexedModelAdapter.Indexer` for basic functionality '''
+
+    assert hasattr(self.subject, 'Indexer')
+    indexer = self.subject.Indexer
+
+    # interrogate indexer
+    assert hasattr(indexer, 'convert_key')
+    assert hasattr(indexer, 'convert_date')
+    assert hasattr(indexer, 'convert_time')
+    assert hasattr(indexer, 'convert_datetime')
+
+  def test_indexer_convert_key(self):
+
+    ''' Test `Indexer.convert_key` '''
+
+    indexer = self.subject.Indexer
+    sample_key = model.Key('Sample', 'key')
+    converted = indexer.convert_key(sample_key)
+
+    # interrogate converted key
+    assert isinstance(converted, tuple)
+
+  def test_indexer_convert_date(self):
+
+    ''' Test `Indexer.convert_date` '''
+
+    indexer = self.subject.Indexer
+    sample_date = datetime.date(year=2014, month=7, day=29)
+    converted = indexer.convert_date(sample_date)
+
+    # interrogate converted date
+    assert isinstance(converted, tuple)
+
+  def test_indexer_convert_time(self):
+
+    ''' Test `Indexer.convert_time` '''
+
+    indexer = self.subject.Indexer
+    sample_time = datetime.time(hour=12, minute=30)
+    converted = indexer.convert_date(sample_time)
+
+    # interrogate converted date
+    assert isinstance(converted, tuple)
+
+  def test_indexer_convert_datetime(self):
+
+    ''' Test `Indexer.convert_datetime` '''
+
+    indexer = self.subject.Indexer
+    sample_datetime = datetime.datetime(year=2014, month=7, day=29, hour=12, minute=30)
+    converted = indexer.convert_date(sample_datetime)
+
+    # interrogate converted date
+    assert isinstance(converted, tuple)
 
 
 ## GraphModelAdapterTests

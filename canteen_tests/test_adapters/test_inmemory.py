@@ -382,7 +382,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_integer(self):
 
-    '''  '''
+    ''' Test an ascending sort on an integer property with `InMemoryAdapter` '''
 
     root = model.Key(InMemoryModel, 'sorted-int')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -412,7 +412,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_integer(self):
 
-    '''  '''
+    ''' Test a descending sort on an integer property with `InMemoryAdapter` '''
 
     root = model.Key(InMemoryModel, 'sorted-int-2')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -442,7 +442,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_float(self):
 
-    '''  '''
+    ''' Test an ascending sort on a float property with `InMemoryAdapter` '''
 
     root = model.Key(InMemoryModel, 'sorted-float')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -472,7 +472,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_float(self):
 
-    '''  '''
+    ''' Test a descending sort on a float property with `InMemoryAdapter` '''
 
     root = model.Key(InMemoryModel, 'sorted-float')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -502,7 +502,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_datetime(self):
 
-    '''  '''
+    ''' Test an ascending sort on a `datetime` property with `InMemoryAdapter` '''
 
     now = datetime.datetime.now()
     later = lambda n: now + datetime.timedelta(days=n)
@@ -534,7 +534,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_datetime(self):
 
-    '''  '''
+    ''' Test a descending sort on a `datetime` property with `InMemoryAdapter` '''
 
     now = datetime.datetime.now()
     later = lambda n: now + datetime.timedelta(days=n)

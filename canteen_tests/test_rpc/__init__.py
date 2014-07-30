@@ -15,6 +15,10 @@
 
 '''
 
+# RPC tests
+from . import test_base
+from . import test_exceptions
+
 # protocol tests
 from . import test_json
 from . import test_msgpack

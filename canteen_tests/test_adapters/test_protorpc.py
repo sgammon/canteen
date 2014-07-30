@@ -379,7 +379,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_hook(self):
 
-    '''  '''
+    ''' Test `build_message` with a target object hook '''
 
     class SomeProperty(model.Property):
 

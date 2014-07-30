@@ -32,9 +32,6 @@ from canteen.logic import http
 from canteen.util import decorators
 from canteen.util import struct as datastructures
 
-# RPC submodules
-from .protocol import *
-
 
 with core.Library('protorpc', strict=True) as (library, protorpc):
 
@@ -43,8 +40,6 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
   # remote / message packages
   from protorpc import remote as premote
   from protorpc import registry as pregistry
-  from protorpc.remote import method as proto_method
-  from protorpc.remote import Service as ProtoService
 
   # message packages
   from protorpc import messages as pmessages
@@ -56,7 +51,6 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
   from protorpc.message_types import VoidMessage as ProtoVoidMessage
 
   # WSGI internals
-  from protorpc import wsgi as pwsgi
   from protorpc.wsgi import util as pwsgi_util
   from protorpc.wsgi import service as pservice
 
@@ -71,7 +65,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       VARIANTS = frozenset([pmessages.Variant.DOUBLE, pmessages.Variant.FLOAT, pmessages.Variant.BOOL,
                             pmessages.Variant.INT64, pmessages.Variant.UINT64, pmessages.Variant.SINT64,
                             pmessages.Variant.INT32, pmessages.Variant.UINT32, pmessages.Variant.SINT32,
-                            pmessages.Variant.STRING, pmessages.Variant.MESSAGE, pmessages.Variant.BYTES, pmessages.Variant.ENUM])
+                            pmessages.Variant.STRING, pmessages.Variant.BYTES,
+                            pmessages.Variant.MESSAGE, pmessages.Variant.ENUM])
 
       DEFAULT_VARIANT = pmessages.Variant.STRING
 
@@ -277,6 +272,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       '''  '''
 
       _status, _headers = None, None
+
       def _respond(status, headers):
 
         '''  '''

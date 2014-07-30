@@ -18,13 +18,13 @@
 # stdlib
 import datetime
 
-# canteen test
-from canteen.test import FrameworkTest
-
 # canteen model API
 from canteen import model
 from canteen.model import query
 from canteen.model.adapter import inmemory
+
+# abstract test bases
+from .test_abstract import GraphModelAdapterTests
 
 
 ## InMemoryModel
@@ -44,7 +44,7 @@ class InMemoryModel(model.Model):
 
 ## InMemoryAdapterTests
 # Tests the `InMemory` model adapter.
-class InMemoryAdapterTests(FrameworkTest):
+class InMemoryAdapterTests(GraphModelAdapterTests):
 
   ''' Tests `model.adapter.inmemory` '''
 

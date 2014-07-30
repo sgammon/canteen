@@ -232,7 +232,7 @@ class AbstractKey(object):
 
       # `Key`-subclass MRO, with support for diamond inheritance
       return tuple(filter(lambda x: x not in (Key, AbstractKey), [cls] + list(cls.__bases__)) +
-             [Key, AbstractKey, KeyMixin.compound, object])
+                                             [Key, AbstractKey, KeyMixin.compound, object])
 
     def __repr__(cls):
 
@@ -249,7 +249,7 @@ class AbstractKey(object):
     if cls.__name__ == 'AbstractKey':
       raise exceptions.AbstractConstructionFailure('AbstractKey')
 
-    return super(_key_parent(), cls).__new__(*args, **kwargs)  # pragma: no cover
+    return super(cls, cls).__new__(*args, **kwargs)  # pragma: no cover
 
   def __eq__(self, other):
 
@@ -302,22 +302,22 @@ class AbstractKey(object):
 
   ## = Property Bindings  = ##
   id = property(lambda self: self.__id__,
-          lambda self, id: self._set_internal('id', id))
+                lambda self, id: self._set_internal('id', id))
 
   app = property(lambda self: self.__app__,
-           lambda self, app: self._set_internal('app', app))
+                 lambda self, app: self._set_internal('app', app))
 
   kind = property(lambda self: self.__kind__,
-          lambda self, kind: self._set_internal('kind', kind))
+                  lambda self, kind: self._set_internal('kind', kind))
 
   parent = property(lambda self: self.__parent__,
-            lambda self, p: self._set_internal('parent', p))
+                    lambda self, p: self._set_internal('parent', p))
 
   owner = property(lambda self: self.__owner__, None)  # `owner` is read-only
   ancestry = property(_get_ancestry, None)  # `ancestry` is read-only
 
   namespace = property(lambda self: self.__namespace__ if _MULTITENANCY else None,  # ns = `None` when disabled
-             lambda self, ns: self._set_internal('namespace', ns) if _MULTITENANCY else None)
+                       lambda self, ns: self._set_internal('namespace', ns) if _MULTITENANCY else None)
 
 
 ## AbstractModel
@@ -384,8 +384,8 @@ class AbstractModel(object):
 
           # build a full property map, after reducing parents left -> right
           property_map = dict([(key, value) for key, value in reduce(lambda left, right: left + right,
-                    [[(prop, b.__dict__[prop].clone()) for prop in b.__lookup__]
-                    for b in bases] + [property_map.items()])])
+                              [[(prop, b.__dict__[prop].clone()) for prop in b.__lookup__]
+                                for b in bases] + [property_map.items()])])
 
         prop_lookup = frozenset((k for k, v in property_map.iteritems()))  # freeze property lookup
         model_adapter = cls.resolve(name, bases, properties)  # resolve default adapter for model
@@ -429,7 +429,7 @@ class AbstractModel(object):
           _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))  # test if this is a vertex
           return tuple([cls] + [i for i in cls.__bases__ if i not in (Vertex, Edge, Model, AbstractModel)] +
                        [(Vertex if _vertex else Edge), Model, AbstractModel, (
-                         VertexMixin.compound if _vertex else EdgeMixin.compound), object])
+                         VertexMixin.compound if _vertex else EdgeMixin.compound), ModelMixin.compound, object])
         if cls.__name__ not in frozenset(('Model', 'Vertex', 'Edge')):  # must be a string, same reason as above
           return tuple([cls] + [i for i in cls.__bases__ if i not in (Model, AbstractModel)] +
                        [Model, AbstractModel, ModelMixin.compound, object])  # full inheritance chain
@@ -475,7 +475,7 @@ class AbstractModel(object):
 
     # util: generate a string representatin of this `_PropertyValue`
     __repr__ = lambda self: "Value(%s)%s" % (('"%s"' % self[0]) if isinstance(self[0], basestring)
-                         else self[0].__repr__(), '*' if self[1] else '')
+                                               else self[0].__repr__(), '*' if self[1] else '')
 
     # util: reduce arguments for pickle
     __getnewargs__ = lambda self: tuple(self)
@@ -497,9 +497,12 @@ class AbstractModel(object):
     return super(AbstractModel, cls).__new__(cls, *args, **kwargs)
 
   # util: generate a string representation of this entity, alias to string conversion methods too
-  __repr__ = __str__ = __unicode__ = lambda self: "%s(%s, %s)" % (self.__kind__, self.__key__,
-                          ', '.join(['='.join([k, str(self.__data__.get(k, None))])
-                                 for k in self.__lookup__]))
+  __repr__ = lambda self: "%s(%s, %s)" % (self.__kind__, self.__key__,
+                                          ', '.join([
+                                            '='.join([k, str(self.__data__.get(k, None))])
+                                             for k in self.__lookup__]))
+
+  __str__ = __unicode__ = __repr__  # map repr to str and unicode
 
   def __setattr__(self, name, value, exception=exceptions.InvalidAttribute):
 
@@ -684,7 +687,7 @@ class Key(AbstractKey):
 
       if len(parts) <= len(self.__schema__):  # it's a fully- or partially-spec'ed key
         mapped = zip([i for i in reversed(self.__schema__)][(len(self.__schema__) - len(parts)):],
-               map(lambda x: x.kind() if hasattr(x, 'kind') else x, parts))
+                         map(lambda x: x.kind() if hasattr(x, 'kind') else x, parts))
 
       else:
         # for some reason the schema falls short of our parts
@@ -729,7 +732,7 @@ class Property(object):
 
     # copy locals specified above onto object properties of the same name, specified in `self.__slots__`
     map(lambda args: setattr(self, *args), zip(self.__slots__, (name, options, indexed,
-                                  required, repeated, basetype, default)))
+                                                                required, repeated, basetype, default)))
 
   ## = Descriptor Methods = ##
   def __get__(self, instance, owner):
@@ -788,7 +791,6 @@ class Property(object):
         self.name, instance.kind(), type(v).__name__, self._basetype.__name__))
     return True  # validation passed! :)
 
-  @classmethod
   def __repr__(self):
 
     ''' Generate a string representation
@@ -797,13 +799,13 @@ class Property(object):
       :returns: Stringified, human-readable
       value describing this :py:class:`Property`. '''
 
-    return "Property(%s, type=%s)" % (self.name, self._basetype)
+    return "Property(%s, type=%s)" % (self.name, self._basetype.__name__)
 
   __str__ = __repr__
 
   # util method to clone `Property` objects
   clone = lambda self: self.__class__(self.name, self._basetype, self._default,
-                    self._required, self._repeated, self._indexed, **self._options)
+                                      self._required, self._repeated, self._indexed, **self._options)
 
   ## == Query Overrides (Operators) == ##
   __sort__ = lambda self, direction: query.Sort(self, operator=(direction or query.Sort.ASCENDING))

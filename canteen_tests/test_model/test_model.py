@@ -25,7 +25,7 @@ try:
   import config; _APPCONFIG = True
 except ImportError as e:  # pragma: no cover
   _APPCONFIG = False
-else:
+else:  # pragma: no cover
   # set debug mode for all model-related stuff
   class Config(object):
     config = {}
@@ -66,8 +66,8 @@ class Car(model.Model):
 
 
 ## Person
-# Simple model simulating a person.
-class Person(model.Model):
+# Simple model simulating a person which is also a ``Vertex``.
+class Person(model.Vertex):
 
   ''' A human being. '''
 
@@ -75,6 +75,15 @@ class Person(model.Model):
   lastname = basestring, {'indexed': True}
   active = bool, {'default': True}
   cars = Car, {'repeated': True}
+
+
+## Friendship
+# Simple model simulating a friendship, which acts as an ``Edge`` between people.
+class Friendship(model.Edge):
+
+  ''' A friendship between people. '''
+
+  people = Person, {'repeated': True}
 
 
 ## ModelTests
@@ -766,3 +775,48 @@ class ModelTests(FrameworkTest):
 
     # try on the class level
     self.assertIsInstance(ClassDefaultSample.sample_default, model.Property)
+
+  def test_class_level_propery_access(self):
+
+    ''' Test class-level property access on `Model` subclasses '''
+
+    assert isinstance(Car.make, model.Property)
+    assert 'make' in Car.make.__repr__()
+    assert 'Property' in Car.make.__repr__()
+
+  def test_class_level_item_access(self):
+
+    ''' Test class-level item access on `Model` subclasses '''
+
+    assert isinstance(Car['make'], model.Property)
+    assert 'make' in Car['make'].__repr__()
+    assert 'Property' in Car['make'].__repr__()
+
+  def test_graph_class_existence(self):
+
+    ''' Test proper export of ``Vertex`` and ``Edge`` models '''
+
+    assert hasattr(model, 'Vertex')
+    assert hasattr(model, 'Edge')
+    assert issubclass(model.Vertex, model.Model)
+    assert issubclass(model.Edge, model.Model)
+
+  def test_vertex_class_mro(self):
+
+    ''' Test proper MRO for ``Vertex`` models '''
+
+    assert hasattr(Person, 'edges')
+    assert hasattr(Person(), 'edges')
+    assert hasattr(Person, 'neighbors')
+    assert hasattr(Person(), 'neighbors')
+    assert issubclass(Person, model.Vertex)
+    assert isinstance(Person(), model.Vertex)
+
+  def test_edge_class_mro(self):
+
+    ''' Test proper MRO for ``Edge`` models '''
+
+    assert hasattr(Friendship, 'peers')
+    assert hasattr(Friendship(), 'peers')
+    assert issubclass(Friendship, model.Edge)
+    assert isinstance(Friendship(), model.Edge)

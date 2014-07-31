@@ -34,9 +34,6 @@ with Library('protorpc', strict=True) as (library, protorpc):
   premote = library.load('remote')
   messages = library.load('messages')
 
-  # JSON protocol
-  from canteen.rpc.protocol import json as jsonrpc
-
 
   class SampleMessage(messages.Message):
 
@@ -287,57 +284,6 @@ with Library('protorpc', strict=True) as (library, protorpc):
       assert callable(wsgi_app)
       assert inspect.isfunction(wsgi_app)
 
-  """
-    def test_submit_HTTP_HEAD(self):
-
-      ''' Test submitting an `HTTP HEAD` to the RPC layer '''
-
-      pass
-
-    def test_submit_HTTP_PUT(self):
-
-      ''' Test submitting an `HTTP PUT` to the RPC layer '''
-
-      pass
-
-    def test_submit_HTTP_OPTIONS(self):
-
-      ''' Test submitting an `HTTP OPTIONS` to the RPC layer '''
-
-      pass
-
-    def test_submit_HTTP_GET(self):
-
-      ''' Test submitting an `HTTP GET` to the RPC layer '''
-
-      pass
-
-    def test_submit_HTTP_POST(self):
-
-      ''' Test submitting an `HTTP POST` to the RPC layer '''
-
-      pass
-  """
-
-
-  ## AbstractServiceTests
-  # Tests the `rpc.AbstractService` class.
-  class AbstractServiceTests(FrameworkTest):
-
-    ''' Tests `rpc.AbstractService` '''
-
-    pass
-
-
-  """
-  ## BaseServiceTests
-  # Tests the `rpc.Service` class.
-  class BaseServiceTests(FrameworkTest):
-
-    ''' Tests `rpc.Service` '''
-
-    pass
-
 
   ## ServiceFactoryTests
   # Tests the `rpc.ServiceFactory` class.
@@ -345,7 +291,27 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     ''' Tests `rpc.ServiceFactory` '''
 
-    pass
+    def test_construct(self):
+
+      ''' Test construction of a new `ServiceFactory` '''
+
+      class SomeService(rpc.Service):
+
+        ''' Some sample service. '''
+
+      factory = rpc.ServiceFactory.construct(SomeService)
+      assert factory
+      return factory
+
+    def test_instance_factory(self):
+
+      ''' Test instance creation through `ServiceFactory` '''
+
+      factory = self.test_construct()
+      instance = factory()
+
+      assert factory
+      assert instance
 
 
   ## DecoratorTests
@@ -354,5 +320,3 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     ''' Tests `rpc.remote` '''
 
-    pass
-  """

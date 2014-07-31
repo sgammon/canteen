@@ -179,18 +179,6 @@ class AssetsAPI(CoreAPI):
       raise ValueError("Cannot calculate asset prefix for unspecified asset type '%s'." % asset_type)
     return ("assets/%s" % asset_type, asset_type)
 
-  def find_prefix(self, asset_type, package):
-
-    '''  '''
-
-    import pdb; pdb.set_trace()
-
-  def find_name(self, asset_type, package, name, version=None):
-
-    '''  '''
-
-    pass
-
   ### === URL Builders === ###
   def asset_url(self, type, fragments, arguments):
 

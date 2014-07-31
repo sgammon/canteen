@@ -15,11 +15,13 @@
 
 # submodules
 from .http import *
+from .cache import *
 from .realtime import *
 
 
 __all__ = (
   'url',
   'http',
+  'cache',
   'realtime'
 )

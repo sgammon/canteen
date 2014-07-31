@@ -3,5 +3,6 @@ MarkupSafe
 Werkzeug
 protorpc
 coverage
+msgpack
 git+https://github.com/sgammon/protobuf.git#egg=protobuf
 git+https://github.com/sgammon/hamlish-jinja.git#egg=hamlish_jinja

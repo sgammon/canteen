@@ -13,6 +13,9 @@
 
 '''
 
+# session API
+from .. import session
+
 # core
 from canteen.base import logic
 from canteen.core import runtime
@@ -20,9 +23,6 @@ from canteen.core import runtime
 # canteen util
 from canteen.util import config
 from canteen.util import decorators
-
-# cache & session APIs
-from canteen.core.api import session
 
 
 def url(name_or_route, route=None, **kwargs):

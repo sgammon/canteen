@@ -385,7 +385,7 @@ class Caching(logic.Logic):
     '''  '''
 
     from canteen.util import config
-    return config.Config().config.get('CacheAPI', {})
+    return config.Config().config.get('Caching', {})
 
   @property
   def debug(self):

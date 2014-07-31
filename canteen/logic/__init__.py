@@ -16,6 +16,8 @@
 # submodules
 from .http import *
 from .cache import *
+from .assets import *
+from .session import *
 from .template import *
 from .realtime import *
 

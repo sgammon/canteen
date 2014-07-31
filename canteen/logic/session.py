@@ -2,11 +2,10 @@
 
 '''
 
-  core session API
-  ~~~~~~~~~~~~~~~~
+  session logic
+  ~~~~~~~~~~~~~
 
-  exposes an API for creating and maintaining session state for
-  both cyclical and realtime connection models.
+  provides base logic for handling and enforcing user sessions.
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -18,16 +17,15 @@
 
 
 # stdlib
-import time, hashlib, base64
-import random, string, operator, abc
+import time, hashlib, abc
+import random, string, operator
 
-# core & model APIs
-from . import hooks, CoreAPI
-from canteen import model as models
-
-# canteen utils
-from canteen.util import config
-from canteen.util import decorators
+# core, base, util
+from ..core import hooks
+from ..base import logic
+from ..util import config
+from ..util import decorators
+from .. import model as models
 
 
 class Session(object):
@@ -77,7 +75,7 @@ class Session(object):
 
     '''  '''
 
-    return config.Config().get('SessionAPI', {'debug': True})
+    return config.Config().get('Sessions', {'debug': True})
 
   ## == Accessors == ##
   id = property(lambda self: self.__id__)
@@ -114,7 +112,7 @@ class Session(object):
     return key in self.__session__.data
 
   ## == Reset == ##
-  def reset(save=False, adapter=None):
+  def reset(self, save=False, adapter=None):
 
     '''  '''
 
@@ -123,7 +121,7 @@ class Session(object):
     if save: self.save(adapter)
     return
 
-  def reset_csrf(save=False, adapter=None):
+  def reset_csrf(self, save=False, adapter=None):
 
     '''  '''
 
@@ -205,7 +203,7 @@ class SessionEngine(object):
       '''  '''
 
       klass.__label__ = name
-      SessionAPI.add_engine(name, klass, **config)
+      Sessions.add_engine(name, klass, **config)
       return klass
 
     return add_engine
@@ -227,7 +225,7 @@ class SessionEngine(object):
 
 
 @decorators.bind('sessions')
-class SessionAPI(CoreAPI):
+class Sessions(logic.Logic):
 
   '''  '''
 
@@ -242,7 +240,7 @@ class SessionAPI(CoreAPI):
 
     '''  '''
 
-    return config.Config().get('SessionAPI', {'debug': True})
+    return config.Config().get('Sessions', {'debug': True})
 
   @decorators.classproperty
   def salt(cls):
@@ -302,7 +300,7 @@ class SessionAPI(CoreAPI):
       # build config, allowing overrides
       _config = {}
       if _CONTEXT:
-        _config.update(config.Config().get('SessionAPI', {}))
+        _config.update(config.Config().get('Sessions', {}))
         _config.update(_context_cfg)
       _config.update(_engine_config)
 
@@ -372,5 +370,5 @@ class SessionAPI(CoreAPI):
 __all__ = (
   'Session',
   'SessionEngine',
-  'SessionAPI'
+  'Sessions'
 )

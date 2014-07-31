@@ -95,7 +95,6 @@ tools.setup(
         "canteen",
         "canteen.base",
         "canteen.core",
-        "canteen.core.api",
         "canteen.logic",
         "canteen.logic.http",
         "canteen.model",

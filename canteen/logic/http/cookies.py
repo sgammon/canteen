@@ -24,7 +24,7 @@ from canteen.core import runtime
 from canteen.util import decorators
 
 # core session API
-from canteen.core.api.session import SessionEngine
+from ..session import SessionEngine
 
 
 with runtime.Library('werkzeug', strict=True) as (library, werkzeug):

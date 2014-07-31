@@ -2,11 +2,10 @@
 
 '''
 
-  core assets API
-  ~~~~~~~~~~~~~~~
+  assets logic
+  ~~~~~~~~~~~~
 
-  exposes a core API for easily accessing and managing static
-  assets attached to a :py:mod:`canteen`-based product.
+  exposes logic for managing and making-use-of static assets.
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -22,10 +21,11 @@ import random
 import hashlib
 import mimetypes
 
-# core API & util
-from . import CoreAPI, hooks
-from canteen.util import config
-from canteen.util import decorators
+# core, base & util
+from ..base import logic
+from ..core import hooks
+from ..util import config
+from ..util import decorators
 
 
 ## Globals
@@ -33,7 +33,7 @@ _default_asset_path = os.path.join(os.getcwd(), 'assets')
 
 
 @decorators.bind('assets')
-class AssetsAPI(CoreAPI):
+class Assets(logic.Logic):
 
   '''  '''
 
@@ -237,4 +237,4 @@ class AssetsAPI(CoreAPI):
   def static_url(self, *fragments, **arguments): return self.asset_url('static', fragments, arguments)
 
 
-__all__ = ('AssetsAPI',)
+__all__ = ('Assets',)

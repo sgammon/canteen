@@ -246,8 +246,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :yields: Each named service, in the tupled format
           ``name, service``, much like ``dict.iteritems``. '''
 
-      for name, service in cls.__services__.iteritems():
-        yield name, service
+      for name in sorted(cls.__services__.iterkeys()):
+        yield name, cls.__services__[name]
 
     @classmethod
     def get_service(cls, name):
@@ -668,16 +668,6 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
               that, when called, dispatches the
               target ``method``. '''
 
-          # wrap responder
-          wrapped = premote.method(request_klass, response_klass)(method)
-
-          # make things transparent
-          wrapped.__name__, wrapped.__doc__, wrapped.__inner__ = (
-            method.__name__,
-            method.__doc__,
-            method
-          )
-
           def _respond(self, _request_message):
 
             ''' Inner closure designed to wrap the
@@ -704,16 +694,27 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
             if isinstance(request, type) and issubclass(request, model.Model):
               # convert incoming message to model
-              result = wrapped(self, request.from_message(_request_message))
+              result = method(self, request.from_message(_request_message))
 
             else:
               # we're using regular messages always
-              result = wrapped(self, _request_message)
+              result = method(self, _request_message)
 
             # convert outgoing message to model if it isn't already
             if isinstance(result, model.Model):
               return result.to_message()
             return result
+
+          # wrap responder
+          wrapped = premote.method(request_klass, response_klass)(_respond)
+
+          # make things transparent
+          wrapped.__name__, wrapped.__doc__, wrapped.__inner__ = (
+            method.__name__,
+            method.__doc__,
+            method
+          )
+
 
           _respond.__inner__ = wrapped
 
@@ -738,37 +739,13 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       config['expose'] = config.get('expose', 'public')
       return cls(name, **config)
 
-    @classmethod
-    def public(cls, *args, **config):
+    # shorthand for `cls.register` with `expose=public`
+    public = lambda cls, *args, **config: cls.register(*args, expose='public', **config)
 
-      ''' Decorate a remotely-capable ``Service`` or method
-          as ``public``ly accessible. Remains for backwards
-          compatibility and shorthand for ``remote.method``
-          or ``remote.service``.
+    # shorthand for `cls.register` with `expose=private`
+    private = lambda cls, *args, **config: cls.register(*args, expose='private', **config)
 
-          Args and kwargs are passed directly to ``register``.
-
-          :returns: Whatever is returned from an equivalent
-          call to ``cls.register``. '''
-
-      return cls.register(*args, expose='public', **config)
-
-    @classmethod
-    def private(cls, *args, **config):
-
-      ''' Decorate a remotely-capable ``Service`` or method
-          as ``private``ly accessible *only*. Remains for
-          backwards compatibility and shorthand for
-          ``remote.method`` or ``remote.service``.
-
-          Args and kwargs are passed directly to the class
-          method ``register``.
-
-          :returns: Whatever is returned from an equivalent
-          call to ``cls.register``. '''
-
-      return cls.register(*args, expose='private', **config)
-
+    # aliases for `cls.register`
     method = service = register
 
     def __call__(self, target):
@@ -793,7 +770,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
         runtime.Runtime.execute_hooks('rpc-service', service=target)
 
         # call method registration hooks
-        for method in target.all_remote_methods():
+        for method in target.all_remote_methods():  # pragma: no cover
           runtime.Runtime.execute_hooks('rpc-method', service=target, method=method)
 
         ServiceHandler.add_service(self.name, target, **self.config)

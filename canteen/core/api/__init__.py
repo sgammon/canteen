@@ -33,6 +33,5 @@ class CoreAPI(object):
 __all__ = (
   'CoreAPI',
   'assets',
-  'session',
-  'template'
+  'session'
 )

@@ -13,22 +13,26 @@
 
 '''
 
+from . import ServerException
+from . import ClientException
+from . import Exception as Error
 
-class Error(Exception):
+
+class InternalRPCException(Exception):
 
   ''' Base class for all errors in service handlers module. '''
 
 
-class ServiceConfigurationError(Error):
+class ServiceConfigurationError(InternalRPCException):
 
   ''' When service configuration is incorrect. '''
 
 
-class RequestError(Error):
+class RequestError(ClientException):
 
   ''' Error occurred when building request. '''
 
 
-class ResponseError(Error):
+class ResponseError(ServerException):
 
   ''' Error occurred when building response. '''

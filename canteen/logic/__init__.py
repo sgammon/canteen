@@ -16,6 +16,7 @@
 # submodules
 from .http import *
 from .cache import *
+from .template import *
 from .realtime import *
 
 
@@ -23,5 +24,6 @@ __all__ = (
   'url',
   'http',
   'cache',
-  'realtime'
+  'realtime',
+  'template'
 )

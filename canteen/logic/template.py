@@ -2,11 +2,10 @@
 
 '''
 
-  core template API
-  ~~~~~~~~~~~~~~~~~
+  template logic
+  ~~~~~~~~~~~~~~
 
-  exposes a core API for interfacing with template engines
-  like :py:mod:`Jinja2`.
+  exposes base logic for dealing with ``Jinja2`` templates.
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -18,33 +17,22 @@
 
 # stdlib
 import os
-import sys
 import json
-import time
 import operator
 import importlib
-import itertools
 
-# core API & util
-from . import CoreAPI
-from .. import runtime
-from .cache import CacheAPI
-from canteen.util import decorators
+# core util & base
+from ..base import logic
+from ..core import runtime
+from ..util import decorators
 
 
 ## Globals
 _conditionals = []
-average = lambda x: reduce(operator.add, x)/len(x)
+average = lambda x: reduce(operator.add, x) / len(x)
 
 
 with runtime.Library('jinja2', strict=True) as (library, jinja2):
-
-
-  class TemplateLoader(object):
-
-    '''  '''
-
-    pass
 
 
   class ChoiceLoader(jinja2.ChoiceLoader):
@@ -76,7 +64,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       raise jinja2.TemplateNotFound(filename)
 
 
-  class ModuleLoader(TemplateLoader, jinja2.ModuleLoader):
+  class ModuleLoader(jinja2.ModuleLoader):
 
     '''  '''
 
@@ -88,12 +76,14 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       '''  '''
 
+      from canteen.logic.cache import Caching
+
       if isinstance(module, basestring):
         try:
           module = importlib.import_module(module)
         except ImportError:
           pass
-      self.cache, self.module = CacheAPI.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__), module
+      self.cache, self.module = Caching.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__), module
 
     def load(self, environment, filename, globals=None):
 
@@ -148,7 +138,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         raise jinja2.TemplateNotFound(template)
 
 
-  class FileLoader(TemplateLoader, jinja2.FileSystemLoader):
+  class FileLoader(jinja2.FileSystemLoader):
 
     '''  '''
 
@@ -164,7 +154,6 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
   # add loaders to exported items
   _conditionals += [
-    'TemplateLoader',
     'FileLoader',
     'ModuleLoader',
     'ExtensionLoader'
@@ -172,7 +161,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
 
 @decorators.bind('template', namespace=False)
-class TemplateAPI(CoreAPI):
+class Templates(logic.Logic):
 
   '''  '''
 
@@ -370,5 +359,5 @@ class TemplateAPI(CoreAPI):
 
 
 __all__ = tuple([
-  'TemplateAPI'
+  'Templates'
 ] + _conditionals)

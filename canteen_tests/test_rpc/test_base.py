@@ -205,9 +205,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       # describe as dictionary and interrogate
       manifest = handler.describe(json=False, javascript=False)
-      assert len(manifest) == 1
-      assert manifest[0][0] == 'sample'
-      assert manifest[0][-1]['sample'] is True
+      assert len(manifest)
+      assert manifest[1][0] == 'sample'
+      assert manifest[1][-1]['sample'] is True
 
     def test_describe_json(self):
 
@@ -217,9 +217,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       # describe as dictionary and interrogate
       manifest = json.loads(handler.describe(json=True, javascript=False))
-      assert len(manifest) == 1
-      assert manifest[0][0] == 'sample'
-      assert manifest[0][-1]['sample'] is True
+      assert len(manifest)
+      assert manifest[1][0] == 'sample'
+      assert manifest[1][-1]['sample'] is True
 
     def test_describe_javascript(self):
 
@@ -234,9 +234,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
       assert 'apptools.rpc.service.factory(' in manifest
 
       manifest = json.loads(manifest.replace('apptools.rpc.service.factory(', '').replace(');', ''))
-      assert len(manifest) == 1
-      assert manifest[0][0] == 'sample'
-      assert manifest[0][-1]['sample'] is True
+      assert len(manifest)
+      assert manifest[1][0] == 'sample'
+      assert manifest[1][-1]['sample'] is True
 
     def test_describe_invalid_format(self):
 
@@ -261,9 +261,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
       assert 'testing(' in manifest
 
       manifest = json.loads(manifest.replace('testing(', '').replace(');', ''))
-      assert len(manifest) == 1
-      assert manifest[0][0] == 'sample'
-      assert manifest[0][-1]['sample'] is True
+      assert len(manifest)
+      assert manifest[1][0] == 'sample'
+      assert manifest[1][-1]['sample'] is True
 
     def test_build_wsgi_application(self):
 
@@ -273,9 +273,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       # describe as dictionary and interrogate
       manifest = handler.describe(json=False, javascript=False)
-      assert len(manifest) == 1
-      assert manifest[0][0] == 'sample'
-      assert manifest[0][-1]['sample'] is True
+      assert len(manifest)
+      assert manifest[1][0] == 'sample'
+      assert manifest[1][-1]['sample'] is True
 
       # describe as application and interrogate
       wsgi_app = handler.application
@@ -320,3 +320,135 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     ''' Tests `rpc.remote` '''
 
+    def test_construct(self):
+
+      ''' Test construction of a new `rpc.remote` wrapper '''
+
+      r = rpc.remote('registered', version=1)
+
+      assert r.name == 'registered'
+      assert r.config['version'] == 1
+      return r
+
+    def test_wrap_raw(self):
+
+      ''' Test wrapping a `Service` with `rpc.remote` directly '''
+
+      r = self.test_construct()
+
+      class RegisteredService(rpc.Service):
+
+        ''' Service mock for testing registration '''
+
+      klass = r(RegisteredService)
+
+      assert r.target is klass
+      assert rpc.ServiceHandler.get_service('registered') is klass
+
+      return klass, r
+
+    def test_wrap_service(self):
+
+      ''' Test wrapping a `Service` with `rpc.remote.service` '''
+
+      klass, r = self.test_wrap_raw()
+
+      wrap = r.service(klass)
+      assert callable(wrap)
+
+    def test_wrap_method(self):
+
+      ''' Test wrapping a method with `rpc.remote.method` '''
+
+      class SampleMessage(messages.Message):
+
+        ''' Mock message '''
+
+        string = messages.StringField(1)
+        integer = messages.IntegerField(2)
+
+
+      class RegisteredService(rpc.Service):
+
+        ''' Service mock for testing registration '''
+
+        @rpc.remote.method(SampleMessage)
+        def registered_method(self, request):  # pragma: no cover
+
+          ''' I am a registered service message. '''
+
+          request.integer += 1
+          request.string += ", world!"
+          return request
+
+      assert callable(RegisteredService.registered_method)
+      return RegisteredService, SampleMessage
+
+    def test_wrap_method_models(self):
+
+      ''' Test wrapping a method with `rpc.remote.method` that uses Canteen models '''
+
+      class SampleRequest(model.Model):
+
+        ''' Mock request '''
+
+        string = basestring
+        integer = int
+
+      class SampleResponse(model.Model):
+
+        ''' Mock response '''
+
+        string = basestring
+        integer = int
+
+      @rpc.remote.service('registered')
+      class RegisteredService(rpc.Service):
+
+        ''' Service mock for testing registration '''
+
+        @rpc.remote.method(SampleRequest, SampleResponse)
+        def registered_method(self, request):  # pragma: no cover
+
+          ''' I am a registered service message. '''
+
+          return SampleResponse(**{
+            'string': request.string + ', world!',
+            'integer': request.integer + 1
+          })
+
+      assert callable(RegisteredService.registered_method)
+      return RegisteredService, SampleRequest, SampleResponse
+
+    def test_wrap_method_dispatch(self):
+
+      ''' Test dispatching an RPC directly through a wrapped `rpc.remote.method` '''
+
+      RegisteredService, SampleMessage = self.test_wrap_method()
+
+      # make message
+      request = SampleMessage(string='Hello', integer=10)
+
+      # dispatch
+      result = RegisteredService().registered_method(request)
+
+      assert result.string == 'Hello, world!'
+      assert result.integer == 11
+      assert isinstance(result, SampleMessage)
+
+    def test_wrap_method_dispatch_models(self):
+
+      ''' Test dispatching an RPC with models through a wrapped `rpc.remote.method` '''
+
+      RegisteredService, SampleRequest, SampleResponse = self.test_wrap_method_models()
+
+      # make message
+      request = SampleRequest(string='Hello', integer=10)
+      r = request.to_message()
+
+      # dispatch
+      result = RegisteredService().registered_method(r)
+
+      assert result.string == 'Hello, world!'
+      assert result.integer == 11
+      assert isinstance(result, messages.Message), "expected response class %s, got %s" % (messages.Message, result)

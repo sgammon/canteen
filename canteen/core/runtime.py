@@ -183,7 +183,7 @@ class Runtime(object):
 
     try:
       server.serve_forever()
-    except (KeyboardInterrupt, Exception) as e:
+    except (KeyboardInterrupt, Exception):
       print("Exiting.")
       sys.exit(0)
 
@@ -445,11 +445,12 @@ class Runtime(object):
           ## grab a profiler
           try:
             import cProfile as profile
-          except ImportError as e:
+          except ImportError:
             import profile
 
           ## calculate dump file path
-          profile_path = dev_config['profiler'].get('dump_file', os.path.abspath(os.path.join(os.getcwd(), '.develop', 'app.profile')))
+          profile_path = dev_config['profiler'].get('dump_file', os.path.abspath(os.path.join(*(
+            os.getcwd(), '.develop', 'app.profile'))))
 
           ## current profile
           _current_profile = profile.Profile(**dev_config['profiler'].get('profile_kwargs', {}))
@@ -464,7 +465,8 @@ class Runtime(object):
               _current_profile.dump_stats(profile_path)
 
           else:
-            raise RuntimeError('Cross-request profiling is currently unsupported.')  # @TODO(sgammon): cross-request profiling
+            # @TODO(sgammon): cross-request profiling
+            raise RuntimeError('Cross-request profiling is currently unsupported.')
 
           def _dispatch(*args, **kwargs):
 

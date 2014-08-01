@@ -51,7 +51,9 @@ class AgentInfo(object):
     return "%s(%s)" % (
       self.__class__.__name__.replace('Agent', ''),
       ', '.join(
-        ('='.join((i, str(getattr(self, i) if (hasattr(self, i)) else None))) for i in self.__slots__ if not i.startswith('__'))
+        ('='.join((
+          i,
+          str(getattr(self, i) if (hasattr(self, i)) else None))) for i in self.__slots__ if not i.startswith('__'))
       )
     )
 
@@ -227,15 +229,15 @@ class AgentFingerprint(AgentInfo):
   capabilities = supports
 
   @classmethod
-  def scan(cls, request, user_agent):
+  def scan(cls, request, ua):
 
     '''  '''
 
     detected = {}  # holds detected truths/guesses
 
     # copy over raw strings
-    accept = detected['accept'] = request.headers.get('accept')
-    string = detected['string'] = request.headers.get('user-agent')
+    detected['accept'] = request.headers.get('accept')
+    detected['string'] = request.headers.get('user-agent')
 
     # copy over accept details
     detected['charsets'], detected['encodings'], detected['languages'], detected['mimetypes'] = (
@@ -243,7 +245,7 @@ class AgentFingerprint(AgentInfo):
     )
 
     # detect version first
-    version = detected['version'] = user_agent.version.split('.')
+    version = detected['version'] = ua.version.split('.')
     version_spec = []
 
     # take each version section as major, minor, micro
@@ -257,34 +259,36 @@ class AgentFingerprint(AgentInfo):
 
     # if we detected *anything* as an int, add it as our version
     version = detected['version'] = AgentVersion(*tuple(version_spec)) if version_spec else AgentVersion(0)
+    platform = ua.platform.lower().strip()
+
 
     # all others
     for datapoint, condition in ((
 
       ## Browser
-      ('chrome', user_agent.browser == 'chrome'),
-      ('firefox', user_agent.browser == 'firefox'),
-      ('seamonkey', user_agent.browser == 'seamonkey'),
-      ('safari', user_agent.browser == 'safari'),
-      ('opera', user_agent.browser == 'opera'),
-      ('msie', user_agent.browser == 'msie'),
-      ('googlebot', user_agent.browser == 'google'),
-      ('yahoo', user_agent.browser == 'yahoo'),
-      ('aol', user_agent.browser == 'aol'),
-      ('ask', user_agent.browser == 'ask'),
+      ('chrome', ua.browser == 'chrome'),
+      ('firefox', ua.browser == 'firefox'),
+      ('seamonkey', ua.browser == 'seamonkey'),
+      ('safari', ua.browser == 'safari'),
+      ('opera', ua.browser == 'opera'),
+      ('msie', ua.browser == 'msie'),
+      ('googlebot', ua.browser == 'google'),
+      ('yahoo', ua.browser == 'yahoo'),
+      ('aol', ua.browser == 'aol'),
+      ('ask', ua.browser == 'ask'),
 
       ## Engines
-      ('trident', user_agent.browser == 'msie'),
-      ('blink', user_agent.browser in ('chrome', 'opera')),
-      ('presto', user_agent.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
-      ('webkit', user_agent.browser in ('safari', 'chrome', 'opera')),
-      ('spidermonkey', user_agent.browser in ('firefox', 'seamonkey')),
-      ('gecko', 'Gecko' in user_agent.string and ('WebKit' not in user_agent.string and 'Chrome' not in user_agent.string)),
+      ('trident', ua.browser == 'msie'),
+      ('blink', ua.browser in ('chrome', 'opera')),
+      ('presto', ua.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
+      ('webkit', ua.browser in ('safari', 'chrome', 'opera')),
+      ('spidermonkey', ua.browser in ('firefox', 'seamonkey')),
+      ('gecko', 'Gecko' in ua.string and ('WebKit' not in ua.string and 'Chrome' not in ua.string)),
 
       ## Environments
-      ('tablet', 'Tabl' in user_agent.string or 'iPad' in user_agent.string),
-      ('crawler', user_agent.browser in ('google', 'yahoo', 'aol', 'ask')),
-      ('mobile', 'Mobi' in user_agent.string or 'IEMobile' in user_agent.string or user_agent.platform.lower().strip() in ('ios', 'iphone', 'ipad'))
+      ('tablet', 'Tabl' in ua.string or 'iPad' in ua.string),
+      ('crawler', ua.browser in ('google', 'yahoo', 'aol', 'ask')),
+      ('mobile', 'Mobi' in ua.string or 'IEMobile' in ua.string or platform in ('ios', 'iphone', 'ipad'))
 
       )):
       detected[datapoint] = condition
@@ -306,10 +310,10 @@ class AgentFingerprint(AgentInfo):
     detected['desktop'] = not any((detected.get('mobile'), detected.get('tablet')))
 
     # OS detection
-    detected['__os__'] = AgentOS.scan(request, user_agent, detected)
+    detected['__os__'] = AgentOS.scan(request, ua, detected)
 
     # capabilities detection
-    detected['__supports__'] = AgentCapabilities.scan(request, user_agent, detected)
+    detected['__supports__'] = AgentCapabilities.scan(request, ua, detected)
 
     # judge modern/ancient
     detected['modern'] = (detected['chrome'] or detected['safari'] or detected['firefox'] or detected['opera']) and (

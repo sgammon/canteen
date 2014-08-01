@@ -315,7 +315,8 @@ class Sessions(logic.Logic):
 
     pass
 
-  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=('environ', 'endpoint', 'arguments', 'request', 'http')))
+  @decorators.bind('establish', wrap=hooks.HookResponder('match', context=(
+    'environ', 'endpoint', 'arguments', 'request', 'http')))
   def establish(self, environ, endpoint, arguments, request, http):
 
     '''  '''
@@ -339,11 +340,12 @@ class Sessions(logic.Logic):
       session_cfg = http.config.get('sessions', {'enable': False})
       if session_cfg.get('enable', True):
 
-        # find us an engine, yo
-        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')  # default to cookie-based sessions (safest)
+        # find us an engine, yo, and default to cookie-based sessions (safest)
+        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')
         engine.load(request=request, http=http)
 
-  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=('status', 'headers', 'request', 'http', 'response')))
+  @decorators.bind('commit', wrap=hooks.HookResponder('response', context=(
+    'status', 'headers', 'request', 'http', 'response')))
   def commit(self, status, headers, request, http, response):
 
     '''  '''

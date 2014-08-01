@@ -22,7 +22,11 @@ from . import runtime
 
 class HookResponder(object):
 
-  '''  '''
+  ''' Provides an object that can hook into named points in runtime
+      execution flow. Context is provided as keyword arguments and
+      may be subscribed to by named item.
+
+      A full list of hook points is not yet available. '''
 
   __slots__ = (
     '__func__',  # inner function
@@ -34,7 +38,9 @@ class HookResponder(object):
 
   def __init__(self, *events, **kwargs):
 
-    '''  '''
+    ''' Initialize this ``HookResponder``.
+
+        args/kwargs '''
 
     self.__hooks__, self.__argspec__, self.__wrap__ = (
       frozenset(events),  # events to fire on
@@ -47,14 +53,26 @@ class HookResponder(object):
 
   def __register__(self, context):
 
-    '''  '''
+    ''' Register this ``HookResponder`` with the currently-active
+        runtime, which will make it available when hooks are due
+        to be executed.
+
+        :param context:
+
+        :returns: Nothing. '''
 
     for i in self.__hooks__:  # add hook for each event name
       runtime.Runtime.add_hook(i, (context, self))
 
   def __call__(self, *args, **kwargs):
 
-    '''  '''
+    ''' Execute this local ``HookResponder``, which will dispatch
+        the underlying hook target, passing along any arguments
+        and keyword arguments.
+
+        args/kwargs
+
+        :returns: '''
 
     from ..util import decorators
 
@@ -63,7 +81,8 @@ class HookResponder(object):
       hook = args[0]
       if not self.__argspec__:
         _hook_i = inspect.getargspec(hook)
-        self.__argspec__ = Context([i for i in _hook_i.args if i not in ('self', 'cls')], _hook_i.keywords is not None)
+        self.__argspec__ = Context([i for i in _hook_i.args if i not in (
+          'self', 'cls')], _hook_i.keywords is not None)
 
       # carry through DI bindings
       if isinstance(self.__wrap__, decorators.bind):
@@ -82,7 +101,8 @@ class HookResponder(object):
 
 class Context(object):
 
-  '''  '''
+  ''' Object that contains context for a given ``HookResponder`` instance.
+      Holds hook kwargs and args for target execution. '''
 
   __slots__ = (
     '__requested__',  # requested args
@@ -92,7 +112,11 @@ class Context(object):
 
   def __init__(self, requested, rollup=True, notify=False):
 
-    '''  '''
+    ''' Initialize this ``HookResponder`` ``Context`` object.
+
+        :param requested:
+        :param rollup:
+        :param notify: '''
 
     self.__requested__, self.__rollup__, self.__notify__ = (
       requested, rollup, notify
@@ -100,11 +124,26 @@ class Context(object):
 
   def __call__(self, func):
 
-    '''  '''
+    ''' Pair this ``Context`` with the target ``func`` and
+        execute using the locally-attached ``requested``
+        args, potentially using ``rollup``.
+
+        :param func:
+
+        :raises:
+        :returns: '''
 
     def with_context(*args, **context):
 
-      '''  '''
+      ''' Closure returned to execute args and context items
+          with a provided target ``func``, usually the backing
+          to a ``HookResponder``. Arguments are passed through
+          to the target callable.
+
+          args/kwargs
+
+          :raises:
+          :returns: '''
 
       # extract hookname from args (always 1st param)
       hookname, args = args[0], args[1:]
@@ -114,18 +153,20 @@ class Context(object):
       if self.__requested__:
         for prop in self.__requested__:
           if prop not in context:
-            raise RuntimeError('Cannot satisfy request for context entry `%s` in'
-                               ' hook `%s` for event point `%s`.' % (
+            raise RuntimeError('Cannot satisfy request for context entry `%s`'
+                               ' in hook `%s` for event point `%s`.' % (
                                 prop,
-                                (func if not isinstance(func, (classmethod, staticmethod)) else func.__func__).__name__,
-                                hookname))
+                                (func if not (
+                                  isinstance(func, (classmethod, staticmethod)))
+                                  else func.__func__.__name__), hookname))
           _args.append(context[prop])
 
       # honor kwargs
       if self.__rollup__: _kwargs = context
 
       # resolve dispatch function
-      dispatch = (func if not isinstance(func, (classmethod, staticmethod)) else func.__func__)
+      dispatch = (func if not (
+        isinstance(func, (classmethod, staticmethod))) else func.__func__)
 
       # notify function of hookname, if requested
       if self.__notify__: _args.insert(0, hookname)

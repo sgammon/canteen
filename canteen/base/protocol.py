@@ -136,11 +136,11 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           ``kwargs`` are taken as configuration to add to the protocol target.
 
-          :param name: Name to register this protocol under.
-          :type  name: ``str`` or ``unicode``.
+          :param name: Name to register this protocol under. ``str`` or
+          ``unicode``.
 
-          :param types: Content types to use this mapper for.
-          :type  types: Iterable of ``str`` or ``unicode``.
+          :param types: Content types to use this mapper for. Iterable of
+          ``str`` or ``unicode`` ``Content-Type`` values to match on.
 
           :returns: Closured wrapper to register the protocol and return it. '''
 
@@ -153,8 +153,8 @@ with runtime.Library('protorpc') as (library, protorpc):
             class construction. Mounts a ``Protocol``'s label, content types,
             and configuration.
 
-            :param klass: Target class to register and return.
-            :type  klass: :py:class:`canteen.base.protocol.Protocol` subclass.
+            :param klass: Target class to register and return. Subclass of
+            :py:class:`canteen.base.protocol.Protocol`.
 
             :returns: Target ``klass``, after registration. '''
 
@@ -215,8 +215,8 @@ with runtime.Library('protorpc') as (library, protorpc):
           Failure to specify this method will prevent an implementing class
           from being constructed.
 
-          :param message: Object to encode with ``Protocol``.
-          :type  message: Passed-in from ProtoRPC as ``message.Message``.
+          :param message: Object to encode with ``Protocol``. Passed-in from
+          ProtoRPC as ``message.Message``.
 
           :raises NotImplementedError: Always, as this method is abstract.
 
@@ -235,11 +235,11 @@ with runtime.Library('protorpc') as (library, protorpc):
           Failure to specify this method will prevent an implementing class
           from being constructed.
 
-          :param message_type: Type to expand from ``encoded_message``.
-          :type  message_type: :py:class:`messages.Message` subclass.
+          :param message_type: Type to expand from ``encoded_message``. Subclass
+          of :py:class:`messages.Message`.
 
-          :param encoded_message: Encoded message to be decoded.
-          :type  encoded_message: ``str``, ``unicode``, iterable buffer.
+          :param encoded_message: Encoded message to be decoded. ``str``,
+          ``unicode`` or iterable string buffer.
 
           :raises NotImplementedError: Always, as this method is abstract.
 

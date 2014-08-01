@@ -23,18 +23,30 @@ from .meta import Proxy
 
 class Delegate(object):
 
-  ''' '''
+  ''' Delegates property access for a given context to
+      the system DI (dependency injection) pool. Items
+      that mix a ``Delegate`` subclass into their MRO
+      work transparently with injection. '''
 
   __bridge__ = None  # holds bridge for current class to collapsed component set
-  __target__ = None  # holds injection target for this delegate (that we will answer for)
+  __target__ = None  # holds injection target for this delegate
 
   class __metaclass__(type):
 
-    '''  '''
+    ''' Metaclass to prepare new subclasses, wrapped as
+        customized children of ``Delegate`` that contain
+        their owner class for DI context. '''
 
     def __new__(cls, name_or_target, bases=None, properties=None):
 
-      '''  '''
+      ''' Construct a new ``Delegate`` subclass.
+
+          :param name_or_target:
+          :param bases:
+          :param properties:
+
+          :raises:
+          :returns: '''
 
       # if it only comes through with a target, it's a subdelegate
       if bases or properties:
@@ -47,13 +59,21 @@ class Delegate(object):
 
       def injection_responder(klass, key):
 
-        '''  '''
+        ''' Injected responder for attribute accesses
+            that hit the DI pool. Resolves a ``key``
+            for a given ``klass``, if possible.
 
-        # @TODO(sgammon): make things not jank here (for instance, don't `collapse` every time)
+            :param klass:
+            :param key:
+
+            :raises:
+            :returns: '''
+
+        # @TODO(sgammon): make things not jank here (don't `collapse` every time)
         try:
           bridge = Proxy.Component.collapse(klass)
           if isinstance(bridge[key], tuple):
-            return getattr(*bridge[key])  # bridge key is tuple of (responder, attribute)
+            return getattr(*bridge[key])  # bridge key is (responder, attribute)
           return bridge[key]  # return value directly if it's not a tuple
         except KeyError:  # pragma: nocover
           raise AttributeError('Could not resolve attribute \'%s\''
@@ -70,14 +90,23 @@ class Delegate(object):
 
     def __repr__(cls):  # pragma: nocover
 
-      '''  '''
+      ''' Generate a string representation of the local
+          ``Delegate``, including whatever class context
+          we're running in, if any.
 
-      return "<delegate root>" if not cls.__target__ else "<delegate '%s'>" % cls.__target__.__name__
+          :returns: '''
+
+      return "<delegate root>" if not (
+        cls.__target__) else "<delegate '%s'>" % cls.__target__.__name__
 
   @classmethod
   def bind(cls, target):
 
-    '''  '''
+    ''' Factory a new ``Delegate`` subclass, bound to
+        the ``target`` context class.
+
+        :param target:
+        :returns: '''
 
     # wrap in Delegate class context as well
     return cls.__metaclass__.__new__(cls, target)
@@ -85,14 +114,23 @@ class Delegate(object):
 
 class Compound(type):
 
-  '''  '''
+  ''' Concrete class used as a metafactory for class
+      structures that should enable attribute accesses
+      for response from the DI pool.
+
+      Use this class as a metaclass on items that should
+      transparently work with attribute injection. '''
 
   __seen__ = set()
   __delegate__ = None
 
   def mro(cls):
 
-    '''  '''
+    ''' Prepares MRO (Method Resolution Order) with a
+        customized ``Delegate`` that provides a view
+        into the DI pool.
+
+        :returns: '''
 
     for base in cls.__bases__:
       # check if we've seen any of these bases
@@ -116,7 +154,10 @@ class Compound(type):
 
 class Bridge(object):
 
-  '''  '''
+  ''' Tiny utility class that can be used as a static
+      ``Bridge`` into the DI pool. Suitable for use as
+      an independent object, mounted wherever is
+      convenient. '''
 
   __metaclass__ = Compound
 

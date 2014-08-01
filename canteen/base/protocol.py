@@ -134,16 +134,16 @@ with runtime.Library('protorpc') as (library, protorpc):
       ''' Register a ``Protocol`` implementation by name and a set of content
           types. Usually used as a decorator.
 
+          ``kwargs`` are taken as configuration to add to the protocol target.
+
           Args:
-            :param name:
-            :type  name:
+            :param name: Name to register this protocol under.
+            :type  name: ``str`` or ``unicode``.
 
-            :param types:
-            :type  types:
+            :param types: Content types to use this mapper for.
+            :type  types: Iterable of ``str`` or ``unicode``.
 
-          Kwargs:
-
-          :returns: '''
+          :returns: Closured wrapper to register the protocol and return it. '''
 
       assert isinstance(name, basestring), "protocol name must be a string"
       assert isinstance(types, (list, tuple)), "types must be an iterable"
@@ -154,10 +154,10 @@ with runtime.Library('protorpc') as (library, protorpc):
             class construction. Mounts a ``Protocol``'s label, content types,
             and configuration.
 
-            :param klass:
-            :type  klass:
+            :param klass: Target class to register and return.
+            :type  klass: :py:class:`canteen.base.protocol.Protocol` subclass.
 
-            :returns: '''
+            :returns: Target ``klass``, after registration. '''
 
         # assign protocol details
         klass.__label__, klass.__content_types__, klass.__config__ = (
@@ -168,9 +168,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
         if name not in Protocol.__protocols__:
           Protocol.__protocols__[name] = klass  # register :)
-
         return klass
-
       return _register_protocol
 
     ## == Protocol Properties == ##
@@ -219,8 +217,8 @@ with runtime.Library('protorpc') as (library, protorpc):
           from being constructed.
 
           Args:
-            :param message:
-            :type  message:
+            :param message: Object to encode with ``Protocol``.
+            :type  message: Passed-in from ProtoRPC as ``message.Message``.
 
           :raises NotImplementedError: Always, as this method is abstract.
 
@@ -240,11 +238,11 @@ with runtime.Library('protorpc') as (library, protorpc):
           from being constructed.
 
           Args:
-            :param message_type:
-            :type  message_type:
+            :param message_type: Type to expand from ``encoded_message``.
+            :type  message_type: :py:class:`messages.Message` subclass.
 
-            :param encoded_message:
-            :type  encoded_message:
+            :param encoded_message: Encoded message to be decoded.
+            :type  encoded_message: ``str``, ``unicode``, iterable buffer.
 
           :raises NotImplementedError: Always, as this method is abstract.
 

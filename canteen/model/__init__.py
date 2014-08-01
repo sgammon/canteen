@@ -47,7 +47,9 @@ def noglobal(name):
       and see if something is defined yet.
 
       :param name: Name to check for global definition
-      in this module. '''
+      in this module.
+
+      :returns: '''
 
   gl = globals()
   return (name in gl and (not gl[name]))
@@ -181,7 +183,13 @@ class MetaFactory(type):
   @abc.abstractmethod
   def initialize(cls, name, bases, properties):
 
-    ''' Initialize a subclass. Must be overridden by child metaclasses. '''
+    ''' Initialize a subclass. Must be overridden by child metaclasses.
+
+        :param name:
+        :param bases:
+        :param properties:
+
+        :raises: '''
 
     # `MetaFactory.initialize` is abstract
     raise NotImplementedError()  # pragma: no cover
@@ -192,7 +200,9 @@ class MetaFactory(type):
 ## AbstractKey
 class AbstractKey(object):
 
-  ''' Abstract Key class. '''
+  ''' Abstract Key class.
+
+      DOCSTRING '''
 
   ## = Encapsulated Classes = ##
 
@@ -200,7 +210,9 @@ class AbstractKey(object):
   # Constructs Key classes for use in the canteen model subsystem.
   class __metaclass__(MetaFactory):
 
-    ''' Metaclass for model keys. '''
+    ''' Metaclass for model keys.
+
+        DOCSTRING '''
 
     __owner__ = 'Key'
     __schema__ = _DEFAULT_KEY_SCHEMA
@@ -208,7 +220,15 @@ class AbstractKey(object):
     @classmethod
     def initialize(cls, name, bases, pmap):
 
-      ''' Initialize a Key class. '''
+      ''' Initialize a Key class.
+
+          :param name:
+          :param bases:
+          :param pmap:
+
+          :raises:
+
+          :returns: '''
 
       # resolve adapter
       _adapter = cls.resolve(name, bases, pmap)
@@ -235,7 +255,10 @@ class AbstractKey(object):
 
     def mro(cls):
 
-      ''' Generate a fully-mixed MRO for `AbstractKey` subclasses. '''
+      ''' Generate a fully-mixed MRO for `AbstractKey` subclasses.
+          DOCSTRING
+
+          :returns: '''
 
       if cls.__name__ == 'AbstractKey':  # `AbstractKey` MRO
         return (cls, KeyMixin.compound, object)
@@ -249,14 +272,22 @@ class AbstractKey(object):
 
     def __repr__(cls):
 
-      ''' String representation of a `Key` class. '''
+      ''' String representation of a `Key` class.
+
+          :returns: '''
 
       # dump key schema
       return '%s(%s)' % (cls.__name__, ', '.join((i for i in reversed(cls.__schema__))))
 
   def __new__(cls, *args, **kwargs):
 
-    ''' Intercepts construction requests for abstract model classes. '''
+    ''' Intercepts construction requests for abstract model classes.
+
+        Args:
+        Kwargs:
+
+        :raises:
+        :returns: '''
 
     # prevent direct instantiation of `AbstractKey`
     if cls.__name__ == 'AbstractKey':
@@ -266,7 +297,12 @@ class AbstractKey(object):
 
   def __eq__(self, other):
 
-    ''' Test whether two keys are functionally identical. '''
+    ''' Test whether two keys are functionally identical.
+        DOCSTRING
+
+        :param other:
+
+        :returns: '''
 
     if (not self and not other) or (self and other):
       if isinstance(other, self.__class__):  # class check
@@ -280,7 +316,9 @@ class AbstractKey(object):
 
   def __repr__(self):
 
-    ''' Generate a string representation of this Key. '''
+    ''' Generate a string representation of this Key.
+
+        :returns: '''
 
     pairs = ('%s=%s' % (k, getattr(self, k)) for k in reversed(self.__schema__))
     return "%s(%s)" % (self.__class__.__name__, ', '.join(pairs))
@@ -295,7 +333,14 @@ class AbstractKey(object):
   ## = Property Setters = ##
   def _set_internal(self, name, value):
 
-    ''' Set an internal property on a `Key`. '''
+    ''' Set an internal property on a `Key`.
+
+        :param name:
+        :param value:
+
+        :raise:
+
+        :returns: '''
 
     # fail if we're already persisted (unless we're updating the owner)
     if self.__persisted__ and name != 'owner': raise exceptions.PersistedKey(name)
@@ -306,7 +351,10 @@ class AbstractKey(object):
   ## = Property Getters = ##
   def _get_ancestry(self):
 
-    ''' Retrieve this Key's ancestry path. '''
+    ''' Retrieve this Key's ancestry path.
+
+        :raises:
+        :returns: '''
 
     if self.__parent__:  # if we have a parent, yield upward
       for i in self.__parent__.ancestry: yield i
@@ -336,7 +384,9 @@ class AbstractKey(object):
 ## AbstractModel
 class AbstractModel(object):
 
-  ''' Abstract Model class. '''
+  ''' Abstract Model class.
+
+      DOCSTRING '''
 
   __slots__ = tuple()
 
@@ -346,18 +396,27 @@ class AbstractModel(object):
   # Initializes class-level property descriptors and re-writes model internals.
   class __metaclass__(MetaFactory):
 
-    ''' Metaclass for data models. '''
+    ''' Metaclass for data models.
+
+        DOCSTRING '''
 
     __owner__ = 'Model'
 
     @staticmethod
     def _get_prop_filter(inverse=False):
 
-      ''' Closure to build a small filter utility. '''
+      ''' Closure to build a small filter utility.
+
+          :param inverse:
+
+          :returns: '''
 
       def _filter_prop(bundle):
 
-        ''' Decide whether a property is kept as a data value. '''
+        ''' Decide whether a property is kept as a data value.
+
+            :param bundle:
+            :returns: '''
 
         key, value = bundle  # extract, this is dispatched from ``{}.items``
         if key.startswith('_'): return inverse
@@ -370,7 +429,16 @@ class AbstractModel(object):
     @classmethod
     def initialize(cls, name, bases, properties):
 
-      ''' Initialize a Model class. '''
+      ''' Initialize a Model class.
+          DOCSTRING
+
+          :param name:
+          :param bases:
+          :param properties:
+
+          :raises:
+
+          :returns:'''
 
       property_map = {}
       _nondata_map = {}
@@ -437,7 +505,10 @@ class AbstractModel(object):
 
     def mro(cls):
 
-      ''' Generate a fully-mixed method resolution order for `AbstractModel` subclasses. '''
+      ''' Generate a fully-mixed method resolution order for `AbstractModel` subclasses.
+          DOCSTRING
+
+          :returns: '''
 
       if cls.__name__ != 'AbstractModel':  # must be a string, `AbstractModel` constructs here
         if cls.__name__ == 'Model': return (
@@ -458,7 +529,9 @@ class AbstractModel(object):
 
     def __repr__(cls):
 
-      ''' Generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)". '''
+      ''' Generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)".
+
+          :returns: '''
 
       if cls.__name__ in frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge')):
         if (cls.__name__ in frozenset(('Vertex', 'Edge')) and cls.__owner__ == 'Model') or (
@@ -471,7 +544,15 @@ class AbstractModel(object):
 
     def __setattr__(cls, name, value, exception=exceptions.InvalidAttributeWrite):
 
-      ''' Disallow property mutation before instantiation. '''
+      ''' Disallow property mutation before instantiation.
+
+          :param name:
+          :param value:
+          :param exception:
+
+          :raises:
+
+          :returns: '''
 
       if name in cls.__lookup__: raise exception('mutate', name, cls)  # cannot mutate data before instantiation
       if name.startswith('__'): return super(AbstractModel.__metaclass__, cls).__setattr__(name, value)
@@ -480,7 +561,14 @@ class AbstractModel(object):
     def __getitem__(cls, name, exception=exceptions.InvalidItem):
 
       ''' Override itemgetter syntax to return property
-        objects at the class level. '''
+          objects at the class level.
+
+          :param name:
+          :param exception:
+
+          :raises:
+
+          :returns: '''
 
       if name not in cls.__lookup__: raise exception('read', name, cls)  # cannot read non-data properties
       return cls.__dict__[name]
@@ -490,14 +578,20 @@ class AbstractModel(object):
   # Small, ultra-lightweight datastructure responsible for holding a property value bundle for an entity attribute.
   class _PropertyValue(tuple):
 
-    ''' Named-tuple class for property value bundles. '''
+    ''' Named-tuple class for property value bundles.
+        DOCSTRING'''
 
     __slots__ = tuple()
     __fields__ = ('dirty', 'data')
 
     def __new__(_cls, data, dirty=False):
 
-      ''' Create a new `PropertyValue` instance. '''
+      ''' Create a new `PropertyValue` instance.
+
+          :param data:
+          :param dirty:
+
+          :returns: '''
 
       return tuple.__new__(_cls, (data, dirty))  # pass up-the-chain to `tuple`
 
@@ -518,7 +612,14 @@ class AbstractModel(object):
   # = Internal Methods = #
   def __new__(cls, *args, **kwargs):
 
-    ''' Intercepts construction requests for directly Abstract model classes. '''
+    ''' Intercepts construction requests for directly Abstract model classes.
+
+        Args:
+        Kwargs:
+
+        :raises:
+
+        :returns: '''
 
     if cls.__name__ == 'AbstractModel':  # prevent direct instantiation
       raise exceptions.AbstractConstructionFailure('AbstractModel')
@@ -534,7 +635,15 @@ class AbstractModel(object):
 
   def __setattr__(self, name, value, exception=exceptions.InvalidAttribute):
 
-    ''' Attribute write override. '''
+    ''' Attribute write override.
+
+        :param name:
+        :param value:
+        :param exception:
+
+        :raises:
+
+        :returns: '''
 
     # internal properties, data properties and `key` can be written to after construction
     if name.startswith('__') or name in self.__lookup__ or name == 'key':
@@ -543,7 +652,11 @@ class AbstractModel(object):
 
   def __getitem__(self, name):
 
-    ''' Item getter support. '''
+    ''' Item getter support.
+
+        :param name:
+
+        :returns: '''
 
     if name not in self.__lookup__:  # only data properties are exposed via `__getitem__`
       raise exceptions.InvalidItem('get', name, self.kind())
@@ -554,7 +667,13 @@ class AbstractModel(object):
 
   def __context__(self, _type=None, value=None, traceback=None):
 
-    ''' Context enter/exit - apply explicit mode. '''
+    ''' Context enter/exit - apply explicit mode.
+
+        :param _type:
+        :param value:
+        :param traceback:
+
+        :returns: '''
 
     if traceback:  # pragma: no cover
       return False  # in the case of an exception in-context, bubble it up
@@ -576,7 +695,9 @@ class AbstractModel(object):
 
   def __iter__(self):
 
-    ''' Allow models to be used as dict-like generators. '''
+    ''' Allow models to be used as dict-like generators.
+
+        :returns: '''
 
     for name in self.__lookup__:
       value = self._get_value(name, default=Property._sentinel)
@@ -591,7 +712,11 @@ class AbstractModel(object):
 
   def _set_persisted(self, flag=False):
 
-    ''' Notify this entity that it has been persisted to storage. '''
+    ''' Notify this entity that it has been persisted to storage.
+
+        :param flag:
+
+        :returns: '''
 
     self.key.__persisted__ = True
     for name in self.__data__:  # iterate over set properties
@@ -601,7 +726,13 @@ class AbstractModel(object):
 
   def _get_value(self, name, default=None):
 
-    ''' Retrieve the value of a named property on this Entity. '''
+    ''' Retrieve the value of a named property on this Entity.
+
+        :param name:
+        :param default:
+
+        :raises:
+        :returns: '''
 
     if name:  # calling with no args gives all values in (name, value) form
       if name in self.__lookup__:
@@ -616,7 +747,14 @@ class AbstractModel(object):
 
   def _set_value(self, name, value=_EMPTY, _dirty=True):
 
-    ''' Set (or reset) the value of a named property on this Entity. '''
+    ''' Set (or reset) the value of a named property on this Entity.
+
+        :param name:
+        :param value:
+        :param _dirty:
+
+        :raises:
+        :returns: '''
 
     if not name: return self  # empty strings or dicts or iterables return self
 
@@ -640,7 +778,14 @@ class AbstractModel(object):
 
   def _set_key(self, value=None, **kwargs):
 
-    ''' Set this Entity's key manually. '''
+    ''' Set this Entity's key manually.
+
+        kwargs
+
+        :param value:
+
+        :raises:
+        :returns: '''
 
     # cannot provide both a value and formats
     if value and kwargs:
@@ -687,7 +832,8 @@ class AbstractModel(object):
 ## Key
 class Key(AbstractKey):
 
-  ''' Concrete Key class. '''
+  ''' Concrete Key class.
+      DOCSTRING '''
 
   __separator__ = u':'  # separator for joined/encoded keys
   __schema__ = _DEFAULT_KEY_SCHEMA if not _MULTITENANCY else _MULTITENANT_KEY_SCHEMA
@@ -695,7 +841,12 @@ class Key(AbstractKey):
   ## = Internal Methods = ##
   def __new__(cls, *parts, **formats):
 
-    ''' Constructs keys from various formats. '''
+    ''' Constructs keys from various formats.
+
+        args, kwargs
+
+        :raises:
+        :returns: '''
 
     formatter, value = formats.items()[0] if formats else ('__constructed__', None)  # extract 1st-provided format
 
@@ -709,7 +860,12 @@ class Key(AbstractKey):
 
   def __init__(self, *parts, **kwargs):
 
-    ''' Initialize this Key. '''
+    ''' Initialize this Key.
+
+        args, kwargs
+
+        :raises:
+        :returns: '''
 
     if len(parts) > 1:  # normal case: it's a full/partially-spec'd key
 
@@ -734,7 +890,13 @@ class Key(AbstractKey):
 
   def __setattr__(cls, name, value):
 
-    ''' Block attribute overwrites. '''
+    ''' Block attribute overwrites.
+
+        :param name:
+        :param value:
+
+        :raises:
+        :returns: '''
 
     if not name.startswith('__'):
       if name not in cls.__schema__:
@@ -747,7 +909,8 @@ class Key(AbstractKey):
 ## Property
 class Property(object):
 
-  ''' Concrete Property class. '''
+  ''' Concrete Property class.
+      DOCSTRING '''
 
   __metaclass__ = abc.ABCMeta  # enforce definition of `validate` for subclasses
   __slots__ = ('name', '_options', '_indexed', '_required', '_repeated', '_basetype', '_default')
@@ -756,7 +919,19 @@ class Property(object):
   ## = Internal Methods = ##
   def __init__(self, name, basetype, default=_sentinel, required=False, repeated=False, indexed=True, **options):
 
-    ''' Initialize this Property. '''
+    ''' Initialize this Property.
+
+        kwargs
+
+        :param name:
+        :param basetype:
+        :param default:
+        :param required:
+        :param repeated:
+        :param indexed:
+
+        :raises:
+        :returns: '''
 
     # copy locals specified above onto object properties of the same name, specified in `self.__slots__`
     map(lambda args: setattr(self, *args), zip(self.__slots__, (name, options, indexed,
@@ -765,7 +940,13 @@ class Property(object):
   ## = Descriptor Methods = ##
   def __get__(self, instance, owner):
 
-    ''' Descriptor attribute access. '''
+    ''' Descriptor attribute access.
+
+        :param instance:
+        :param owner:
+
+        :raises:
+        :returns: '''
 
     if instance:  # proxy to internal entity method.
 
@@ -782,7 +963,13 @@ class Property(object):
 
   def __set__(self, instance, value):
 
-    ''' Descriptor attribute write. '''
+    ''' Descriptor attribute write.
+
+        :param instance:
+        :param value:
+
+        :raises:
+        :returns: '''
 
     if instance is not None:  # only allow data writes after instantiation
       return instance._set_value(self.name, value)  # delegate to `AbstractModel._set_value`
@@ -792,7 +979,12 @@ class Property(object):
 
   def valid(self, instance):
 
-    ''' Validate the value of this property, if any. '''
+    ''' Validate the value of this property, if any.
+
+        :param instance:
+
+        :raises:
+        :returns: '''
 
     if self.__class__ != Property and hasattr(self, 'validate'):  # pragma: no cover
       return self.validate(instance)  # check for subclass-defined validator to delegate validation to
@@ -864,7 +1056,12 @@ class Model(AbstractModel):
   ## = Internal Methods = ##
   def __init__(self, **properties):
 
-    ''' Initialize this Model. '''
+    ''' Initialize this Model.
+
+        args
+
+        :raises:
+        :returns: '''
 
     # grab key / persisted flag, if any, and set explicit flag to `False`
     self.__explicit__, self.__initialized__ = False, True
@@ -880,7 +1077,8 @@ class Model(AbstractModel):
 ## Vertex
 class Vertex(Model):
 
-  ''' Concrete Vertex class. '''
+  ''' Concrete Vertex class.
+      DOCSTRING '''
 
   __owner__ = 'Vertex'
 
@@ -888,7 +1086,8 @@ class Vertex(Model):
 ## Edge
 class Edge(Model):
 
-  ''' Concrete Edge class. '''
+  ''' Concrete Edge class.
+      DOCSTRING '''
 
   __owner__ = 'Edge'
 

@@ -79,7 +79,7 @@ _operator_strings = {
 class QueryOptions(object):
 
   ''' Holds a re-usable set of options for a
-    :py:class:`Query`. '''
+      :py:class:`Query`. '''
 
   # == Options == #
   options = frozenset((
@@ -113,18 +113,18 @@ class QueryOptions(object):
   def __init__(self, **kwargs):
 
     ''' Initialize this :py:class:`QueryOptions`.
-      Map ``kwargs`` into local data properties
-      that are abstracted behind getters/setters
-      at the class level.
+        Map ``kwargs`` into local data properties
+        that are abstracted behind getters/setters
+        at the class level.
 
-      :param **kwargs: Keyword argument options.
-      Valid keys are listed in :py:attr:`__slots__`.
+        :param **kwargs: Keyword argument options.
+        Valid keys are listed in :py:attr:`__slots__`.
 
-      :raises AttributeError: In the case that
-      an invalid config key is found in ``kwargs``.
-      Passed-up from :py:meth:`_set_option`.
+        :raises AttributeError: In the case that
+        an invalid config key is found in ``kwargs``.
+        Passed-up from :py:meth:`_set_option`.
 
-      :returns: Nothing, as this is a constructor. '''
+        :returns: Nothing, as this is a constructor. '''
 
     self.__explicit__ = False  # initialize explicit flag
     map(lambda bundle: self._set_option(*bundle),
@@ -133,9 +133,9 @@ class QueryOptions(object):
   def __iter__(self):
 
     ''' Iterate over options specified in this
-      :py:class:`QueryOptions` object. Imitates
-      the ``dict.iteritems`` interface, in that
-      it yields ``(k, v)`` pairs. '''
+        :py:class:`QueryOptions` object. Imitates
+        the ``dict.iteritems`` interface, in that
+        it yields ``(k, v)`` pairs. '''
 
     for option in self.option_names:
       yield option, self._get_option(option)
@@ -143,11 +143,11 @@ class QueryOptions(object):
   def __enter__(self):
 
     ''' Enter an iteration mode whereby default
-      *values* are omitted in favor of a sentinel
-      that indicates empty fields.
+        *values* are omitted in favor of a sentinel
+        that indicates empty fields.
 
-      :returns: ``self``, in case an ``as`` block
-      is used. '''
+        :returns: ``self``, in case an ``as`` block
+        is used. '''
 
     self.__explicit__ = True
     return self
@@ -155,11 +155,11 @@ class QueryOptions(object):
   def __exit__(self, type, value, traceback):
 
     ''' Exit the special iteration mode whereby
-      default values are omitted.
+        default values are omitted.
 
-      :returns: ``True`` in the case of a successful
-      (read, non-excepting) enclosed block, else
-      ``False`` to propagate the exception. '''
+        :returns: ``True`` in the case of a successful
+        (read, non-excepting) enclosed block, else
+        ``False`` to propagate the exception. '''
 
     self.__explicit__ = False
     if traceback: return False
@@ -168,10 +168,10 @@ class QueryOptions(object):
   def __repr__(self):
 
     ''' Generate a pleasant string representation
-      of this :py:class:`QueryOptions` object.
+        of this :py:class:`QueryOptions` object.
 
-      :returns: Pleasant ``str`` label for this
-      object. '''
+        :returns: Pleasant ``str`` label for this
+        object. '''
 
     properties = []
     with self:
@@ -187,23 +187,23 @@ class QueryOptions(object):
   def _set_option(self, name, value=datastructures._EMPTY):
 
     ''' Set the value of an option local to this
-      :py:class:`QueryOptions` object. Calling
-      without a ``value`` (which defaults to
-      ``None``) resets the target key's value.
+        :py:class:`QueryOptions` object. Calling
+        without a ``value`` (which defaults to
+        ``None``) resets the target key's value.
 
-      :param name: Name (``str``) of the internal
-      property we're setting.
+        :param name: Name (``str``) of the internal
+        property we're setting.
 
-      :param value: Value to set the property to.
-      Defaults to ``None``.
+        :param value: Value to set the property to.
+        Defaults to ``None``.
 
-      :raises ValueError: If ``name`` is not a
-      ``basestring`` descendent.
+        :raises ValueError: If ``name`` is not a
+        ``basestring`` descendent.
 
-      :raises AttributeError: If ``name`` is not
-      a valid internal property name.
+        :raises AttributeError: If ``name`` is not
+        a valid internal property name.
 
-      :returns: ``self``, for chainability. '''
+        :returns: ``self``, for chainability. '''
 
     if not isinstance(name, basestring):
       raise ValueError('Argument `name` of `_set_option` must'
@@ -221,23 +221,23 @@ class QueryOptions(object):
   def _get_option(self, name, default=datastructures._EMPTY):
 
     ''' Get the value of an option local to this
-      :py:class:`QueryOptions` object.
+        :py:class:`QueryOptions` object.
 
-      :param name: Name (``str``) of the internal
-      property we're getting.
+        :param name: Name (``str``) of the internal
+        property we're getting.
 
-      :param default: Default value to return
-      if no value was found at ``name``. Defaults
-      to ``None``.
+        :param default: Default value to return
+        if no value was found at ``name``. Defaults
+        to ``None``.
 
-      :raises ValueError: If ``name`` is not
-      a ``basestring`` descendent.
+        :raises ValueError: If ``name`` is not
+        a ``basestring`` descendent.
 
-      :raises AttributeError: If ``name`` is not
-      a valid internal property name.
+        :raises AttributeError: If ``name`` is not
+        a valid internal property name.
 
-      :returns: Configuration value at ``name``,
-      or ``default`` if no value was found. '''
+        :returns: Configuration value at ``name``,
+        or ``default`` if no value was found. '''
 
     if not isinstance(name, basestring):  # pragma: no cover
       raise ValueError('Argument `name` of `_get_option` must'
@@ -263,15 +263,17 @@ class QueryOptions(object):
   def overlay(self, other, override=False):
 
     ''' Combine this :py:class:`QueryOptions` object
-      with another one, by merging the ``other``
-      object's settings into this one.
+        with another one, by merging the ``other``
+        object's settings into this one.
 
-      :param other: Other :py:class:`QueryOptions`
-      object to collect overriden property values
-      from.
+        :param other: Other :py:class:`QueryOptions`
+        object to collect overriden property values
+        from.
 
-      :returns: Resulting merged object, which is
-      simply ``self``. '''
+        :param override:
+
+        :returns: Resulting merged object, which is
+        simply ``self``. '''
 
     with other:
       with self:
@@ -312,7 +314,7 @@ class QueryOptions(object):
 class AbstractQuery(object):
 
   ''' Specifies base structure and interface for all
-    query classes. '''
+      query classes. '''
 
   __metaclass__ = abc.ABCMeta
 
@@ -320,11 +322,11 @@ class AbstractQuery(object):
   def filter(self, expression):  # pragma: no cover
 
     ''' Add a filter to the active :py:class:`Query`
-      at ``self``.
+        at ``self``.
 
-      :param expression: Filter expression to apply during query planning.
-      :raises NotImplementedError: Always, as this method is abstract.
-      :returns: ``self``, for chainability. '''
+        :param expression: Filter expression to apply during query planning.
+        :raises NotImplementedError: Always, as this method is abstract.
+        :returns: ``self``, for chainability. '''
 
     raise NotImplementedError('`filter` is abstract and may not be invoked directly.')
 
@@ -332,11 +334,11 @@ class AbstractQuery(object):
   def sort(self, expression):  # pragma: no cover
 
     ''' Add a sort directive to the active :py:class:`Query`
-      at ``self``.
+        at ``self``.
 
-      :param expression: Sort expression to apply to the target result set.
-      :raises NotImplementedError: Always, as this method is abstract.
-      :returns: ``self``, for chainability. '''
+        :param expression: Sort expression to apply to the target result set.
+        :raises NotImplementedError: Always, as this method is abstract.
+        :returns: ``self``, for chainability. '''
 
     raise NotImplementedError('`sort` is abstract and may not be invoked directly.')
 
@@ -344,11 +346,11 @@ class AbstractQuery(object):
   def hint(self, directive):  # pragma: no cover
 
     ''' Pass a hint to the query-planning subsystem for how
-      this query could most efficiently be satisfied.
+        this query could most efficiently be satisfied.
 
-      :param expression: Hint expression to take into consideration.
-      :raises NotImplementedError: Always, as this method is abstract.
-      :returns: ``self``, for chainability. '''
+        :param expression: Hint expression to take into consideration.
+        :raises NotImplementedError: Always, as this method is abstract.
+        :returns: ``self``, for chainability. '''
 
     raise NotImplementedError('`hint` is abstract and may not be invoked directly.')
 
@@ -356,18 +358,18 @@ class AbstractQuery(object):
   def fetch(self, **options):  # pragma: no cover
 
     ''' Fetch results for a :py:class:`Query`, via the
-      underlying driver's :py:meth:`execute_query` method.
+        underlying driver's :py:meth:`execute_query` method.
 
-      :param **options: Query options to build into
-      a :py:class:`QueryOptions` object.
+        :param **options: Query options to build into
+        a :py:class:`QueryOptions` object.
 
-      :raises NotImplementedError: Always, as this
-      method is abstract.
+        :raises NotImplementedError: Always, as this
+        method is abstract.
 
-      :returns: Iterable (``list``) of matching :py:class:`model.Model`
-      entities (or :py:class:`model.Key` objects if ``keys_only`` is
-      truthy) yielded from current :py:class:`Query`, or an empty ``list``
-      if no results were found. '''
+        :returns: Iterable (``list``) of matching :py:class:`model.Model`
+        entities (or :py:class:`model.Key` objects if ``keys_only`` is
+        truthy) yielded from current :py:class:`Query`, or an empty ``list``
+        if no results were found. '''
 
     raise NotImplementedError('`fetch` is abstract and may not be invoked directly.')
 
@@ -375,18 +377,18 @@ class AbstractQuery(object):
   def get(self, **options):  # pragma: no cover
 
     ''' Get a single result (by default, the first)
-      matching a :py:class:`Query`.
+        matching a :py:class:`Query`.
 
-      :param **options: Query options to build into
-      a :py:class:`QueryOptions` object.
+        :param **options: Query options to build into
+        a :py:class:`QueryOptions` object.
 
-      :raises NotImplementedError: Always, as this
-      method is abstract.
+        :raises NotImplementedError: Always, as this
+        method is abstract.
 
-      :returns: Single result :py:class:`model.Model`
-      (or :py:class:`model.Key` if ``keys_only`` is truthy)
-      matching the current :py:class:`Query`, or ``None``
-      if no matching entities were found. '''
+        :returns: Single result :py:class:`model.Model`
+        (or :py:class:`model.Key` if ``keys_only`` is truthy)
+        matching the current :py:class:`Query`, or ``None``
+        if no matching entities were found. '''
 
     raise NotImplementedError('`fetch` is abstract and may not be invoked directly.')
 
@@ -394,9 +396,9 @@ class AbstractQuery(object):
 class Query(AbstractQuery):
 
   ''' Top-level class representing a specification for
-    a query across data accessible to the canteen
-    model layer, using an adapter that supports the
-    :py:class:`IndexedModelAdapter` interface. '''
+      a query across data accessible to the canteen
+      model layer, using an adapter that supports the
+      :py:class:`IndexedModelAdapter` interface. '''
 
   kind = None  # model kind
   sorts = None  # sort directives
@@ -406,10 +408,16 @@ class Query(AbstractQuery):
   def __init__(self, kind=None, filters=None, sorts=None, **kwargs):
 
     ''' Initialize this :py:class:`Query`, assigning
-      any properties/config passed in via ``kwargs``
-      and such.
+        any properties/config passed in via ``kwargs``
+        and such.
 
-      :returns: Nothing, as this is an initializer. '''
+        kwargs
+
+        :param kind:
+        :param filters:
+        :param sorts:
+
+        :returns: Nothing, as this is an initializer. '''
 
     if filters:
       if not isinstance(filters, (list, tuple)):
@@ -424,10 +432,10 @@ class Query(AbstractQuery):
   def __repr__(self):
 
     ''' Generate a string representation
-      of this :py:class:`Query`.
+        of this :py:class:`Query`.
 
-      :returns: String representation of
-      the current :py:class:`Query`. '''
+        :returns: String representation of
+        the current :py:class:`Query`. '''
 
     return "Query(%s, filter=%s, sort=%s, options=%s)" % (
       self.kind.kind(),
@@ -440,32 +448,34 @@ class Query(AbstractQuery):
   def _execute(self, options=None, **kwargs):
 
     ''' Internal method to execute a query,
-      optionally along with some override
-      options.
+        optionally along with some override
+        options.
 
-      .. note: This method will eventually
-           accompany an async equivalent,
-           which this will make use of
-           under-the-hood.
+        .. note: This method will eventually
+             accompany an async equivalent,
+             which this will make use of
+             under-the-hood.
 
-      :param **options: Keyword arguments
-      of query config (i.e. valid and registered
-      on :py:class:`QueryOptions`) to pass
-      to the options object built to execute
-      the query.
+        :param options:
 
-      :raises AttributeError: In the case that
-      an invalid/unknown query configuration
-      key is encountered. Passed up from
-      :py:class:`QueryOptions`.
+        :param **kwargs: Keyword arguments
+        of query config (i.e. valid and registered
+        on :py:class:`QueryOptions`) to pass
+        to the options object built to execute
+        the query.
 
-      :raises NotImplementedError: In the case
-      that a ``kindless`` or ``projection``
-      query is encountered, as those features
-      are not yet supported.
+        :raises AttributeError: In the case that
+        an invalid/unknown query configuration
+        key is encountered. Passed up from
+        :py:class:`QueryOptions`.
 
-      :returns: Synchronously-retrieved results
-      to this :py:class:`Query`. '''
+        :raises NotImplementedError: In the case
+        that a ``kindless`` or ``projection``
+        query is encountered, as those features
+        are not yet supported.
+
+        :returns: Synchronously-retrieved results
+        to this :py:class:`Query`. '''
 
     ## build query options
     if self.options and options:
@@ -491,11 +501,11 @@ class Query(AbstractQuery):
 
     ''' Add a filter to this :py:class:`Query`.
 
-      :param expression: Expression descriptor of
-      type :py:class:`Filter`.
+        :param expression: Expression descriptor of
+        type :py:class:`Filter`.
 
-      :raises:
-      :returns: '''
+        :raises:
+        :returns: '''
 
     if isinstance(expression, Filter):
       self.filters.append(expression)
@@ -508,11 +518,11 @@ class Query(AbstractQuery):
 
     ''' Add a sort order to this :py:class:`Query`.
 
-      :param expression: Expression descriptor of
-      type :py:class:`Sort`.
+        :param expression: Expression descriptor of
+        type :py:class:`Sort`.
 
-      :raises:
-      :returns: '''
+        :raises:
+        :returns: '''
 
     from canteen import model
 
@@ -529,15 +539,17 @@ class Query(AbstractQuery):
   def hint(self, directive):
 
     ''' Provide an external hint to the query
-      planning logic about how to plan the
-      query.
+        planning logic about how to plan the
+        query.
 
-      Currently stubbed.
+        Currently stubbed.
 
-      :raises NotImplementedError: Always,
-      as this method is currently stubbed.
+        :param directive:
 
-      :returns: ``self``, for chainability. '''
+        :raises NotImplementedError: Always,
+        as this method is currently stubbed.
+
+        :returns: ``self``, for chainability. '''
 
     # @TODO(sgammon): fill out query hinting logic
     raise NotImplementedError('Query method `hint` is currently stubbed.')
@@ -545,15 +557,15 @@ class Query(AbstractQuery):
   def get(self, **options):
 
     ''' Get a single result (by default, the first)
-      matching a :py:class:`Query`.
+        matching a :py:class:`Query`.
 
-      :param **options: Accepts any valid and
-      registered options on :py:class:`QueryOptions`.
+        :param **options: Accepts any valid and
+        registered options on :py:class:`QueryOptions`.
 
-      :returns: Single result :py:class:`model.Model`
-      (or :py:class:`model.Key` if ``keys_only`` is truthy)
-      matching the current :py:class:`Query`, or ``None``
-      if no matching entities were found. '''
+        :returns: Single result :py:class:`model.Model`
+        (or :py:class:`model.Key` if ``keys_only`` is truthy)
+        matching the current :py:class:`Query`, or ``None``
+        if no matching entities were found. '''
 
     result = self._execute(options=QueryOptions(**options))
     if result: return result[0]
@@ -562,28 +574,30 @@ class Query(AbstractQuery):
   def fetch(self, **options):
 
     ''' Fetch results for the currently-built
-      :py:class:`Query`, executing it across
-      the attached ``kind``'s attached model
-      adapter.
+        :py:class:`Query`, executing it across
+        the attached ``kind``'s attached model
+        adapter.
 
-      :param **options: Accepts any valid and
-      registered options on :py:class:`QueryOptions`.
+        :param **options: Accepts any valid and
+        registered options on :py:class:`QueryOptions`.
 
-      :returns: Iterable (``list``) of matching model
-      entities. '''
+        :returns: Iterable (``list``) of matching model
+        entities. '''
 
     return self._execute(options=QueryOptions(**options) if options else None)
 
   def fetch_page(self, **options):
 
     ''' Fetch a page of results, potentially
-      as the next in a sequence of page
-      requests.
+        as the next in a sequence of page
+        requests.
 
-      :param **options: Accepts any valid and
-      registered options on :py:class:`QueryOptions`.
+        :param **options: Accepts any valid and
+        registered options on :py:class:`QueryOptions`.
 
-      :param page: '''
+        :raises:
+
+        :returns: '''
 
     # @TODO(sgammon): build out paging support
     raise NotImplementedError('Query method `fetch_page` is currently stubbed.')
@@ -592,9 +606,9 @@ class Query(AbstractQuery):
 class QueryComponent(object):
 
   ''' Top-level abstract class for a component of a
-    :py:class:`Query`, which is usually an attached
-    specification like a :py:class:`Filter` or
-    :py:class:`Sort`. '''
+      :py:class:`Query`, which is usually an attached
+      specification like a :py:class:`Filter` or
+      :py:class:`Sort`. '''
 
   __metaclass__ = abc.ABCMeta
 
@@ -612,8 +626,8 @@ class QueryComponent(object):
 class Filter(QueryComponent):
 
   ''' Query component specification parent for a generic
-    filter, used to traverse indexes and find entities
-    to return that match. '''
+      filter, used to traverse indexes and find entities
+      to return that match. '''
 
   ## == Filter State == ##
   value = None  # value to match
@@ -631,7 +645,18 @@ class Filter(QueryComponent):
 
   def __init__(self, prop, value, AND=None, OR=None, type=PROPERTY, operator=EQUALS):
 
-    ''' Initialize this :py:class:`Filter`. '''
+    ''' Initialize this :py:class:`Filter`.
+
+        :param prop:
+        :param value:
+        :param AND:
+        :param OR:
+        :param type:
+        :param operator:
+
+        :raises:
+
+        :returns: '''
 
     from canteen import model
     value = model.AbstractModel._PropertyValue(value, False)  # make a value
@@ -651,7 +676,9 @@ class Filter(QueryComponent):
   def __repr__(self):
 
     ''' Generate a string representation of
-      this :py:class:`Filter`. '''
+        this :py:class:`Filter`.
+
+        :returns: '''
 
     return 'Filter(%s %s %s)' % (
       (self.sub_operator.name + ' ') if self.sub_operator else '' + self.target.name,
@@ -660,13 +687,13 @@ class Filter(QueryComponent):
   def AND(self, filter_expression):
 
     ''' Chain a query with this one, logically
-      separated by an ``AND`` operator.
+        separated by an ``AND`` operator.
 
-      :param filter_expression: Other filter
-      to add to this filter's chain.
+        :param filter_expression: Other filter
+        to add to this filter's chain.
 
-      :returns: ``self``, for the ability to
-      further chain this query.'''
+        :returns: ``self``, for the ability to
+        further chain this query.'''
 
     self.chain += [filter_expression.set_subquery_operator(AND)]
     return self
@@ -674,13 +701,13 @@ class Filter(QueryComponent):
   def OR(self, filter_expression):
 
     ''' Chain a query with this one, logically
-      separated by an ``OR`` operator.
+        separated by an ``OR`` operator.
 
-      :param filter_expression: Other filter
-      to add to this filter's chain.
+        :param filter_expression: Other filter
+        to add to this filter's chain.
 
-      :returns: ``self``, for the ability to
-      further chain this query.'''
+        :returns: ``self``, for the ability to
+        further chain this query.'''
 
     self.chain += [filter_expression.set_subquery_operator(OR)]
     return self
@@ -688,15 +715,15 @@ class Filter(QueryComponent):
   def set_subquery_operator(self, operator):
 
     ''' Internal function for setting a query
-      object's subquery operator, which is
-      required to support ``AND/OR`` filter
-      chaining.
+        object's subquery operator, which is
+        required to support ``AND/OR`` filter
+        chaining.
 
-      :param operator: Set the local query's
-      subquery operator to this value.
+        :param operator: Set the local query's
+        subquery operator to this value.
 
-      :returns: ``self``, for the ability to
-      further chain this query. '''
+        :returns: ``self``, for the ability to
+        further chain this query. '''
 
     self.sub_operator = operator
     return self
@@ -704,16 +731,18 @@ class Filter(QueryComponent):
   def match(self, target):
 
     ''' Match this query's target, operator, and
-      embedded data against a target entity or
-      value.
+        embedded data against a target entity or
+        value.
 
-      :param target: May be a full ``Model``
-      object or raw value. Matched against
-      this handler's constraints.
+        :param target: May be a full ``Model``
+        object or raw value. Matched against
+        this handler's constraints.
 
-      :returns: ``True`` if the target ``Model``
-      or value matches this filter's contraints,
-      ``False`` otherwise. '''
+        :raises:
+
+        :returns: ``True`` if the target ``Model``
+        or value matches this filter's contraints,
+        ``False`` otherwise. '''
 
     if self.operator not in _operator_map:  # pragma: no cover
       raise RuntimeError('Invalid comparison operator could not be matched: "%s".' % self.operator)
@@ -739,14 +768,14 @@ class Filter(QueryComponent):
   def __call__(self, target):
 
     ''' Proxy to ``self.match``, which matches
-      a target ``Model`` or value against this
-      filter's constraints.
+        a target ``Model`` or value against this
+        filter's constraints.
 
-      :param target: Target ``model.Model``
-      instance or raw value to match against.
+        :param target: Target ``model.Model``
+        instance or raw value to match against.
 
-      :returns: ``True`` if ``target`` matches,
-      otherwise ``False``. '''
+        :returns: ``True`` if ``target`` matches,
+        otherwise ``False``. '''
 
     return self.match(target)
 
@@ -754,8 +783,8 @@ class Filter(QueryComponent):
 class KeyFilter(Filter):
 
   ''' Expresses a filter that applies to an entity's
-    associated :py:class:`model.Key`, or one of the
-    member components thereof. '''
+      associated :py:class:`model.Key`, or one of the
+      member components thereof. '''
 
   # == Constants == #
   KIND = KEY_KIND
@@ -765,7 +794,7 @@ class KeyFilter(Filter):
 class Sort(QueryComponent):
 
   ''' Expresses a directive to sort resulting entities
-    by a property in a given direction. '''
+      by a property in a given direction. '''
 
   ## == Sort Orders == ##
   ASC = ASCENDING = ASC
@@ -773,13 +802,19 @@ class Sort(QueryComponent):
 
   def __init__(self, prop, type=PROPERTY, operator=ASC):
 
-    ''' Initialize this :py:class:`Sort`. '''
+    ''' Initialize this :py:class:`Sort`.
+
+        :param prop:
+        :param type:
+        :param operator: '''
 
     self.target, self.kind, self.operator = prop, type, operator
 
   def __repr__(self):
 
     ''' Generate a string representation of
-      this :py:class:`Sort`. '''
+        this :py:class:`Sort`.
+
+        :returns: '''
 
     return 'Sort(%s, %s)' % (self.target.name, self.operator)

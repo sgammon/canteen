@@ -73,23 +73,20 @@ class Handler(object):
 
         Current execution details (internal to Canteen) are passed as ``kwargs``.
 
-        Args:
-          :param environ: WSGI environment, provided by active runtime.
-          :type environ: ``dict`` in standard WSGI format.
+        :param environ: WSGI environment, provided by active runtime.
+        :type environ: ``dict`` in standard WSGI format.
 
-          :param start_response: Callable to begin the response cycle.
-          :type start_response: Callable, usually a ``function``.
+        :param start_response: Callable to begin the response cycle.
+        :type start_response: Callable, usually a ``function``.
 
-          :param runtime: Currently-active Canteen runtime.
-          :type runtime: :py:class:`canteen.core.runtime.Runtime` instance.
+        :param runtime: Currently-active Canteen runtime.
+        :type runtime: :py:class:`canteen.core.runtime.Runtime` instance.
 
-          :param request: Object to use for ``self.request``.
-          :type request: Usually a :py:class:`werkzeug.wrappers.Request`.
+        :param request: Object to use for ``self.request``.
+        :type request: Usually a :py:class:`werkzeug.wrappers.Request`.
 
-          :param response: Object to use for ``self.response``.
-          :type response: Usually a :py:class:`werkzeug.wrappers.Response`.
-
-        '''
+        :param response: Object to use for ``self.response``.
+        :type response: Usually a :py:class:`werkzeug.wrappers.Response`. '''
 
     # startup/assign internals
     self.__runtime__, self.__environ__, self.__callback__ = (
@@ -223,9 +220,8 @@ class Handler(object):
     ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
         content. UTF-8 encoding happens if necessary.
 
-        Args:
-          :param content: Content to respond to.
-          :type content: ``str`` or ``unicode``.
+        :param content: Content to respond to.
+        :type content: ``str`` or ``unicode``.
 
         :returns: Generated (filled-in) ``self.response`` object. '''
 
@@ -253,23 +249,22 @@ class Handler(object):
         ``kwargs`` are taken as extra template context and overlayed onto
         ``context`` before render.
 
-        Args:
-          :param template: Path to template file to serve.
-          :type template: ``str`` or ``unicode`` file path.
+        :param template: Path to template file to serve.
+        :type template: ``str`` or ``unicode`` file path.
 
-          :param headers: Extra headers to send with response.
-          :type headers: ``dict`` or iterable of ``(name, value)`` tuples.
+        :param headers: Extra headers to send with response.
+        :type headers: ``dict`` or iterable of ``(name, value)`` tuples.
 
-          :param content_type: Value to send for ``Content-Type`` header.
-          :type content_type: ``str``, defaults to ``text/html; charset=utf-8``.
+        :param content_type: Value to send for ``Content-Type`` header.
+        :type content_type: ``str``, defaults to ``text/html; charset=utf-8``.
 
-          :param context: Extra template context to include during render.
-          :type context: ``dict`` of items, with keys as names that values are
-          bound to in the resulting template context.
+        :param context: Extra template context to include during render.
+        :type context: ``dict`` of items, with keys as names that values are
+        bound to in the resulting template context.
 
-          :param _direct: Flag indicating that ``self`` should be returned,
-          rather than ``self.response``.
-          :type _direct: Bool, defaults to ``False`` as this breaks WSGI.
+        :param _direct: Flag indicating that ``self`` should be returned,
+        rather than ``self.response``.
+        :type _direct: Bool, defaults to ``False`` as this breaks WSGI.
 
         :returns: Rendered template content, added to ``self.response``. '''
 
@@ -310,12 +305,11 @@ class Handler(object):
     ''' Kick off the local response dispatch process, and run any necessary
         pre/post hooks (named ``prepare`` and ``destroy``, respectively).
 
-        Args:
-          :param url_args: Arguments parsed from URL according to matched route.
-          :type url_args: ``dict`` of ``{param: value}`` pairs.
+        :param url_args: Arguments parsed from URL according to matched route.
+        :type url_args: ``dict`` of ``{param: value}`` pairs.
 
-          :param direct: Flag to indicate 'direct' mode, whereby a handler is returned instead of a response.
-          :type direct: Bool, defaults to ``False``, as this breaks WSGI.
+        :param direct: Flag to indicate 'direct' mode, whereby a handler is returned instead of a response.
+        :type direct: Bool, defaults to ``False``, as this breaks WSGI.
 
         :returns: ``self.response`` if ``direct`` mode is not active, otherwise ``self``. '''
 

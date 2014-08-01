@@ -136,12 +136,11 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           ``kwargs`` are taken as configuration to add to the protocol target.
 
-          Args:
-            :param name: Name to register this protocol under.
-            :type  name: ``str`` or ``unicode``.
+          :param name: Name to register this protocol under.
+          :type  name: ``str`` or ``unicode``.
 
-            :param types: Content types to use this mapper for.
-            :type  types: Iterable of ``str`` or ``unicode``.
+          :param types: Content types to use this mapper for.
+          :type  types: Iterable of ``str`` or ``unicode``.
 
           :returns: Closured wrapper to register the protocol and return it. '''
 
@@ -216,9 +215,8 @@ with runtime.Library('protorpc') as (library, protorpc):
           Failure to specify this method will prevent an implementing class
           from being constructed.
 
-          Args:
-            :param message: Object to encode with ``Protocol``.
-            :type  message: Passed-in from ProtoRPC as ``message.Message``.
+          :param message: Object to encode with ``Protocol``.
+          :type  message: Passed-in from ProtoRPC as ``message.Message``.
 
           :raises NotImplementedError: Always, as this method is abstract.
 
@@ -237,12 +235,11 @@ with runtime.Library('protorpc') as (library, protorpc):
           Failure to specify this method will prevent an implementing class
           from being constructed.
 
-          Args:
-            :param message_type: Type to expand from ``encoded_message``.
-            :type  message_type: :py:class:`messages.Message` subclass.
+          :param message_type: Type to expand from ``encoded_message``.
+          :type  message_type: :py:class:`messages.Message` subclass.
 
-            :param encoded_message: Encoded message to be decoded.
-            :type  encoded_message: ``str``, ``unicode``, iterable buffer.
+          :param encoded_message: Encoded message to be decoded.
+          :type  encoded_message: ``str``, ``unicode``, iterable buffer.
 
           :raises NotImplementedError: Always, as this method is abstract.
 

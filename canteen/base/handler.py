@@ -71,21 +71,23 @@ class Handler(object):
         providing ``runtime``, ``request`` and ``response`` allow tighter
         integration with the underlying runtime.
 
+        Current execution details (internal to Canteen) are passed as ``kwargs``.
+
         Args:
-          :param environ:
-          :type environ:
+          :param environ: WSGI environment, provided by active runtime.
+          :type environ: ``dict`` in standard WSGI format.
 
-          :param start_response:
-          :type start_response:
+          :param start_response: Callable to begin the response cycle.
+          :type start_response: Callable, usually a ``function``.
 
-          :param runtime:
-          :type runtime:
+          :param runtime: Currently-active Canteen runtime.
+          :type runtime: :py:class:`canteen.core.runtime.Runtime` instance.
 
-          :param request:
-          :type request:
+          :param request: Object to use for ``self.request``.
+          :type request: Usually a :py:class:`werkzeug.wrappers.Request`.
 
-          :param response:
-          :type response:
+          :param response: Object to use for ``self.response``.
+          :type response: Usually a :py:class:`werkzeug.wrappers.Response`.
 
         '''
 
@@ -222,10 +224,10 @@ class Handler(object):
         content. UTF-8 encoding happens if necessary.
 
         Args:
-          :param content:
-          :type content:
+          :param content: Content to respond to.
+          :type content: ``str`` or ``unicode``.
 
-        :returns: '''
+        :returns: Generated (filled-in) ``self.response`` object. '''
 
     # today is a good day
     if not self.status: self.status = 200
@@ -240,7 +242,7 @@ class Handler(object):
 
   def render(self, template,
                    headers={},
-                   content_type='text/html',
+                   content_type='text/html; charset=utf-8',
                    context={},
                    _direct=False, **kwargs):
 
@@ -248,26 +250,28 @@ class Handler(object):
         ``Handler``'s request, given ``context`` and proper ``headers`` for
         return.
 
+        ``kwargs`` are taken as extra template context and overlayed onto
+        ``context`` before render.
+
         Args:
-          :param template:
-          :type template:
+          :param template: Path to template file to serve.
+          :type template: ``str`` or ``unicode`` file path.
 
-          :param headers:
-          :type headers:
+          :param headers: Extra headers to send with response.
+          :type headers: ``dict`` or iterable of ``(name, value)`` tuples.
 
-          :param content_type:
-          :type content_type:
+          :param content_type: Value to send for ``Content-Type`` header.
+          :type content_type: ``str``, defaults to ``text/html; charset=utf-8``.
 
-          :param context:
-          :type context:
+          :param context: Extra template context to include during render.
+          :type context: ``dict`` of items, with keys as names that values are
+          bound to in the resulting template context.
 
-          :param _direct:
-          :type _direct:
+          :param _direct: Flag indicating that ``self`` should be returned,
+          rather than ``self.response``.
+          :type _direct: Bool, defaults to ``False`` as this breaks WSGI.
 
-        Kwargs:
-
-
-        :returns: '''
+        :returns: Rendered template content, added to ``self.response``. '''
 
     from canteen.util import config
 
@@ -307,13 +311,13 @@ class Handler(object):
         pre/post hooks (named ``prepare`` and ``destroy``, respectively).
 
         Args:
-          :param url_args:
-          :type url_args:
+          :param url_args: Arguments parsed from URL according to matched route.
+          :type url_args: ``dict`` of ``{param: value}`` pairs.
 
-          :param direct:
-          :type direct:
+          :param direct: Flag to indicate 'direct' mode, whereby a handler is returned instead of a response.
+          :type direct: Bool, defaults to ``False``, as this breaks WSGI.
 
-        :returns: '''
+        :returns: ``self.response`` if ``direct`` mode is not active, otherwise ``self``. '''
 
     # run prepare hook, if specified
     if hasattr(self, 'prepare'):

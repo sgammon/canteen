@@ -206,8 +206,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
       # describe as dictionary and interrogate
       manifest = handler.describe(json=False, javascript=False)
       assert len(manifest)
-      assert manifest[1][0] == 'sample'
-      assert manifest[1][-1]['sample'] is True
+
+      sample_item = None
+      for i in manifest:
+        if i[0] == 'sample':
+          sample_item = i
+
+      assert sample_item[0] == 'sample'
+      assert sample_item[-1]['sample'] is True
 
     def test_describe_json(self):
 
@@ -218,8 +224,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
       # describe as dictionary and interrogate
       manifest = json.loads(handler.describe(json=True, javascript=False))
       assert len(manifest)
-      assert manifest[1][0] == 'sample'
-      assert manifest[1][-1]['sample'] is True
+
+      sample_item = None
+      for i in manifest:
+        if i[0] == 'sample':
+          sample_item = i
+
+      assert sample_item[0] == 'sample'
+      assert sample_item[-1]['sample'] is True
 
     def test_describe_javascript(self):
 
@@ -235,8 +247,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       manifest = json.loads(manifest.replace('apptools.rpc.service.factory(', '').replace(');', ''))
       assert len(manifest)
-      assert manifest[1][0] == 'sample'
-      assert manifest[1][-1]['sample'] is True
+
+      sample_item = None
+      for i in manifest:
+        if i[0] == 'sample':
+          sample_item = i
+
+      assert sample_item[0] == 'sample'
+      assert sample_item[-1]['sample'] is True
 
     def test_describe_invalid_format(self):
 
@@ -262,8 +280,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       manifest = json.loads(manifest.replace('testing(', '').replace(');', ''))
       assert len(manifest)
-      assert manifest[1][0] == 'sample'
-      assert manifest[1][-1]['sample'] is True
+
+      sample_item = None
+      for i in manifest:
+        if i[0] == 'sample':
+          sample_item = i
+
+      assert sample_item[0] == 'sample'
+      assert sample_item[-1]['sample'] is True
 
     def test_build_wsgi_application(self):
 
@@ -274,8 +298,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
       # describe as dictionary and interrogate
       manifest = handler.describe(json=False, javascript=False)
       assert len(manifest)
-      assert manifest[1][0] == 'sample'
-      assert manifest[1][-1]['sample'] is True
+
+      sample_item = None
+      for i in manifest:
+        if i[0] == 'sample':
+          sample_item = i
+
+      assert sample_item[0] == 'sample'
+      assert sample_item[-1]['sample'] is True
 
       # describe as application and interrogate
       wsgi_app = handler.application

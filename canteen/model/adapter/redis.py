@@ -455,7 +455,17 @@ class RedisAdapter(IndexedModelAdapter):
     ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
-      raise NotImplementedError('Redis mode not implemented: "hashkey_blob".')
+      # build key and extract group
+      desired_key = model.Key.from_raw(flattened)
+      root = (ancestor for ancestor in desired_key.ancestry).next()
+      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+
+      result = _entity or (
+        cls.execute(*(
+          cls.Operations.HASH_GET,
+          flattened[1],
+          cls.encode_key(*root.flatten(True)),
+          cls.encode_key(tail, flattened)), target=pipeline))
 
     ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
@@ -526,7 +536,16 @@ class RedisAdapter(IndexedModelAdapter):
     ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
-      raise NotImplementedError('Redis mode not implemented: "hashkey_blob".')
+      # find entity group key
+      root = (ancestor for ancestor in entity.key.ancestry).next().flatten(True)
+      tail = entity.key.flatten(True)[0].replace(root[0], '') or '__root__'
+
+      return cls.execute(*(
+        cls.Operations.HASH_SET,
+        flattened[1],
+        cls.encode_key(*root),
+        cls.encode_key(tail, flattened),
+        serialized), target=pipeline)
 
     ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
@@ -568,12 +587,21 @@ class RedisAdapter(IndexedModelAdapter):
         cls.encode_key(tail, flattened)), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
-      ## @TODO: `delete` for `hashkey_blob`
-      pass
+
+      # build key and extract group
+      desired_key = model.Key.from_raw(flattened)
+      root = (ancestor for ancestor in desired_key.ancestry).next()
+      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+
+      return cls.execute(*(
+        cls.Operations.HASH_DELETE,
+          flattened[1],
+          cls.encode_key(*root.flatten(True)),
+          cls.encode_key(tail, flattened)), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
-      ## @TODO: `delete` for `hashkey_hash`
-      pass
+
+      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     # @TODO: different storage internal modes
 
@@ -619,7 +647,9 @@ class RedisAdapter(IndexedModelAdapter):
         cls._id_prefix,
         count), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
+    elif cls.EngineConfig.mode in (
+      RedisMode.hashkind_blob,
+      RedisMode.hashkey_blob):
 
       # store auto-increment for kind in kind's own hash at special field
       tail = cls._magic_separator.join([cls._meta_prefix, 'id'])  # ends up as `__meta__::id` or so
@@ -632,13 +662,9 @@ class RedisAdapter(IndexedModelAdapter):
         cls.encode_key(tail, flattened),
         count), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
-      ## @TODO: `allocate_ids` for `hashkey_blob`
-      pass
-
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
-      ## @TODO: `allocate_ids` for `hashkey_hash`
-      pass
+
+      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     if count > 1:
       def _generate_range():

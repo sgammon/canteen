@@ -509,7 +509,7 @@ class Query(AbstractQuery):
 
     if isinstance(expression, Filter):
       self.filters.append(expression)
-    else:
+    else:  # pragma: no cover
       raise NotImplementedError('Query method `filter` does not yet support non-'
                                 '`Filter` component types.')
     return self
@@ -526,7 +526,7 @@ class Query(AbstractQuery):
 
     from canteen import model
 
-    if isinstance(expression, model.Property):
+    if isinstance(expression, model.Property):  # pragma: no cover
       # default to descending sort
       self.sorts.append(-expression)
     if isinstance(expression, Sort):
@@ -536,7 +536,7 @@ class Query(AbstractQuery):
                                 '`Sort` component types.')
     return self
 
-  def hint(self, directive):
+  def hint(self, directive):  # pragma: no cover
 
     ''' Provide an external hint to the query
         planning logic about how to plan the

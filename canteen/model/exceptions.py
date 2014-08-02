@@ -26,16 +26,7 @@ class Error(Exception):
 
     self.args, self.kwargs = args, kwargs
 
-  def __repr__(self):
-
-    ''' Format message.
-
-        :returns: '''
-
-    if self.kwargs:
-      return self.message % self.kwargs
-    return self.message & self.args
-
+  __repr__ = lambda self: self.message % (self.kwargs if self.kwargs else args)
   __str__ = __unicode__ = __repr__
 
 

@@ -472,6 +472,9 @@ class RedisAdapter(IndexedModelAdapter):
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
+    else:  # pragma: no cover
+      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+
     # @TODO: different storage internal modes
     if isinstance(result, basestring):
 
@@ -507,19 +510,21 @@ class RedisAdapter(IndexedModelAdapter):
     serialized = entity.to_dict()
     joined, flattened = key
 
-    # serialize + optionally compress
-    serialized = cls.serializer.dumps(serialized)
-    if cls.EngineConfig.compression:
-      serialized = cls.compressor.compress(serialized)
-
     # toplevel_blob
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
       # delegate to redis client
       return cls.execute(cls.Operations.SET, flattened[1], joined, serialized, target=pipeline)
 
+    ## need a serialized blob...
+
+    # serialize + optionally compress
+    serialized = cls.serializer.dumps(serialized)
+    if cls.EngineConfig.compression:
+      serialized = cls.compressor.compress(serialized)
+
     ## hashkind_blob
-    elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
+    if cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
       # generate kinded key and trim tail
       kinded = _model.Key(flattened[1]).flatten(True)
@@ -551,6 +556,8 @@ class RedisAdapter(IndexedModelAdapter):
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+
+    raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
 
     # @TODO: different storage internal modes
 
@@ -603,7 +610,7 @@ class RedisAdapter(IndexedModelAdapter):
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
-    # @TODO: different storage internal modes
+    raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
 
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, pipeline=None):
@@ -655,7 +662,7 @@ class RedisAdapter(IndexedModelAdapter):
       tail = cls._magic_separator.join([cls._meta_prefix, 'id'])  # ends up as `__meta__::id` or so
 
       # delegate to redis client
-      return cls.execute(*(
+      value = cls.execute(*(
         cls.Operations.HASH_INCREMENT,
         flattened[1],
         cls.encode_key(joined, flattened),
@@ -665,6 +672,10 @@ class RedisAdapter(IndexedModelAdapter):
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+
+    else:  # pragma: no cover
+
+      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
 
     if count > 1:
       def _generate_range():

@@ -16,6 +16,9 @@
 
 '''
 
+from __future__ import print_function
+
+
 ## ``classproperty`` - use like ``@property``, but at the class-level.
 class classproperty(property):
 
@@ -331,7 +334,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # check expiration - flush if we have to
       if expiration and not (time.time() < expiration):
 
-        print "Cache item expired: '%s'." % key
+        print("Cache item expired: '%s'." % key)
 
         cache.CacheAPI.delete(key)
         val = None
@@ -341,7 +344,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # refresh the cache if we have to
       if not val:
 
-        print "Cache miss: '%s'." % key
+        print("Cache miss: '%s'." % key)
 
         val = func(*args, **kwargs)
 
@@ -349,7 +352,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
           cache.CacheAPI.set(key, val)
 
       else:
-        print "Cache hit: '%s'." % key
+        print("Cache hit: '%s'." % key)
 
       return val
 

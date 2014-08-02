@@ -610,19 +610,19 @@ class GraphModelAdapter(IndexedModelAdapter):
 
   ''' Abstract base class for model adapters that support graph-type models. '''
 
-  def _edges(self):
+  def _edges(self, target):
 
     ''' '''
 
     pass
 
-  def _connect(self):
+  def _connect(self, target):
 
     '''  '''
 
     pass
 
-  def _neighbors(self):
+  def _neighbors(self, target):
 
     '''  '''
 
@@ -639,7 +639,7 @@ class GraphModelAdapter(IndexedModelAdapter):
   @abc.abstractmethod
   def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
 
-    ''' Connect two objects (espressed as ``key1`` and ``key2``) as ``Vertexes`` by
+    ''' Connect two objects (expressed as ``key1`` and ``key2``) as ``Vertexes`` by
         an ``Edge``. Accepts an ``Edge`` object to use for the connection. '''
 
     raise NotImplementedError('`connect` is abstract.')

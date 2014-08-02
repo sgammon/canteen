@@ -17,7 +17,7 @@
 '''
 
 # stdlib
-import abc, logging
+import abc
 
 # canteen util
 from . import decorators
@@ -39,45 +39,31 @@ class Sentinel(object):
       :param falsy:
       :returns: '''
 
-    self.name, self.hash, self._falsy = name, int((''.join(str(ord(c)) for c in name))), falsy
+    self.name, self.hash, self._falsy = (
+      name, int((''.join(str(ord(c)) for c in name))), falsy)
 
-  def __hash__(self):
+  # hash value for this sentinel
+  __hash__ = lambda self: self.hash
 
-    ''' Hash value for this sentinel.
+  # equality comparator
+  __eq__ = lambda self, other: (
+    isinstance(other, self.__class__) and other.hash == self.hash)
 
-        :returns: '''
+  # string representation
+  __repr__ = lambda self: '<Sentinel "%s">' % self.name
 
-    return self.hash
+  # stringification value
+  __str__ = __unicode__ = lambda self: self.name
 
-  def __eq__(self, other):
-
-    ''' Equality comparator for this sentinel.
-
-        :returns: '''
-
-    if isinstance(other, self.__class__):
-      return other.hash == self.hash
-    return False
-
-  def __repr__(self):
-
-    ''' Represent this sentinel as a string.
-
-      :returns: '''
-
-    return '<Sentinel "%s">' % self.name
-
-  def __nonzero__(self):
-
-    ''' Test whether this sentinel is falsy.
-
-      :returns: '''
-
-    return (not self._falsy)
+  # falsyness
+  __nonzero__ = lambda self: (not self._falsy)
 
 
 # Sentinels
-_EMPTY, _TOMBSTONE = Sentinel("EMPTY", True), Sentinel("TOMBSTONE", True)
+_EMPTY, _TOMBSTONE = (
+  Sentinel("EMPTY", True),
+  Sentinel("TOMBSTONE", True)
+)
 
 
 class UtilStruct(object):
@@ -92,10 +78,13 @@ class UtilStruct(object):
     ''' Class constructor that enforces abstractness
         at the root of the class tree.
 
-        Raises :py:exc:`NotImplementedError` if the
-        root class :py:class:`UtilStruct` is constructed
-        directly. Otherwise, returns a new instance
-        of the requested class. '''
+        :param *args:
+        :param **kwargs:
+
+        :raises NotImplementedError: If the root class
+        :py:class:`UtilStruct` is constructed directly
+        Otherwise, returns a new instance of the
+        requested class. '''
 
     if cls.__name__ is 'UtilStruct':
       raise NotImplementedError('Cannot construct `UtilStruct` directly as'
@@ -111,6 +100,8 @@ class UtilStruct(object):
         :param struct:
         :param case_sensitive:
         :param kwargs:
+
+        :raises:
         :returns: '''
 
     raise NotImplementedError('`UtilStruct.fillStructure` is abstract and must'
@@ -122,8 +113,7 @@ class ObjectProxy(UtilStruct):
   ''' Same handy object as above, but stores the entries in an
     _entries attribute rather than the class dict.  '''
 
-  _entries = None
-  _case_sensitive = None
+  _entries = _case_sensitive = None
 
   def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
@@ -133,28 +123,15 @@ class ObjectProxy(UtilStruct):
       :param struct:
       :param case_sensitive:
       :param kwargs:
+
       :raises TypeError:
+
       :returns: '''
 
     self._entries, self._case_sensitive = {}, case_sensitive
     if struct:
       if kwargs: struct.update(kwargs)
       self.fillStructure(struct, case_sensitive=case_sensitive)
-
-  def i_filter(self, target):
-
-    ''' Account for case sensitivity.
-
-        :param target: String parameter name
-        to filter.
-
-        :returns: Case insensitive version
-        of ``target`` if case sensitivity
-        is deactivated. '''
-
-    if self._case_sensitive:
-      return target
-    return str(target).lower()
 
   def fillStructure(self, fill, case_sensitive=False, **kwargs):
 
@@ -204,65 +181,21 @@ class ObjectProxy(UtilStruct):
       raise AttributeError("Could not find the attribute '%s' on the specified ObjectProxy." % name)
     return self._entries[filtered]
 
-  def __contains__(self, name):
+  # filter for case sensitivity
+  i_filter = lambda self, target: (self._case_sensitive and target) or str(target).lower()
 
-    ''' 'x in struct' override.
+  # contains override
+  __contains__ = contains = lambda self, name: self.i_filter(name) in self._entries
 
-      :param name:
-      :returns: '''
+  # dict-style buffered access
+  keys = lambda self: self._entries.keys()
+  values = lambda self: self._entries.values()
+  items = lambda self: self._entries.items()
 
-    return self.i_filter(name) in self._entries
-
-  def keys(self):
-
-    ''' return all keys in this struct.
-
-      :returns: '''
-
-    return self._entries.keys()
-
-  def values(self):
-
-    ''' return all values in this struct.
-
-      :returns: '''
-
-    return self._entries.values()
-
-  def items(self):
-
-    ''' return all (k, v) pairs in this struct.
-
-      :returns: '''
-
-    return self._entries.items()
-
-  def iterkeys(self):
-
-    ''' return each key in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.iterkeys()
-
-  def itervalues(self):
-
-    ''' return each value in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.itervalues()
-
-  def iteritems(self):
-
-    ''' return all (k, v) pairs in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.iteritems()
+  # dict-style streaming access
+  iterkeys = lambda self: self._entries.iterkeys()
+  itervalues = lambda self: self._entries.itervalues()
+  iteritems = lambda self: self._entries.iteritems()
 
 
 class WritableObjectProxy(ObjectProxy):
@@ -348,11 +281,9 @@ class CallbackProxy(ObjectProxy):
       :raises KeyError:
       :returns: '''
 
-    if self._entries:
-      if name not in self._entries:
-        raise KeyError("Could not retrieve item '%s' from CallbackProxy '%s'." % (name, self))
-      return self.callback(self._entries.get(name))
-    return self.callback(name)
+    if self._entries and name not in self._entries:
+      raise KeyError("Could not retrieve item '%s' from CallbackProxy '%s'." % (name, self))
+    return self.callback((self._entries.get(name) if self._entries else name))
 
   def __getattr__(self, name):
 
@@ -362,19 +293,12 @@ class CallbackProxy(ObjectProxy):
       :raises AttributeError:
       :returns: '''
 
-    if self._entries:
-      if not name or (name not in self._entries):
-        raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
-      return self.callback(self._entries.get(name))
-    return self.callback(name)
+    if self._entries and name not in self._entries:
+      raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
+    return self.callback((self._entries.get(name) if self._entries else name))
 
-  def __call__(self, *args, **kwargs):
-
-    ''' 'struct()' override.
-
-      :returns: '''
-
-    return self.callback(*args, **kwargs)
+  # `struct()` override
+  __call__ = lambda self, *args, **kwargs: self.callback(*args, **kwargs)
 
 
 class ObjectDictBridge(UtilStruct):
@@ -385,7 +309,7 @@ class ObjectDictBridge(UtilStruct):
 
   target = None  # target object
 
-  def __init__(self, target_object=None):
+  def __init__(self, target_object):
 
     ''' constructor.
 
@@ -394,133 +318,21 @@ class ObjectDictBridge(UtilStruct):
 
     super(ObjectDictBridge, self).__setattr__('target', target_object)
 
-  def __getitem__(self, name):
+  # `obj[item]` syntax
+  __getitem__ = lambda self, name: getattr(self.target, name)
+  __setitem__ = lambda self, name: setattr(self.target, name)
+  __delitem__ = lambda self, name: delattr(self.target, name)
 
-    ''' 'x = struct[name]' override.
+  # `obj.item` syntax
+  __getattr__ = lambda self, name: getattr(self.target, name)
+  __setattr__ = lambda self, name: setattr(self.target, name)
+  __delattr__ = lambda self, name: delattr(self.target, name)
 
-      :param name:
-      :raise KeyError:
-      :returns: '''
+  # contains override
+  __contains__ = lambda self, name: bool(getattr(self.target, name, False))
 
-    if self.target is not None:
-      try:
-        return getattr(self.target, name)
-      except AttributeError, e:
-        raise KeyError(str(e))
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __setitem__(self, name):
-
-    ''' 'struct[name] = x' override.
-
-      :param name:
-      :raises KeyError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return setattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __delitem__(self, name):
-
-    ''' 'del struct[name]' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return delattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __getattr__(self, name):
-
-    ''' 'x = struct.name' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return getattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __setattr__(self, name):
-
-    ''' 'struct.name = x' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return setattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __delattr__(self, name):
-
-    ''' 'del struct.name' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return delattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __contains__(self, name):
-
-    ''' Indicates whether this ObjectDictBridge
-      contains the given key.
-
-      :param name:
-      :returns: '''
-
-    try:
-      getattr(self.target, name)
-    except AttributeError:
-      return False
-    return True
-
-  def get(self, name, default_value=None):
-
-    ''' dict-like safe get (`obj.get(name, default)`).
-
-      :param name:
-      :param default_value:
-      :returns: '''
-
-    try:
-      return getattr(self.target, name)
-    except:
-      return default_value
-    return default_value
+  # dict-style `get()`
+  get = lambda self, name, default=None: getattr(self.target, name, default)
 
 
 @decorators.singleton
@@ -600,7 +412,7 @@ class BidirectionalEnum(object):
 
       # Map properties into data and lookup attributes
       map(lambda x: [mappings['_pmap'].update(dict(x)), mappings['_plookup'].append([x[0][0], x[1][0]])],
-        (((attr, value), (value, attr)) for attr, value in mappings.items() if not attr.startswith('_')))
+                  (((attr, value), (value, attr)) for attr, value in mappings.items() if not attr.startswith('_')))
 
       if '__getitem__' not in mappings:
         mappings['__getitem__'] = _getitem
@@ -613,66 +425,19 @@ class BidirectionalEnum(object):
 
       return super(cls, cls).__new__(cls, name, chain, mappings)
 
-  @classmethod
-  def reverse_resolve(cls, code):
+  # forward and reverse resolve
+  reverse_resolve = classmethod(lambda cls, code: cls._pmap.get(code, False))
+  forward_resolve = classmethod(lambda cls, flag: cls.__getattr__(flag) if flag in cls._pmap else False)
+  resolve = forward_resolve
 
-    ''' Resolve a mapping, by it's integer/string code.
-
-      :param code:
-      :returns: '''
-
-    if code in cls._pmap:
-      return cls._pmap[code]
-    return False
-
-  @classmethod
-  def forward_resolve(cls, flag):
-
-    ''' Resolve a mapping, by it's string property name.
-
-      :param flag:
-      :returns: '''
-
-    if flag in cls._pmap:
-      return cls.__getattr__(flag)
-    return False
-
-  @classmethod
-  def resolve(cls, flag): return cls.forward_resolve(flag)
-
-  @classmethod
-  def __serialize__(cls):
-
-    ''' Flatten down into a structure suitable for
-      storage/transport.
-
-      :returns: '''
-
-    return dict(((k, v) for k, v in cls._plookup if not k.startswith('_')))
-
-  @classmethod
-  def __json__(cls):
-
-    ''' Flatten down and serialize into JSON.
-
-      :returns: '''
-
-    return cls.__serialize__()
-
-  @classmethod
-  def __repr__(cls):
-
-    ''' Display a string representation of
-      a flattened self.
-
-      :returns: '''
-
-    return '::'.join([
+  # serialization and string repr
+  __json__ = classmethod(lambda cls: cls.__serialize__())
+  __serialize__ = classmethod(lambda cls: dict(((k, v) for k, v in cls._plookup if not k.startswith('_'))))
+  __repr__ = classmethod(lambda cls: ('::'.join([
       "<%s" % cls.__name__,
       ','.join([
         block for block in ('='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
-      "BiDirectional>"
-      ])
+      "BiDirectional>"])))
 
 
 __all__ = (

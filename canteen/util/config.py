@@ -16,7 +16,6 @@
 # stdlib
 import os
 import importlib
-import collections
 
 
 ## Globals
@@ -41,60 +40,31 @@ class Config(object):
     self.blocks = blocks or _appconfig
     if not _appconfig:
       _appconfig = blocks
-    if sub:
-      self.wrap = sub
+    self.wrap = sub
 
   ### === Public Attributes === ###
-  @property
-  def debug(self):
 
-    '''  '''
+  # block shortcuts
+  app = property(lambda self: self.blocks.get('app', {'debug', True}))
+  assets = property(lambda self: self.blocks.get('assets', {'debug': True}))
+  config = property(lambda self: self.blocks.get('config', {}))
 
-    return any((
-      os.environ.get('SERVER_SOFTWARE', 'Not Dev').startswith('Dev'),
-      os.environ.get('CANTEEN_DEBUG', None) in ('1', 'yes', 'on', 'true', 'sure'),
-      self.config.get('debug', False),
-      self.app.get('debug', False),
-      __debug__
-    ))
+  debug = lambda self: (
+    any((os.environ.get('SERVER_SOFTWARE', 'Not Dev').startswith('Dev'),
+         os.environ.get('CANTEEN_DEBUG', None) in (
+          '1', 'yes', 'on', 'true', 'sure', 'whynot'),
+         self.config.get('debug', False),
+         self.app.get('debug', False),
+         __debug__)))
 
-  @property
-  def app(self):
-
-    '''  '''
-
-    return self.blocks.get('app', {'debug': True})
-
-  @property
-  def assets(self):
-
-    '''  '''
-
-    return self.blocks.get('assets', {'debug': True})
-
-  @property
-  def config(self):
-
-    '''  '''
-
-    return self.blocks.get('config', {})
-
-  @property
-  def app_version(self):
-
-    '''  '''
-
-    if 'version' in self.app:
-      return '-'.join(('.'.join(map(str, self.app['version'].values()[:3])), str(self.app['version']['release'])))
-    return '0.0.1-alpha'
+  app_version = lambda self: (
+    '0.0.1-alpha' if 'version' not in self.app else (
+      '-'.join(('.'.join(map(str, self.app['version'].values()[:3])),
+                             str(self.app['version']['release'])))))
 
   ### === Public Methods === ###
-  def load(self, path):
-
-    '''  '''
-
-    module = importlib.import_module(path)
-    self.merge(module.config.blocks)
+  load = lambda self, path: self.merge(importlib.import_module(path).config.blocks)
+  __get__ = lambda self, instance, owner: self.wrap or self.blocks
 
   def get(self, key, default=None):
 
@@ -105,12 +75,6 @@ class Config(object):
         return self.blocks['config'].get(key, {'debug': True})
       return self.blocks.get(key, default)
     return default
-
-  def __get__(self, instance, owner):
-
-    '''  '''
-
-    return self.wrap or self.blocks
 
 
 __all__ = ('Config',)

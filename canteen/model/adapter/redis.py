@@ -15,6 +15,7 @@
 
 # stdlib
 import json
+import base64
 import datetime
 
 # adapter API
@@ -32,7 +33,8 @@ _server_profiles = {}  # holds globally-configured server profiles
 _default_profile = None  # holds the default redis instance mapping
 _client_connections = {}  # holds instantiated redis connection clients
 _profiles_by_model = {}  # holds specific model => redis instance mappings, if any
-_SERIES_BASETYPES = (datetime.datetime, datetime.date, datetime.time, float, int, long)
+_SERIES_BASETYPES = (  # basetypes that should be stored as a sorted set
+  datetime.datetime, datetime.date, datetime.time, float, int, long)
 
 
 ##### ==== runtime ==== #####
@@ -40,7 +42,8 @@ _SERIES_BASETYPES = (datetime.datetime, datetime.date, datetime.time, float, int
 # resolve redis
 try:
   ## force absolute import to avoid infinite recursion
-  redis = _redis_client = _support.redis = __import__('redis', locals(), globals(), [], 0)
+  redis = _redis_client = _support.redis = (
+    __import__('redis', locals(), globals(), [], 0))
 except ImportError as e:  # pragma: no cover
   _support.redis, _redis_client, redis = False, None, None
 
@@ -50,7 +53,8 @@ try:
 except ImportError as e:  # pragma: no cover
   _support.gevent = False
 else:  # pragma: no cover
-  if _support.redis and hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket'):
+  if _support.redis and (
+    hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket')):
     ## with Redis AND gevent, patch the connection socket / pool
     redis.connection.socket = gevent.socket
 
@@ -87,7 +91,8 @@ except ImportError:  # pragma: no cover
 
 class RedisMode(object):
 
-  ''' Map of hard-coded modes of internal operation for the `RedisAdapter`. '''
+  ''' Map of hard-coded modes of internal
+      operation for the `RedisAdapter`. '''
 
   hashkey_hash = 'hashkey'  # HSET <key>, <field> => <value> [...]
   hashkey_blob = 'hashblob'  # HSET <entity_group>, <key_id>, <entity>
@@ -131,22 +136,41 @@ class RedisAdapter(IndexedModelAdapter):
     GET = 'GET'  # get a value by key directly
     KEYS = 'KEYS'  # get a list of all keys matching a regex
     DUMP = 'DUMP'  # dump serialized information about a key
-    DELETE = 'DELETE'  # delete a key=> value pair, by key
+    DELETE = 'DEL'  # delete a key=> value pair, by key
+    EXISTS = 'EXISTS'  # determine if a key exists
+    EXPIRE = 'EXPIRE'  # set expiration time for a key
+    EXPIRE_AT = 'EXPIREAT'  # set absolute expiration for a key
+    MIGRATE = 'MIGRATE'  # atomically transfer key and value to a different Redis instance
+    MOVE = 'MOVE'  # move a key from one `db` to another
     GETBIT = 'GETBIT'  # retrieve a specific bit from a key value
-    GETSET = 'GETSET'  # set a value by key, and return the existing value at that key
-    GETRANGE = 'GETRANGE'  # return the substring of str value at given key, determined by offsets
+    GETSET = 'GETSET'  # set a value by key, and return the existing value
+    GETRANGE = 'GETRANGE'  # return the substring of str value at given key
+    OBJECT = 'OBJECT'  # inspect internals of redis objects
+    PERSIST = 'PERSIST'  # remove expiration of a key
+    PEXPIRE = 'PEXPIRE'  # set TTL for a key in milliseconds
+    PEXPIREAT = 'PEXPIREAT'  # set TTL absolutely in milliseconds
+    PTTL = 'TTL'  # get TTL for a key in milliseconds
+    RANDOM = 'RANDOMKEY'  # select a random key from the database
+    RENAME = 'RENAME'  # rename a key to a different name
+    RENAMENX = 'RENAMENX'  # rename a key, only if the new key doesn't exist
+    RESTORE = 'RESTORE'  # restore a key previously DUMPed
+    SORT = 'SORT'  # sort the elements in a list or set
+    TTL = 'TTL'  # get the TTL for a key
+    TYPE = 'TYPE'  # determine the type of a key
+    SCAN = 'SCAN'  # incrementally iterate over keyspace
 
     ## Counter Operations
-    INCREMENT = 'INCR'  # increment a key (`str` or `int`) by 1
-    DECREMENT = 'DECR'  # decrement a key (`str` or `int`) by 1
-    INCREMENT_BY = 'INCRBY'  # increment a key (`str` or `int`) by X
-    DECREMENT_BY = 'DECRBY'  # decrement a key (`str` or `int`) by X
-    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'  # incremement a key (`str` or `int`) by X.X
+    INCREMENT = 'INCR'  # increment a key by 1
+    DECREMENT = 'DECR'  # decrement a key by 1
+    INCREMENT_BY = 'INCRBY'  # increment a key by int
+    DECREMENT_BY = 'DECRBY'  # decrement a key by int
+    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'  # incremement a key by float
 
     ## Hash Operations
     HASH_SET = 'HSET'  # set the value of an individual hash field
     HASH_GET = 'HGET'  # get the value of an individual hash field
     HASH_KEYS = 'HKEYS'  # get all the property names in a hash
+    HASH_SCAN = 'HSCAN'  # incrementally iterate over fields and values by optional pattern
     HASH_DELETE = 'HDEL'  # delete one or more individual hash fields
     HASH_LENGTH = 'HLEN'  # retrieve the number of fields in a hash
     HASH_VALUES = 'HVALS'  # get all values in a hash, without keys
@@ -278,8 +302,8 @@ class RedisAdapter(IndexedModelAdapter):
 
     ''' Load and return the optimal serialization codec.
 
-      :returns: Defaults to ``msgpack`` with a fallback to
-      built-in ``JSON``. '''
+      :returns: Currently-configured serializer, mounted
+      statically at ``cls.EngineConfig.serializer``. '''
 
     return cls.EngineConfig.serializer
 
@@ -288,13 +312,10 @@ class RedisAdapter(IndexedModelAdapter):
 
     ''' Load and return the optimal data compressor.
 
-      :returns: Defaults to ``snappy``, with a fallback to ``LZ4``
-      and then ``zlib``. '''
+      :returns: Currently-configured compressor, mounted
+      statically at ``cls.EngineConfig.compression``. '''
 
-    ## Use snappy or lz4 if avaiable, fallback to zlib
-    if _support.snappy: return snappy
-    if _support.lz4: return lz4
-    return zlib
+    return cls.EngineConfig.compression or zlib
 
   @classmethod
   def acquire(cls, name, bases, properties):
@@ -405,50 +426,52 @@ class RedisAdapter(IndexedModelAdapter):
       :returns: The deserialized and decompressed entity associated with
       the target ``key``. '''
 
+    from canteen import model
+
     if key:
       joined, flattened = key
+
+    ## toplevel_blob
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
-      if _entity:
-        result = _entity
-      else:
-        # execute query
-        result = cls.execute(cls.Operations.GET, flattened[1], joined, target=pipeline)
+      # execute query
+      result = _entity or (
+        cls.execute(cls.Operations.GET, flattened[1], joined, target=pipeline))
 
-      if isinstance(result, basestring):
-
-        # account for none, optionally decompress
-        if cls.EngineConfig.compression:
-          result = cls.compressor.decompress(result)
-
-        # deserialize structures
-        return cls.serializer.loads(result)
-
+    ## hashkind_blob
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
-      if _entity:
-        result = _entity
+      # generate kinded key and trim tail
+      kinded = model.Key(flattened[1]).flatten(True)
+      tail = base64.b64decode(key[0]).replace(kinded[0], '')
 
-      ## @TODO: `get` for `hashkind_blob` mode
-      pass
+      result = _entity or (
+        cls.execute(*(
+          cls.Operations.HASH_GET,
+          flattened[1],
+          cls.encode_key(*kinded),
+          cls.encode_key(tail, flattened)), target=pipeline))
 
+    ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
-      if _entity:
-        result = _entity
+      raise NotImplementedError('Redis mode not implemented: "hashkey_blob".')
 
-      ## @TODO: `get` for `hashkey_blob`
-      pass
-
+    ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
 
-      if _entity:
-        result = _entity
-
-      ## @TODO: `get` for `hashkey_hash`
-      pass
+      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     # @TODO: different storage internal modes
+    if isinstance(result, basestring):
+
+      # account for none, optionally decompress
+      if cls.EngineConfig.compression:
+        result = cls.compressor.decompress(result)
+
+      # deserialize structures
+      return cls.serializer.loads(result)
+    return result
 
   @classmethod
   def put(cls, key, entity, model, pipeline=None):
@@ -468,31 +491,47 @@ class RedisAdapter(IndexedModelAdapter):
 
       :returns: Result of the lower-level write operation. '''
 
+    from canteen import model as _model
+
     # reduce entity to dictionary
     serialized = entity.to_dict()
     joined, flattened = key
 
-    if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+    # serialize + optionally compress
+    serialized = cls.serializer.dumps(serialized)
+    if cls.EngineConfig.compression:
+      serialized = cls.compressor.compress(serialized)
 
-      # serialize + optionally compress
-      serialized = cls.serializer.dumps(serialized)
-      if cls.EngineConfig.compression:
-        serialized = cls.compressor.compress(serialized)
+    # toplevel_blob
+    if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
       # delegate to redis client
       return cls.execute(cls.Operations.SET, flattened[1], joined, serialized, target=pipeline)
 
+    ## hashkind_blob
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
-      ## @TODO: `put` for `hashkind_blob` mode
-      pass
 
+      # generate kinded key and trim tail
+      kinded = _model.Key(flattened[1]).flatten(True)
+      tail = entity.key.flatten(True)[0].replace(kinded[0], '')
+
+      # delegate to redis client
+      return cls.execute(*(
+        cls.Operations.HASH_SET,
+        flattened[1],
+        cls.encode_key(*kinded),
+        cls.encode_key(tail, flattened),
+        serialized), target=pipeline)
+
+    ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
-      ## @TODO: `put` for `hashkey_blob`
-      pass
 
+      raise NotImplementedError('Redis mode not implemented: "hashkey_blob".')
+
+    ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
-      ## @TODO: `put` for `hashkey_hash`
-      pass
+
+      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     # @TODO: different storage internal modes
 
@@ -506,7 +545,9 @@ class RedisAdapter(IndexedModelAdapter):
 
       :returns: The result of the low-level delete operation. '''
 
-    joined, flattened = key.flatten(True)
+    from canteen import model
+
+    joined, flattened = key
 
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
@@ -514,8 +555,17 @@ class RedisAdapter(IndexedModelAdapter):
       return cls.execute(cls.Operations.DELETE, key.kind, cls.encode_key(joined, flattened), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
-      ## @TODO: `delete` for `hashkind_blob` mode
-      pass
+
+      # generate kinded key and trim tail
+      kinded = model.Key(flattened[1]).flatten(True)
+      tail = base64.b64decode(joined).replace(kinded[0], '')
+
+      # delegate to redis client
+      return cls.execute(*(
+        cls.Operations.HASH_DELETE,
+        flattened[1],
+        cls.encode_key(*kinded),
+        cls.encode_key(tail, flattened)), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
       ## @TODO: `delete` for `hashkey_blob`
@@ -570,8 +620,17 @@ class RedisAdapter(IndexedModelAdapter):
         count), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
-      ## @TODO: `allocate_ids` for `hashkind_blob` mode
-      pass
+
+      # store auto-increment for kind in kind's own hash at special field
+      tail = cls._magic_separator.join([cls._meta_prefix, 'id'])  # ends up as `__meta__::id` or so
+
+      # delegate to redis client
+      return cls.execute(*(
+        cls.Operations.HASH_INCREMENT,
+        flattened[1],
+        cls.encode_key(joined, flattened),
+        cls.encode_key(tail, flattened),
+        count), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
       ## @TODO: `allocate_ids` for `hashkey_blob`
@@ -741,7 +800,8 @@ class RedisAdapter(IndexedModelAdapter):
           args.append(origin)
 
         # build index key
-        indexer_calls.append((handler, tuple([None, cls._magic_separator.join(map(unicode, hash_c))] + args), {'target': target}))
+        indexer_calls.append((handler, tuple([
+          None, cls._magic_separator.join(map(str, hash_c))] + args), {'target': target}))
 
     if execute:
       for handler, hargs, hkwargs in indexer_calls:
@@ -762,7 +822,7 @@ class RedisAdapter(IndexedModelAdapter):
       :param key: Target :py:class:`model.Key` to clean from ``Redis`` indexes.
       :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented. '''
 
-    raise NotImplementedError()
+    return  # not currently implemented
 
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover

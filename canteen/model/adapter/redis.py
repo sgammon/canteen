@@ -117,6 +117,7 @@ class RedisAdapter(IndexedModelAdapter):
     ''' Configuration for the `RedisAdapter` engine. '''
 
     encoding = True  # encoding for keys and special values
+    serializer = json  # json or msgpack
     compression = False  # compression for serialized data values
     mode = RedisMode.toplevel_blob  # internal mode of operation
 
@@ -280,10 +281,7 @@ class RedisAdapter(IndexedModelAdapter):
       :returns: Defaults to ``msgpack`` with a fallback to
       built-in ``JSON``. '''
 
-    ## Use msgpack if available, fall back to JSON
-    if _support.msgpack:
-      return msgpack
-    return json
+    return cls.EngineConfig.serializer
 
   @decorators.classproperty
   def compressor(cls):

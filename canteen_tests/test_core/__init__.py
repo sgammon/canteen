@@ -23,10 +23,12 @@ if 'TEST_REIMPORT' in os.environ:  # pragma: nocover
   from canteen_tests.test_core import test_runtime
   from canteen_tests.test_core import test_meta
   from canteen_tests.test_core import test_injection
+  from canteen_tests.test_core import test_hooks
 
 
 __all__ = (
   'test_runtime',
   'test_injection',
-  'test_meta'
+  'test_meta',
+  'test_hooks'
 )

@@ -40,14 +40,17 @@ class HookResponder(object):
 
     ''' Initialize this ``HookResponder``.
 
-        args/kwargs '''
+        :param *events: Iterable of event names to subscribe to.
+        :param **kwargs: Configuration, notably ``wrap`` (which
+        can be used to re-wrap the target callable). '''
 
     self.__hooks__, self.__argspec__, self.__wrap__ = (
       frozenset(events),  # events to fire on
       Context(
         kwargs.get('context'),  # explicit argspec
-        kwargs.get('rollup', False)  # kwargs flag
-      ) if ('context' in kwargs or 'rollup' in kwargs) else None,
+        kwargs.get('rollup', False),  # kwargs flag
+        kwargs.get('notify', False),  # event notify
+      ) if kwargs else None,
       kwargs.get('wrap')  # function to wrap the hook in, if any
     )
 
@@ -57,7 +60,8 @@ class HookResponder(object):
         runtime, which will make it available when hooks are due
         to be executed.
 
-        :param context:
+        :param context: Requested context to register alongside
+        this ``HookResponder``.
 
         :returns: Nothing. '''
 
@@ -70,9 +74,13 @@ class HookResponder(object):
         the underlying hook target, passing along any arguments
         and keyword arguments.
 
-        args/kwargs
+        :param **args: Positional arguments to pass to the target
+        callable.
 
-        :returns: '''
+        :param **kwargs: Keyword arguments to pass to the target
+        callable.
+
+        :returns: Whatever the target callable returns. '''
 
     from ..util import decorators
 
@@ -90,19 +98,24 @@ class HookResponder(object):
 
       def run_hook(*args, **kwargs):
 
-        '''  '''
+        ''' Execute the local hook according to the configuration
+            held by the encapsulating ``HookResponder``.
 
-        if self.__wrap__:
-          return self.__argspec__(self.__wrap__(hook))(*args, **kwargs)
-        return self.__argspec__(hook)(*args, **kwargs)
+            :param *args: Positional arguments to pass to the hook.
+            :param **kwargs: Keyword arguments to pass to the hook.
+
+            :returns: Whatever the hook returns. '''
+
+        return self.__argspec__((
+          self.__wrap__(hook) if self.__wrap__ else hook))(*args, **kwargs)
       return setattr(self, '__func__', run_hook) or self  # mount run_hook
     return self.__func__(*args, **kwargs)
 
 
 class Context(object):
 
-  ''' Object that contains context for a given ``HookResponder`` instance.
-      Holds hook kwargs and args for target execution. '''
+  ''' Object that contains context for a given ``HookResponder``
+      instance. Holds hook kwargs and args for target execution. '''
 
   __slots__ = (
     '__requested__',  # requested args
@@ -114,9 +127,17 @@ class Context(object):
 
     ''' Initialize this ``HookResponder`` ``Context`` object.
 
-        :param requested:
-        :param rollup:
-        :param notify: '''
+        :param requested: Context items that are explicitly
+        requested to be provided at runtime.
+
+        :param rollup: ``Bool``, indicating support in the
+        target callable for accepting a ``**kwargs``-style
+        rolled-up set of context items, including extra
+        (unrequested) context items.
+
+        :param notify: ``Bool``, indicating that the target
+        expects the event name for which it is being called
+        to be inserted as the first positional argument. '''
 
     self.__requested__, self.__rollup__, self.__notify__ = (
       requested, rollup, notify
@@ -128,10 +149,15 @@ class Context(object):
         execute using the locally-attached ``requested``
         args, potentially using ``rollup``.
 
-        :param func:
+        :param func: Target function to wrap with a closure
+        to properly call it with the provided context.
 
-        :raises:
-        :returns: '''
+        :raises RuntimeError: In the inner hook closure, if a
+        case arises where a target requests a context item
+        that is not available.
+
+        :returns: ``with_context`` inner closure, that applies
+        stored context to the target ``func`` when dispatched. '''
 
     def with_context(*args, **context):
 
@@ -140,10 +166,22 @@ class Context(object):
           to a ``HookResponder``. Arguments are passed through
           to the target callable.
 
-          args/kwargs
+          Accepts positional and keyword arguments on behalf
+          of the wrapped ``func``.
 
-          :raises:
-          :returns: '''
+          :param *args: Positional arguments to pass to target
+          hook responder.
+
+          :param **context: Keyword arguments (considered as
+          "context" in this, well, context) to pass to the
+          target hook responder.
+
+          :raises RuntimeError: If a case is encountered where
+          a hook function requests a context item that is not
+          yet available in the runtime execution flow.
+
+          :returns: Result of calling the target ``func`` with
+          applied ``args`` and ``context``. '''
 
       # extract hookname from args (always 1st param)
       hookname, args = args[0], args[1:]

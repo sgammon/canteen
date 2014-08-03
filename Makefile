@@ -15,7 +15,8 @@ DEPS?=1
 TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
-BINPATH?=bin/
+BUILDROOT?=.
+BINPATH?=$(BUILDROOT)/bin
 
 ## Flags
 TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=canteen_tests
@@ -42,7 +43,7 @@ clean:
 	@find . -name "*.pyo" -delete
 
 build: .Python dependencies
-	@python setup.py build
+	@$(BINPATH)python setup.py build
 
 ifeq ($(DEPS),1)
 develop: build package
@@ -54,14 +55,14 @@ develop: build package
 else
 develop: build package
 	@echo "Building..."
-	@python setup.py develop
+	@$(BINPATH)python setup.py develop
 endif
 
 package: test
-	@python setup.py $(DISTRIBUTIONS)
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
 
 release: build test package
-	@python setup.py $(DISTRIBUTIONS) upload
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS) upload
 
 ifeq ($(DEPS),1)
 dependencies:
@@ -89,7 +90,7 @@ ifeq ($(VIRTUALENV),1)
 	@which pip || sudo easy_install pip
 	@which virtualenv || pip install virtualenv
 
-	@virtualenv .
+	@virtualenv $(BUILDROOT)
 else
 .Python:
 	@echo "Skipping env..."

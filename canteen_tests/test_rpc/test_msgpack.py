@@ -23,7 +23,10 @@ from canteen.test import FrameworkTest
 
 
 
-with Library('msgpack', strict=True) as (mlibrary, msgpack):
+with Library('msgpack') as (mlibrary, msgpack):
+
+  import msgpack  # force re-import
+
   with Library('protorpc', strict=True) as (plibrary, protorpc):
 
     # load messages library

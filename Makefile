@@ -33,7 +33,7 @@ TEST_FLAGS ?= --verbose \
 all: develop
 
 ifeq ($(TESTS),1)
-test:
+test: develop
 	@mkdir -p $(BUILDROOT).develop/tests/xunit $(BUILDROOT).develop/coverage/xunit
 	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
 else

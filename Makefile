@@ -34,7 +34,7 @@ all: develop
 
 ifeq ($(TESTS),1)
 test:
-	@mkdir -p .develop/tests/xunit .develop/coverage/xunit
+	@mkdir -p $(BUILDROOT).develop/tests/xunit $(BUILDROOT).develop/coverage/xunit
 	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
 else
 test:

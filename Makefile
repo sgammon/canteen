@@ -56,7 +56,7 @@ build: .Python dependencies
 	@$(BINPATH)python setup.py build
 
 ifeq ($(DEPS),1)
-develop: build package
+develop: build
 	@echo "Installing development tools..."
 	@$(BINPATH)pip install -r dev_requirements.txt
 

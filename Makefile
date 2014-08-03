@@ -15,7 +15,7 @@ DEPS?=1
 TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
-BUILDROOT?=
+BUILDROOT?=./
 BINPATH?=
 
 ## Flags

@@ -15,8 +15,8 @@ DEPS?=1
 TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
-BUILDROOT?=.
-BINPATH?=$(BUILDROOT)/bin/
+BUILDROOT?=
+BINPATH?=
 
 ## Flags
 TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=canteen_tests

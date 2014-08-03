@@ -19,12 +19,22 @@ BUILDROOT?=
 BINPATH?=
 
 ## Flags
-TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=canteen_tests
+TEST_FLAGS ?= --verbose \
+							--with-coverage \
+							--cover-package=canteen \
+							--cover-package=canteen_tests \
+							--cover-html \
+							--cover-xml \
+							--with-xunit \
+							--cover-html-dir=.develop/coverage/html \
+							--cover-xml-file=.develop/coverage/clover.xml \
+							--xunit-file=.develop/tests/xunit.xml
 
 all: develop
 
 ifeq ($(TESTS),1)
 test:
+	@mkdir -p .develop/tests/xunit .develop/coverage/xunit
 	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
 else
 test:

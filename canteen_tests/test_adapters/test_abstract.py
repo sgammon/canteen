@@ -127,7 +127,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
     indexer = self.subject.Indexer
     sample_time = datetime.time(hour=12, minute=30)
-    converted = indexer.convert_date(sample_time)
+    converted = indexer.convert_time(sample_time)
 
     # interrogate converted date
     assert isinstance(converted, tuple)
@@ -138,7 +138,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
     indexer = self.subject.Indexer
     sample_datetime = datetime.datetime(year=2014, month=7, day=29, hour=12, minute=30)
-    converted = indexer.convert_date(sample_datetime)
+    converted = indexer.convert_datetime(sample_datetime)
 
     # interrogate converted date
     assert isinstance(converted, tuple)
@@ -153,10 +153,85 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
   __abstract__ = True
   subject = abstract.GraphModelAdapter
 
-  def test_graph_interface_compliance(self):
+  def test_interface_compliance(self):
 
     ''' Test `GraphModelAdapter` interface compliance '''
 
     assert hasattr(self.subject, 'edges')
     assert hasattr(self.subject, 'connect')
     assert hasattr(self.subject, 'neighbors')
+
+  def test_make_vertex(self):
+
+    ''' Test `GraphModelAdapter` `Vertex` put '''
+
+    pass
+
+  """
+  def test_get_vertex(self):
+
+    ''' Test `GraphModelAdapter` `Vertex` get '''
+
+    pass
+
+  def test_make_edge(self):
+
+    ''' Test `GraphModelAdapter` `Edge` put '''
+
+    pass
+
+  def test_get_edge(self):
+
+    ''' Test `GraphModelAdapter` `Edge` get '''
+
+    pass
+
+  def test_vertexes_connect(self):
+
+    ''' Test connecting two `Vertex` records through an `Edge` '''
+
+    pass
+
+  def test_vertex_edges(self):
+
+    ''' Test retrieving `Edges` for a `Vertex` with `GraphModelAdapter` '''
+
+    pass
+
+  def test_vertex_neighbors(self):
+
+    ''' Test retrieving `Vertex` neighbors for a `Vertex` with `GraphModelAdapter` '''
+
+    pass
+  """
+
+
+## DirectedGraphAdapter
+# Tests the `DirectedGraphAdapter` class.
+class DirectedGraphAdapterTests(GraphModelAdapterTests):
+
+  ''' Tests `model.adapter.abstract.DirectedGraphAdapter` '''
+
+  __abstract__ = True
+  subject = abstract.DirectedGraphAdapter
+
+  def test_interface_compliance(self):
+
+    ''' Test `DirectedGraphAdapter` interface compliance '''
+
+    assert hasattr(self.subject, 'heads')
+    assert hasattr(self.subject, 'tails')
+
+  """
+  def test_vertex_heads(self):
+
+    ''' Test retrieving `Edge`s ending at a particular `Vertex` '''
+
+    pass
+
+  def test_vertex_tails(self):
+
+    ''' Test retrieving `Edge`s originating from a particular `Vertex` '''
+
+    pass
+  """

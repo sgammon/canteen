@@ -291,6 +291,22 @@ class ModelTests(FrameworkTest):
         raw_dict['lastname']
     return raw_dict
 
+  def test_model_update_with_dict(self):
+
+    ''' Test updating a `Model` from a `dict` '''
+
+    # sample person
+    p = Person(firstname='John')
+    update = {
+      'firstname': 'Sup',
+      'lastname': 'Bleebs'
+    }
+
+    p.update(update)
+
+    assert p.firstname == 'Sup'
+    assert p.lastname == 'Bleebs'
+
   def test_model_to_dict_schema(self):
 
     ''' Test flattening a `Model` class into a schema dictionary '''

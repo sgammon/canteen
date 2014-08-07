@@ -121,14 +121,29 @@ class KeyTests(FrameworkTest):
 
     self.assertIsInstance(Key(), AbstractKey)
 
-  def test_concrete_key(self):
+  def test_abstract_key_concrete(self):
+
+    ''' Test that `AbstractKey` works concretely '''
+
+    # sample `Key` subclass
+    class SampleKey(AbstractKey):
+      ''' Tests subclasses of `AbstractKey`. '''
+      __schema__ = ('id', 'kind')
+
+    # perform tests
+    self.assertTrue(SampleKey("Sample", "id"))
+    self.assertIsInstance(SampleKey("Sample", "id"), Key)
+    self.assertTrue(hasattr(SampleKey, '__schema__'))
+    self.assertEqual(len(SampleKey.__schema__), 2)
+
+  def test_key_concrete(self):
 
     ''' Test that `Key` works concretely '''
 
     # sample `Key` subclass
     class SampleKey(Key):
       ''' Tests subclasses of `Key`. '''
-      __schema__ = tuple(['id', 'kind'])
+      __schema__ = ('id', 'kind')
 
     # perform tests
     self.assertTrue(SampleKey("Sample", "id"))

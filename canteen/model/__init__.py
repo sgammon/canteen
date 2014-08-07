@@ -37,8 +37,8 @@ from canteen.util.struct import _EMPTY
 _NDB = False  # `canteen.model` no longer supports NDB
 _MULTITENANCY = False  # toggle multitenant key namespaces
 Edge = Vertex = Model = AbstractModel = None  # must initially be `None`
-_DEFAULT_KEY_SCHEMA = tuple(['id', 'kind', 'parent'])  # default key schema
-_MULTITENANT_KEY_SCHEMA = tuple(['id', 'kind', 'parent', 'namespace', 'app'])
+_DEFAULT_KEY_SCHEMA = ('id', 'kind', 'parent')  # default key schema
+_MULTITENANT_KEY_SCHEMA = ('id', 'kind', 'parent', 'namespace', 'app')
 
 
 def noglobal(name):
@@ -47,9 +47,10 @@ def noglobal(name):
       and see if something is defined yet.
 
       :param name: Name to check for global definition
-      in this module.
+        in this module.
 
-      :returns: '''
+      :returns: Whether the target ``Name`` is defined
+        in module globals and is not falsy. '''
 
   gl = globals()
   return (name in gl and (not gl[name]))
@@ -57,21 +58,19 @@ def noglobal(name):
 
 ## == Metaclasses == ##
 
-## MetaFactory
 class MetaFactory(type):
 
   ''' Abstract parent for Model API primitive metaclasses,
-    such as :py:class:`AbstractKey.__metaclass__` and
-    :py:class:`AbstractModel.__metaclass__`.
+      such as :py:class:`AbstractKey.__metaclass__` and
+      :py:class:`AbstractModel.__metaclass__`.
 
-    Enforces the metaclass chain and proper :py:mod:`abc`
-    compliance.
+      Enforces the metaclass chain and proper :py:mod:`abc`
+      compliance.
 
-    .. note :: Metaclass implementors of this class **must**
-           implement :py:meth:`cls.initialize()`, or
-           :py:class:`Model` construction will yield a
-           :py:exc:`NotImplementedError`.
-  '''
+      .. note :: Metaclass implementors of this class **must**
+             implement :py:meth:`cls.initialize()`, or
+             :py:class:`Model` construction will yield a
+             :py:exc:`NotImplementedError`. '''
 
   class __metaclass__(abc.ABCMeta):
 
@@ -83,42 +82,42 @@ class MetaFactory(type):
     def __new__(cls, name=None, bases=tuple(), properties={}):
 
       ''' Factory for metaclasses classes. Regular
-        metaclass factory function.
+          metaclass factory function.
 
-        If the target class definition has the attribute
-        :py:attr:`cls.__owner__`, it will be taken as the
-        target class' internal ``__name__``. ``basestring``
-        and classes are accepted (in which case the bound
-        class' name is taken instead).
+          If the target class definition has the attribute
+          :py:attr:`cls.__owner__`, it will be taken as the
+          target class' internal ``__name__``. ``basestring``
+          and classes are accepted (in which case the bound
+          class' name is taken instead).
 
-        :param name: String name for the metaclass class to factory.
-        :param bases: Metaclass class inheritance path.
-        :param properties: Property dictionary, as defined inline.
-        :returns: Factoried :py:class:`MetaFactory.__metaclass__` descendent.
+          :param name: String name for the metaclass class to factory.
+          :param bases: Metaclass class inheritance path.
+          :param properties: Property dictionary, as defined inline.
+          :returns: Factoried :py:class:`MetaFactory.__metaclass__` descendent.
 
-        .. note:: This class is *two* levels up in the meta chain.
-              Please note this is an *embedded* metaclass used for
-              *metaclass classes*.
-      '''
+          .. note:: This class is *two* levels up in the meta chain.
+                Please note this is an *embedded* metaclass used for
+                *metaclass classes*. '''
 
-      # alias embedded metaclasses to their `__owner__` (for __repr__), then pass up the chain
+      # alias embedded metaclasses to their `__owner__` (for __repr__)
       name = cls.__name__ = cls.__owner__ if hasattr(cls, '__owner__') else name
-      return super(cls, cls).__new__(cls, name, bases, properties)  # enforces metaclass
+
+      # enforces metaclass
+      return super(cls, cls).__new__(cls, name, bases, properties)
 
   ## = Internal Methods = ##
   def __new__(cls, name=None, bases=tuple(), properties={}):
 
     ''' Factory for concrete metaclasses. Enforces
-      abstract-ness (prevents direct construction) and
-      dispatches :py:meth:`cls.initialize()`.
+        abstract-ness (prevents direct construction) and
+        dispatches :py:meth:`cls.initialize()`.
 
-      :param name: String name for the metaclass to factory.
-      :param bases: Inheritance path for the new concrete metaclass.
-      :param properties: Property dictionary, as defined inline.
-      :returns: Factoried :py:class:`MetaFactory` descendent.
-      :raises: :py:exc:`model.exceptions.AbstractConstructionFailure`
-           upon concrete construction.
-    '''
+        :param name: String name for the metaclass to factory.
+        :param bases: Inheritance path for the new concrete metaclass.
+        :param properties: Property dictionary, as defined inline.
+        :returns: Factoried :py:class:`MetaFactory` descendent.
+        :raises: :py:exc:`model.exceptions.AbstractConstructionFailure`
+          upon concrete construction. '''
 
     # fail on construction - embedded metaclasses cannot be instantiated
     if not name: raise exceptions.AbstractConstructionFailure(cls.__name__)
@@ -132,21 +131,24 @@ class MetaFactory(type):
     return impl
 
   ## = Exported Methods = ##
-  @classmethod  # @TODO: clean up `resolve`
+  @classmethod
   def resolve(cls, name, bases, properties, default=True):
 
-    ''' Resolve a suitable model adapter for a given Model adapter.
+    ''' Resolve a suitable model adapter for a given model Key or Model.
 
-      :param name: Class name, as provided to :py:meth:`__new__`.
-      :param bases: Inheritance path for the target :py:class:`Model`.
-      :param properties: Class definition, as provided to :py:meth:`__new__`.
-      :keyword default: Whether to allow use of the default adapter. Defaults to ``True``.
-      :returns: A suitable :py:class:`model.adapter.ModelAdapter` subclass.
-      :raises: :py:exc:`model.exceptions.NoSupportedAdapters` in the case that no
-           supported (or valid) adapters could be found.
-      :raises: :py:exc:`model.exceptions.InvalidExplicitAdapter` in the case of an
-           unavilable, explicitly-requested adapter.
-    '''
+        :param name: Class name, as provided to :py:meth:`__new__`.
+        :param bases: Inheritance path for the target :py:class:`Model`.
+        :param properties: Class definition, as provided to :py:meth:`__new__`.
+        :keyword default: Allow use of the default adapter. Defaults to `True`.
+        :returns: A suitable :py:class:`model.adapter.ModelAdapter` subclass.
+
+        :raises NoSupportedAdapters: in the case that no supported (or valid)
+          adapters could be found.
+
+        :raises InvalidExplicitAdapter: in the case of an unavailable,
+          explicitly-requested adapter. '''
+
+    from canteen.model.adapter import abstract
 
     if '__adapter__' not in properties:
 
@@ -167,68 +169,71 @@ class MetaFactory(type):
 
     # an explicit adapter was requested via an `__adapter__` class property
     _spec = properties['__adapter__']
+
     if not isinstance(_spec, (list, tuple)):
       _spec = [_spec]
 
     for _spec_item in _spec:
-      for _a in concrete:
-        if _a is _spec_item or _a.__name__ == _spec_item:
-          return _a.acquire(name, bases, properties)
-        # fallback to next adapter
-        continue  # pragma: no cover
 
-    raise exceptions.InvalidExplicitAdapter(properties['__adapter__'])
+      if isinstance(_spec_item, (type, basestring)):
+        for _a in concrete:
+          if _a is _spec_item or _a.__name__ == _spec_item:
+            return _a.acquire(name, bases, properties)
+
+      elif issubclass(_spec_item.__class__, abstract.ModelAdapter):
+        # it's a valid model adapter instance already
+        return _spec_item  # pragma: no cover
+
+    adapter_label = _spec
+    if not isinstance(_spec, basestring):  # pragma: no cover
+      if isinstance(_spec, type):
+        adapter_label = _spec.__name__
+      if issubclass(_spec.__class__, abstract.ModelAdapter):
+        adapter_label = _spec.__class__.__name__
+    raise exceptions.InvalidExplicitAdapter(adapter_label)
 
   ## = Abstract Methods = ##
   @abc.abstractmethod
-  def initialize(cls, name, bases, properties):
+  def initialize(cls, name, bases, properties):  # pragma: no cover
 
     ''' Initialize a subclass. Must be overridden by child metaclasses.
 
-        :param name:
-        :param bases:
-        :param properties:
+        :param name: Target class name to initialize.
+        :param bases: Target class bases to mix in.
+        :param properties: Bound properties to target class.
 
-        :raises: '''
+        :raises NotImplementedError: Always, if called directly, as this
+          method is abstract. '''
 
-    # `MetaFactory.initialize` is abstract
-    raise NotImplementedError()  # pragma: no cover
+    raise NotImplementedError()  # `MetaFactory.initialize` is abstract
 
 
 ## == Abstract Classes == ##
 
-## AbstractKey
 class AbstractKey(object):
 
-  ''' Abstract Key class.
-
-      DOCSTRING '''
+  ''' Abstract Key class. Provides base abstract
+      functionality supporting concrete Key objects. '''
 
   ## = Encapsulated Classes = ##
-
-  ## AbstractKey.__metaclass__
-  # Constructs Key classes for use in the canteen model subsystem.
   class __metaclass__(MetaFactory):
 
-    ''' Metaclass for model keys.
+    ''' Metaclass for model keys. Reorganizes internal
+        class structure to support object-specific
+        behavior. '''
 
-        DOCSTRING '''
-
-    __owner__ = 'Key'
-    __schema__ = _DEFAULT_KEY_SCHEMA
+    __owner__, __schema__ = 'Key', _DEFAULT_KEY_SCHEMA
 
     @classmethod
     def initialize(cls, name, bases, pmap):
 
-      ''' Initialize a Key class.
+      ''' Initialize a Key class. Reorganize class layout.
 
-          :param name:
-          :param bases:
-          :param pmap:
+          :param name: Name of ``Key`` class to initialize.
+          :param bases: Base classes to mix into target ``Key`` class.
+          :param pmap: Map of properties bound to target ``Key`` class.
 
-          :raises:
-
-          :returns: '''
+          :returns: Constructed type extending ``Key``. '''
 
       # resolve adapter
       _adapter = cls.resolve(name, bases, pmap)
@@ -247,18 +252,19 @@ class AbstractKey(object):
         ('__persisted__', False)]  # default to not persisted
 
       # resolve schema and add key format items, initted to None
-      _schema = [('__%s__' % x, None) for x in pmap.get('__schema__', cls.__schema__)]
+      _schema = [
+        ('__%s__' % x, None) for x in pmap.get('__schema__', cls.__schema__)]
 
       # return an argset for `type`
-      # @TODO: convert to a dict comprehension someday
       return name, bases, dict(_schema + key_class + pmap.items())
 
     def mro(cls):
 
       ''' Generate a fully-mixed MRO for `AbstractKey` subclasses.
-          DOCSTRING
+          Handles injection of ``CompoundKey`` object in MRO to support
+          ``KeyMixin`` composure.
 
-          :returns: '''
+          :returns: Properly-mixed MRO for an `AbstractKey` subclass. '''
 
       if cls.__name__ == 'AbstractKey':  # `AbstractKey` MRO
         return (cls, KeyMixin.compound, object)
@@ -267,42 +273,55 @@ class AbstractKey(object):
         return (cls, AbstractKey, KeyMixin.compound, object)
 
       # `Key`-subclass MRO, with support for diamond inheritance
-      return tuple(filter(lambda x: x not in (Key, AbstractKey), [cls] + list(cls.__bases__)) +
-                                             [Key, AbstractKey, KeyMixin.compound, object])
+      return tuple(filter(lambda x: x not in (Key, AbstractKey), [cls] + (
+        list(cls.__bases__))) + [Key, AbstractKey, KeyMixin.compound, object])
 
     def __repr__(cls):
 
-      ''' String representation of a `Key` class.
+      ''' String representation of a `Key` class. Note that this
+          ``__repr__`` handles ``cls`` representation.
 
-          :returns: '''
+          :returns: ``x(y)`` where ``x`` is the `Key` class in use
+            and ``y`` is collapsed key schema. '''
 
       # dump key schema
-      return '%s(%s)' % (cls.__name__, ', '.join((i for i in reversed(cls.__schema__))))
+      return '%s(%s)' % (
+        cls.__name__, ', '.join((i for i in reversed(cls.__schema__))))
 
   def __new__(cls, *args, **kwargs):
 
     ''' Intercepts construction requests for abstract model classes.
+        Enforces abstractness, but otherwise passes calls to ``super``.
 
-        Args:
-        Kwargs:
+        :raises AbstractConstructionFailure: In the case that an attempt
+          is made to construct an ``AbstractKey`` directly.
 
-        :raises:
-        :returns: '''
+        :returns: New instance of `cls`, so long as `cls` it is concrete. '''
 
     # prevent direct instantiation of `AbstractKey`
     if cls.__name__ == 'AbstractKey':
       raise exceptions.AbstractConstructionFailure('AbstractKey')
 
-    return super(cls, cls).__new__(*args, **kwargs)  # pragma: no cover
+    return super(cls, cls).__new__(*args, **kwargs)
 
   def __eq__(self, other):
 
     ''' Test whether two keys are functionally identical.
-        DOCSTRING
 
-        :param other:
+        Tries the following tests to negate equality:
+        - target vs self falsyness
+        - target vs self schema
+        - target vs self type
+        - target vs self data
 
-        :returns: '''
+        If all elements are reported to be equal, the keys
+        are functionally identical. If any of the tests
+        fail, the keys are not identical.
+
+        :param other: Other key to test against ``self``.
+
+        :returns: ``True`` if ``other`` is functionally
+          identical to ``self``, otherwise ``False``. '''
 
     if (not self and not other) or (self and other):
       if isinstance(other, self.__class__):  # class check
@@ -310,15 +329,20 @@ class AbstractKey(object):
           if self.__schema__ >= other.__schema__:  # superset check
             if isinstance(other, self.__class__):  # type check
               # last resort: check each data property
-              return all((i for i in map(lambda x: getattr(other, x) == getattr(self, x), self.__schema__)))
-    # didn't pass one of our tests
-    return False  # pragma: no cover
+              return all((i for i in map(lambda x: (
+                getattr(other, x) == getattr(self, x)), self.__schema__)))
+    return False  # didn't pass one of our tests
 
   def __repr__(self):
 
-    ''' Generate a string representation of this Key.
+    ''' Generate a string representation of this Key object.
+        Note that this method is responsible for ``self``
+        representation, not ``cls``.
 
-        :returns: '''
+        :returns: String describing the local ``Key`` object,
+          like ``x(y)``, where ``x`` is the local ``Key``
+          class name and ``y`` is a formatted list of this
+          keys's schema and data. '''
 
     pairs = ('%s=%s' % (k, getattr(self, k)) for k in reversed(self.__schema__))
     return "%s(%s)" % (self.__class__.__name__, ', '.join(pairs))
@@ -328,33 +352,44 @@ class AbstractKey(object):
 
   # util: support for `__nonzero__` and aliased `__len__`
   __nonzero__ = lambda self: isinstance(self.__id__, (basestring, int))
-  __len__ = lambda self: (int(self.__nonzero__()) if self.__parent__ is None else sum((1 for i in self.ancestry)))
+  __len__ = lambda self: (
+    int(self.__nonzero__()) if self.__parent__ is None else (
+      sum((1 for i in self.ancestry))))
 
   ## = Property Setters = ##
   def _set_internal(self, name, value):
 
-    ''' Set an internal property on a `Key`.
+    ''' Set an internal property on a `Key`. Used by ``Key``
+        internals to proxy attribute and item calls.
 
-        :param name:
-        :param value:
+        :param name: Name of the internal property to set.
+        :param value: Value to set the internal property to.
 
-        :raise:
+        :raises PersistedKey: If an internal property set is
+          attempted on an already-persisted ``Key``.
 
-        :returns: '''
+        :returns: ``self``, for chainability. '''
 
     # fail if we're already persisted (unless we're updating the owner)
-    if self.__persisted__ and name != 'owner': raise exceptions.PersistedKey(name)
-    if name == 'parent' and isinstance(value, Model): value = value.key
+    if self.__persisted__ and name != 'owner':
+      raise exceptions.PersistedKey(name)
+    if name == 'parent' and isinstance(value, Model):
+      value = value.key
     setattr(self, '__%s__' % name, value)
     return self
 
   ## = Property Getters = ##
   def _get_ancestry(self):
 
-    ''' Retrieve this Key's ancestry path.
+    ''' Retrieve this ``Key``'s ancestry path, one item at a
+        time, starting from this ``Key``'s root and proceeding
+        down the chain. Acts as a generator.
 
-        :raises:
-        :returns: '''
+        :raises StopIteration: When no more ancestry entries
+          are available to yield.
+
+        :returns: Yields ancestry items one at a time, starting
+          with this ``Key``'s root, and ending with ``self``. '''
 
     if self.__parent__:  # if we have a parent, yield upward
       for i in self.__parent__.ancestry: yield i
@@ -377,8 +412,9 @@ class AbstractKey(object):
   owner = property(lambda self: self.__owner__, None)  # `owner` is read-only
   ancestry = property(_get_ancestry, None)  # `ancestry` is read-only
 
-  namespace = property(lambda self: self.__namespace__ if _MULTITENANCY else None,  # ns = `None` when disabled
-                       lambda self, ns: self._set_internal('namespace', ns) if _MULTITENANCY else None)
+  # ns = `None` when disabled
+  namespace = property(lambda self: self.__namespace__ or None,
+                       lambda self, ns: self._set_internal('namespace', ns))
 
 
 ## AbstractModel
@@ -450,23 +486,30 @@ class AbstractModel(object):
 
         # parse spec (`name=<basetype>` or `name=<basetype>,<options>`)
         # also, model properties that start with '_' are ignored
-        for prop, spec in filter(cls._get_prop_filter(), properties.iteritems()):
+        for prop, spec in filter(cls._get_prop_filter(),
+                                  properties.iteritems()):
 
           # build a descriptor object and data slot
-          basetype, options = (spec, {}) if not isinstance(spec, tuple) else spec
+          basetype, options = (
+            (spec, {}) if not isinstance(spec, tuple) else spec)
           property_map[prop] = Property(prop, basetype, **options)
 
         # drop non-data-properties into our ``_nondata_map``
-        for prop, value in filter(cls._get_prop_filter(inverse=True), properties.iteritems()):
+        for prop, value in filter(cls._get_prop_filter(inverse=True),
+                                  properties.iteritems()):
           _nondata_map[prop] = value
 
         # merge and clone all basemodel properties, update dictionary with property map
         if len(bases) > 1 or bases[0] is not Model:
 
           # build a full property map, after reducing parents left -> right
-          property_map = dict([(key, value) for key, value in reduce(lambda left, right: left + right,
-                              [[(prop, b.__dict__[prop].clone()) for prop in b.__lookup__]
-                                for b in bases] + [property_map.items()])])
+          _pmap_data = ([(
+            [(prop, b.__dict__[prop].clone()) for prop in b.__lookup__])
+              for b in bases] + [property_map.items()])
+
+          # calculate full dict property map
+          property_map = dict([(key, value) for key, value in (
+            reduce(operator.add, _pmap_data))])
 
         prop_lookup = frozenset((k for k, v in property_map.iteritems()))  # freeze property lookup
         model_adapter = cls.resolve(name, bases, properties)  # resolve default adapter for model
@@ -956,10 +999,11 @@ class Property(object):
       else:
         value = instance._get_value(self.name, default=Property._sentinel)
 
-      if not value and value == Property._sentinel and instance.__explicit__ is False:
-        return None  # soak up sentinels via the descriptor API
-      return value
-    return self  # otherwise, class-level access is always the property in question
+      return None if (not value and (value == Property._sentinel) and
+                      instance.__explicit__ is False) else value
+
+    # otherwise, class-level access is always the property in question
+    return self
 
   def __set__(self, instance, value):
 
@@ -972,10 +1016,12 @@ class Property(object):
         :returns: '''
 
     if instance is not None:  # only allow data writes after instantiation
-      return instance._set_value(self.name, value)  # delegate to `AbstractModel._set_value`
+      # delegate to `AbstractModel._set_value`
+      return instance._set_value(self.name, value)
     raise exceptions.InvalidAttributeWrite('set', self.name, self.kind)
 
-  __delete__ = lambda self, instance: instance.__set__(instance, None)  # delegate to `__set__`
+  # delegate to `__set__` to clear the property
+  __delete__ = lambda self, instance: instance.__set__(instance, None)
 
   def valid(self, instance):
 
@@ -986,26 +1032,35 @@ class Property(object):
         :raises:
         :returns: '''
 
-    if self.__class__ != Property and hasattr(self, 'validate'):  # pragma: no cover
-      return self.validate(instance)  # check for subclass-defined validator to delegate validation to
+    if self.__class__ != Property and hasattr(self, 'validate'):
+      # check for subclass-defined validator to delegate validation to
+      return self.validate(instance)
 
     value = instance._get_value(self.name)  # retrieve value
 
     # check required-ness
     if (value in (None, self._sentinel)):
-      if self._required: raise exceptions.PropertyRequired(self.name, instance.kind())
-      if value is self._sentinel: return True  # empty value, non-required, all good :)
+      if self._required:
+        raise exceptions.PropertyRequired(self.name, instance.kind())
+      # empty value, non-required, all good :)
+      if value is self._sentinel: return True
 
     if isinstance(value, (list, tuple, set, frozenset)):  # check multi-ness
-      if not self._repeated: raise exceptions.PropertyNotRepeated(self.name, instance.kind())
+      if not self._repeated:
+        raise exceptions.PropertyNotRepeated(self.name, instance.kind())
     else:
-      if self._repeated: raise exceptions.PropertyRepeated(self.name, instance.kind())
+      if self._repeated:
+        raise exceptions.PropertyRepeated(self.name, instance.kind())
       value = (value,)  # make value iterable
 
     for v in value:  # check basetype
 
-      # it validates if 1) the field is typeless, or 2) the value is `None` or an instance of it's type
-      if self._basetype is None or ((v is not self._sentinel) and isinstance(v, (self._basetype, type(None)))):
+      # it validates if:
+      # 1) the field is typeless, or
+      # 2) the value is `None` or an instance of it's basetype
+      if self._basetype is None or (
+        (v is not self._sentinel) and isinstance(v, (
+                                      self._basetype, type(None)))):
         continue
       raise exceptions.InvalidPropertyValue(*(
         self.name, instance.kind(), type(v).__name__, self._basetype.__name__))
@@ -1021,29 +1076,38 @@ class Property(object):
 
     return "Property(%s, type=%s)" % (self.name, self._basetype.__name__)
 
-  __str__ = __repr__
+  __unicode__ = __str__ = __repr__
 
   # util method to clone `Property` objects
   clone = lambda self: self.__class__(self.name, self._basetype, self._default,
-                                      self._required, self._repeated, self._indexed, **self._options)
+                                      self._required, self._repeated,
+                                      self._indexed, **self._options)
 
   ## == Query Overrides (Operators) == ##
-  __sort__ = lambda self, direction: query.Sort(self, operator=(direction or query.Sort.ASCENDING))
-  __filter__ = lambda self, other, operator: query.Filter(self, other, operator=(operator or query.Filter.EQUALS))
-
+  __sort__ = lambda self, direction: (  # internal sort spawn
+    query.Sort(self, operator=(direction or query.Sort.ASCENDING)))
+  __filter__ = lambda self, other, operator: (  # internal filter spawn
+    query.Filter(self, other, operator=(operator or query.Filter.EQUALS)))
 
   ## == Sort Spawn == ##
-  __pos__ = lambda self: self.__sort__(query.Sort.ASCENDING)  # `+` operator override
-  __neg__ = lambda self: self.__sort__(query.Sort.DESCENDING)  # `-` operator override
-
+  __pos__ = lambda self: (
+    self.__sort__(query.Sort.ASCENDING))  # `+` operator
+  __neg__ = lambda self: (
+    self.__sort__(query.Sort.DESCENDING))  # `-` operator
 
   ## == Filter Spawn == ##
-  __eq__ = lambda self, other: self.__filter__(other, query.Filter.EQUALS)  # `==` operator override
-  __ne__ = lambda self, other: self.__filter__(other, query.Filter.NOT_EQUALS)  # `!=` operator override
-  __gt__ = lambda self, other: self.__filter__(other, query.Filter.GREATER_THAN)  # `>` operator override
-  __ge__ = lambda self, other: self.__filter__(other, query.Filter.GREATER_THAN_EQUAL_TO)  # `>=` operator override
-  __lt__ = lambda self, other: self.__filter__(other, query.Filter.LESS_THAN)  # `<` operator override
-  __le__ = lambda self, other: self.__filter__(other, query.Filter.LESS_THAN_EQUAL_TO)  # `<=` operator override
+  __eq__ = lambda self, other: (
+    self.__filter__(other, query.Filter.EQUALS))  # `==` operator
+  __ne__ = lambda self, other: (
+    self.__filter__(other, query.Filter.NOT_EQUALS))  # `!=` operator
+  __gt__ = lambda self, other: (
+    self.__filter__(other, query.Filter.GREATER_THAN))  # `>` operator
+  __ge__ = lambda self, other: (
+    self.__filter__(other, query.Filter.GREATER_THAN_EQUAL_TO))  # `>=` operator
+  __lt__ = lambda self, other: (
+    self.__filter__(other, query.Filter.LESS_THAN))  # `<` operator
+  __le__ = lambda self, other: (
+    self.__filter__(other, query.Filter.LESS_THAN_EQUAL_TO))  # `<=` operator
 
 
 ## Model
@@ -1067,8 +1131,11 @@ class Model(AbstractModel):
     self.__explicit__, self.__initialized__ = False, True
 
     # initialize key, internals, and map any kwargs into data
-    self.key, self.__data__ = properties.get('key', False) or self.__keyclass__(self.kind(), _persisted=False), {}
-    self._set_value(properties, _dirty=(not properties.get('_persisted', False)))
+    self.key, self.__data__ = (
+      properties.get('key') or self.__keyclass__(self.kind(), _persisted=False),
+      {})
+
+    self._set_value(properties, _dirty=(not properties.get('_persisted')))
 
   ## = Class Methods = ##
   kind = classmethod(lambda cls: cls.__name__)
@@ -1093,8 +1160,23 @@ class Edge(Model):
 
 
 # Module Globals
-__abstract__ = (abstract, MetaFactory, AbstractKey, AbstractModel)
-__concrete__ = (concrete, Property, KeyMixin, ModelMixin, Key, Model, Vertex, Edge)
+__abstract__ = (
+  abstract,
+  MetaFactory,
+  AbstractKey,
+  AbstractModel
+)
+
+__concrete__ = (
+  concrete,
+  Property,
+  KeyMixin,
+  ModelMixin,
+  Key,
+  Model,
+  Vertex,
+  Edge
+)
 
 # All modules
 __all__ = (

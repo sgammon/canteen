@@ -26,8 +26,8 @@ class Error(Exception):
 
     self.args, self.kwargs = args, kwargs
 
-  __repr__ = lambda self: self.message % (self.kwargs if self.kwargs else args)
-  __str__ = __unicode__ = __repr__
+  __repr__ = __str__ = __unicode__ = lambda self: (
+    self.message % (self.kwargs if self.kwargs else self.args))
 
 
 class AbstractConstructionFailure(Error, NotImplementedError):

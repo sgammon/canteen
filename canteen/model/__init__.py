@@ -499,7 +499,7 @@ class AbstractModel(object):
                                   properties.iteritems()):
           _nondata_map[prop] = value
 
-        # merge and clone all basemodel properties, update dictionary with property map
+        # merge and clone all basemodel properties, update dictionary
         if len(bases) > 1 or bases[0] is not Model:
 
           # build a full property map, after reducing parents left -> right
@@ -511,47 +511,64 @@ class AbstractModel(object):
           property_map = dict([(key, value) for key, value in (
             reduce(operator.add, _pmap_data))])
 
-        prop_lookup = frozenset((k for k, v in property_map.iteritems()))  # freeze property lookup
-        model_adapter = cls.resolve(name, bases, properties)  # resolve default adapter for model
+        # freeze property lookup
+        prop_lookup = frozenset((k for k, v in property_map.iteritems()))
 
-        _model_internals = {  # build class layout, initialize core model class attributes.
-          '__impl__': {},  # holds cached implementation classes generated from this model
-          '__name__': name,  # map-in internal class name (should be == to Model kind)
+        # resolve default adapter for model
+        model_adapter = cls.resolve(name, bases, properties)
+
+        _model_internals = {  # build class layout, initialize core model
+          '__impl__': {},  # holds cached implementation classes
+          '__name__': name,  # add internal class name (should be Model kind)
           '__kind__': name,  # kindname defaults to model class name
-          '__bases__': bases,  # stores a model class's bases, so proper MRO can work
-          '__lookup__': prop_lookup,  # frozenset of allocated attributes, for quick lookup
-          '__adapter__': model_adapter,  # resolves default adapter class for this key/model
-          '__module__': properties.get('__module__'),  # add model's module location for future import
-          '__slots__': tuple()}  # seal-off object attributes (but allow weakrefs and explicit flag)
+          '__bases__': bases,  # stores a model class's bases, so MRO can work
+          '__lookup__': prop_lookup,  # frozenset of allocated attributes
+          '__adapter__': model_adapter,  # resolves default adapter class
+          '__module__': properties.get('__module__'),  # add model's module
+          '__slots__': tuple()}  # seal-off object attributes
 
-        modelclass.update(property_map)  # update at class-level with descriptor map
-        modelclass.update(_nondata_map)  # update at class-level with non data properties
-        modelclass.update(_model_internals)  # lastly, apply model internals (should always override)
+        modelclass.update(property_map)  # update at class-level
+        modelclass.update(_nondata_map)  # update at class-level with non data
+        modelclass.update(_model_internals)  # lastly, apply model internals
 
         # for top-level graph objects
         if name in ('Edge', 'Vertex'):
           if noglobal(name):
-            graph_object_flag = '__%s__' % name.lower()  # make flag for edge/vertex class
-            properties['__graph__'] = properties[graph_object_flag] = True  # mark as graph model and according type
+            # make flag for edge/vertex class
+            graph_object_flag = '__%s__' % name.lower()
+
+            # mark as graph model and according type
+            properties['__graph__'] = properties[graph_object_flag] = True
 
         # for graph-object subclasses
-        elif any((hasattr(b, '__graph__') for b in bases)) or name in ('Edge', 'Vertex'):
-          object_owner = 'Vertex' if any((hasattr(b, '__vertex__') for b in bases)) else 'Edge'
-          object_graph_flag = '__%s__' % object_owner.lower()
-          _model_internals['__owner__'] = object_owner
-          _model_internals['__graph__'] = _model_internals[object_graph_flag] = True
+        elif any((hasattr(b, '__graph__') for b in bases)) or (
+                name in ('Edge', 'Vertex')):
 
-        impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)  # inject our own property map
+          # find owner name
+          object_owner = 'Vertex' if (
+            any((hasattr(b, '__vertex__') for b in bases))) else 'Edge'
+
+          # set flags
+          graph_flag = '__%s__' % object_owner.lower()
+          _model_internals['__owner__'] = object_owner
+          _model_internals['__graph__'] = _model_internals[graph_flag] = True
+
+        # inject our own property map
+        impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)
         return impl.__adapter__._register(impl)
 
       return name, bases, properties  # pass-through to `type`
 
     def mro(cls):
 
-      ''' Generate a fully-mixed method resolution order for `AbstractModel` subclasses.
-          DOCSTRING
+      ''' Generate a fully-mixed method resolution order for
+          `AbstractModel` subclasses.
 
-          :returns: '''
+          According to the parent base that we're extending,
+          models get custom MRO chains to fulfill mixin
+          attributes in the same Canteen-style DI at runtime.
+
+          :returns: Mixed MRO according to base class structure. '''
 
       if cls.__name__ != 'AbstractModel':  # must be a string, `AbstractModel` constructs here
         if cls.__name__ == 'Model': return (
@@ -572,9 +589,10 @@ class AbstractModel(object):
 
     def __repr__(cls):
 
-      ''' Generate string representation of `Model` class, like "Model(<prop1>, <prop n...>)".
+      ''' Generate string representation of `Model` class,
+          like "Model(<prop1>, <prop n...>)".
 
-          :returns: '''
+          :returns: String representation of this `Model. '''
 
       if cls.__name__ in frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge')):
         if (cls.__name__ in frozenset(('Vertex', 'Edge')) and cls.__owner__ == 'Model') or (
@@ -589,13 +607,22 @@ class AbstractModel(object):
 
       ''' Disallow property mutation before instantiation.
 
-          :param name:
-          :param value:
-          :param exception:
+          The Exception raised for invalid writes can be set
+          via ``exception``.
 
-          :raises:
+          :param name: Name of the property we are being asked to mutate.
+          :param value: Value that we are being asked to set ``name`` to.
+          :param exception: Exception to be raised in the event of an error.
+            Handles switchover to ``KeyError``-based exceptions if this method
+            is being called from Python's item-style API.
 
-          :returns: '''
+          :raises InvalidItem: In the case that this method is used via Python's
+            Item API and an invalid attempt is made to write to a property.
+
+          :raises InvalidAttributeWrite: In the case that this method is used
+            in an invalid way to attempt an attribute write.
+
+          :returns: Generally ``None`` if a successful write is made. '''
 
       if name in cls.__lookup__: raise exception('mutate', name, cls)  # cannot mutate data before instantiation
       if name.startswith('__'): return super(AbstractModel.__metaclass__, cls).__setattr__(name, value)
@@ -606,12 +633,15 @@ class AbstractModel(object):
       ''' Override itemgetter syntax to return property
           objects at the class level.
 
-          :param name:
-          :param exception:
+          :param name: Name of the value we wish to retrieve.
+          :param exception: Exception to be raised
 
-          :raises:
+          :raises InvalidItem: In the case of an attempt to read
+            an invalid or non-existent property value.
 
-          :returns: '''
+          :returns: Value of the target property ``name``, or the
+            :py:class:`model.Property` object itself if accessed
+            at a class level. '''
 
       if name not in cls.__lookup__: raise exception('read', name, cls)  # cannot read non-data properties
       return cls.__dict__[name]

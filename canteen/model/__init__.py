@@ -568,24 +568,62 @@ class AbstractModel(object):
           models get custom MRO chains to fulfill mixin
           attributes in the same Canteen-style DI at runtime.
 
+          :raises RuntimeError: If MRO cannot be calculated
+            because the target ``cls`` is completely invalid.
+
           :returns: Mixed MRO according to base class structure. '''
 
-      if cls.__name__ != 'AbstractModel':  # must be a string, `AbstractModel` constructs here
-        if cls.__name__ == 'Model': return (
-          cls, AbstractModel, ModelMixin.compound, object)  # inheritance for `Model`
-        elif cls.__name__ == 'Vertex' and cls.__owner__ == 'Model' and noglobal('Vertex'): return (
-          cls, VertexMixin.compound, Model, ModelMixin.compound, AbstractModel, object)  # hook up vertex
-        elif cls.__name__ == 'Edge' and cls.__owner__ == 'Model' and noglobal('Edge'): return (
-          cls, EdgeMixin.compound, Model, ModelMixin.compound, AbstractModel, object)  # hook up edge
-        elif any((hasattr(b, '__graph__') for b in cls.__bases__)):  # handle graph-based models
-          _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))  # test if this is a vertex
-          return tuple([cls] + [i for i in cls.__bases__ if i not in (Vertex, Edge, Model, AbstractModel)] +
-                       [(Vertex if _vertex else Edge), Model, AbstractModel, (
-                         VertexMixin.compound if _vertex else EdgeMixin.compound), ModelMixin.compound, object])
-        if cls.__name__ not in frozenset(('Model', 'AbstractModel')):
-          return tuple([cls] + [i for i in cls.__bases__ if i not in (Model, AbstractModel)] +
-                       [Model, AbstractModel, ModelMixin.compound, object])  # full inheritance chain
-      return (cls, ModelMixin.compound, object)  # inheritance for `AbstractModel`
+      def find_nonbase_mro():
+
+        ''' Finds proper MRO for non-base classes, i.e. classes
+            that actually make use of ``Model``, ``Edge`` or
+            ``Vertex`` (not those classes themselves).
+
+            :returns: Class-tree-specific MRO, if possible, in a
+              ``list`` suitable for composure into a final MRO. '''
+
+        base_models = frozenset((Vertex, Edge, Model, AbstractModel))
+
+        # graph models?
+        if any((hasattr(b, '__graph__') for b in cls.__bases__)):
+          _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))
+          return [i for i in cls.__bases__ if i not in base_models] + [
+                   Vertex if _vertex else Edge,
+                   Model, AbstractModel,
+                   VertexMixin.compound if _vertex else EdgeMixin.compound,
+                   ModelMixin.compound, object]
+
+        # vanilla non-base MRO
+        return [i for i in cls.__bases__ if i not in base_models] + [
+                  Model, AbstractModel, ModelMixin.compound, object]
+
+      # calculate common `Model` MRO
+      base_model_mro = (
+        [ModelMixin.compound] if cls.__name__ == 'AbstractModel' else [
+          AbstractModel, ModelMixin.compound])
+
+      target_mro = {
+
+        # `AbstractModel` just gets the mixin
+        'AbstractModel': lambda: [ModelMixin.compound],
+
+        # `Model` gets `AbstractModel` and mixin
+        'Model': lambda: base_model_mro,
+
+        # `Vertex` structure overrides `Model` structure
+        'Vertex': lambda: [VertexMixin.compound, Model] + base_model_mro,
+
+        # `Edge` structure overrides `Model` structure
+        'Edge': lambda: [EdgeMixin.compound, Model] + base_model_mro,
+
+      }.get(cls.__name__, find_nonbase_mro)()
+
+      if not target_mro or not isinstance(target_mro, list):
+        # not a base class
+        raise RuntimeError('Unable to calculate MRO for unidentified'
+                           ' MetaFactory-descendent Model class: %s.' % cls)
+
+      return tuple([cls] + target_mro + [object])
 
     def __repr__(cls):
 

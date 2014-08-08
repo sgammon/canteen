@@ -39,6 +39,17 @@ _MULTITENANCY = False  # toggle multitenant key namespaces
 Edge = Vertex = Model = AbstractModel = None  # must initially be `None`
 _DEFAULT_KEY_SCHEMA = ('id', 'kind', 'parent')  # default key schema
 _MULTITENANT_KEY_SCHEMA = ('id', 'kind', 'parent', 'namespace', 'app')
+_BASE_MODEL_CLS = frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge'))
+_BASE_GRAPH_CLS = frozenset(('Vertex', 'Edge'))
+_PROPERTY_SLOTS = (
+  'name',  # property string name (used as attribute/item key)
+  '_options',  # arbitrary userland property options
+  '_indexed',  # should this property be indexed?
+  '_required',  # should property should be required?
+  '_repeated',  # should property be allowed to keep multiple values?
+  '_basetype',  # property basetype, for validation and storage
+  '_default'  # default value for property, defaults to ``None``
+)
 
 
 def noglobal(name):
@@ -220,14 +231,26 @@ class AbstractKey(object):
 
     ''' Metaclass for model keys. Reorganizes internal
         class structure to support object-specific
-        behavior. '''
+        behavior. See ``cls.initialize`` for details. '''
 
     __owner__, __schema__ = 'Key', _DEFAULT_KEY_SCHEMA
 
     @classmethod
     def initialize(cls, name, bases, pmap):
 
-      ''' Initialize a Key class. Reorganize class layout.
+      ''' Initialize a Key class. Reorganize class layout
+          to support ``Key`` operations. The class property
+          ``__schema__`` (expected to be an iterable of string
+          schema item names) is scanned for key structure.
+
+          The following non-standard class-level properties are set:
+            - ``__slots__`` - frozen to nothing as everything is class-level
+            - ``__owner__`` - owner model object for a key, if any
+            - ``__adapter__`` - adapter for this key, resolved at class time
+            - ``__persisted__`` - whether this key is known to be persisted
+
+          Each schema'd key chunk is also given an internal-style
+          property (read: surrounded by ``__``).
 
           :param name: Name of ``Key`` class to initialize.
           :param bases: Base classes to mix into target ``Key`` class.
@@ -263,6 +286,11 @@ class AbstractKey(object):
       ''' Generate a fully-mixed MRO for `AbstractKey` subclasses.
           Handles injection of ``CompoundKey`` object in MRO to support
           ``KeyMixin`` composure.
+
+          The non-base MRO pattern is as follows:
+            - for ``AbstractKey``: ``KeyMixin -> object``
+            - for ``Key``: `AbstractKey -> KeyMixin -> object``
+            - for ``Key`` classes: ``Key -> AbstractKey -> KeyMixin -> object``
 
           :returns: Properly-mixed MRO for an `AbstractKey` subclass. '''
 
@@ -420,9 +448,12 @@ class AbstractKey(object):
 ## AbstractModel
 class AbstractModel(object):
 
-  ''' Abstract Model class.
+  ''' Abstract Model class. Specifies abstract
+      properties that apply to all `Model`-style
+      data containers.
 
-      DOCSTRING '''
+      Applies an embedded `MetaFactory`-compliant
+      metaclass to properly initialize subclasses. '''
 
   __slots__ = tuple()
 
@@ -432,27 +463,50 @@ class AbstractModel(object):
   # Initializes class-level property descriptors and re-writes model internals.
   class __metaclass__(MetaFactory):
 
-    ''' Metaclass for data models.
+    ''' Embedded `MetaFactory`-compliant metaclass.
+        Handles initialization of new `AbstractModel`
+        descendent classes.
 
-        DOCSTRING '''
+        Reorganizes class layout and structure to
+        satisfy future internal model operations.
+        See ``cls.initialize`` for details. '''
 
     __owner__ = 'Model'
 
     @staticmethod
     def _get_prop_filter(inverse=False):
 
-      ''' Closure to build a small filter utility.
+      ''' Builds a callable that can filter properties
+          between internal and user-defined ones. Returns
 
-          :param inverse:
+          By default, the callable produced by this
+          method will produce ``False`` if the property
+          is internal and ``True`` otherwise.
 
-          :returns: '''
+          To flip this functionality, pass ``True`` to
+          inverse, which simply converts the boolean
+          response to ``True`` for internal properties,
+          and ``False`` for user data.
+
+          :param inverse: Flip the filter to only return
+            truthy for internal properties. Defaults to
+            ``False`` for internal-filter behavior.
+
+          :returns: Closure that is appropriate for use
+            with ``filter`` and returns ``True`` if the
+            property ``bundle`` handed in is internal. '''
 
       def _filter_prop(bundle):
 
-        ''' Decide whether a property is kept as a data value.
+        ''' Decide whether a property is kept as a data
+            value or a class internal. See wrapping
+            function for full description.
 
-            :param bundle:
-            :returns: '''
+            :param bundle: Property bundle to examine.
+
+            :returns: ``True`` or ``False`` according
+              to the property ``bundle``'s status as
+              an internal property. '''
 
         key, value = bundle  # extract, this is dispatched from ``{}.items``
         if key.startswith('_'): return inverse
@@ -465,16 +519,35 @@ class AbstractModel(object):
     @classmethod
     def initialize(cls, name, bases, properties):
 
-      ''' Initialize a Model class.
-          DOCSTRING
+      ''' Initialize a ``Model`` descendent for use as a
+          data model class. Reorganizes class internals
+          to store descriptors for defined user data
+          properties.
 
-          :param name:
-          :param bases:
-          :param properties:
+          Also injects a few properties into the class
+          map to satisfy ``Model`` layer functionality.
 
-          :raises:
+          :param name: Name of the ``Model``-descendent
+            class to initialize.
 
-          :returns:'''
+          :param bases: Base classes to extend with ``cls``
+            target. Must include ``Model``, ``Vertex``,
+            ``Edge`` or a class that extends one thereof.
+
+          :param properties: Class property map, as defined
+            inline or via a manual call to ``initialize``.
+            Always expected to be a ``dict``.
+
+          :raises AssertionError: If incorrect types are
+            passed for ``name``, ``bases`` or ``properties``.
+            ``__debug__`` must be active to enable assertions.
+
+          :returns: Initialized target ``Model``-descendent
+            class, with rewritten property map. '''
+
+      assert isinstance(name, basestring), "class name must be a string"
+      assert isinstance(bases, tuple), "class bases must be a tuple of types"
+      assert isinstance(properties, dict), "class map must be a valid dict"
 
       property_map = {}
       _nondata_map = {}
@@ -632,16 +705,21 @@ class AbstractModel(object):
 
           :returns: String representation of this `Model. '''
 
-      if cls.__name__ in frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge')):
-        if (cls.__name__ in frozenset(('Vertex', 'Edge')) and cls.__owner__ == 'Model') or (
-          cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
-          return "%s()" % cls.__name__
-      if not hasattr(cls, '__lookup__'): return 'Model<%s>' % cls.__name__  # primitive label before MRO
-      return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
+      # primitive label before MRO
+      if not hasattr(cls, '__lookup__'):
+        return 'Model<%s>' % cls.__name__
+
+      if cls.__name__ not in _BASE_MODEL_CLS:
+        return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
+
+      elif (cls.__name__ in _BASE_GRAPH_CLS and cls.__owner__ == 'Model') or (
+        cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
+        return "%s()" % cls.__name__
 
     __str__ = __unicode__ = __repr__
 
-    def __setattr__(cls, name, value, exception=exceptions.InvalidAttributeWrite):
+    def __setattr__(cls, name, value,
+                               exception=exceptions.InvalidAttributeWrite):
 
       ''' Disallow property mutation before instantiation.
 
@@ -662,9 +740,16 @@ class AbstractModel(object):
 
           :returns: Generally ``None`` if a successful write is made. '''
 
-      if name in cls.__lookup__: raise exception('mutate', name, cls)  # cannot mutate data before instantiation
-      if name.startswith('__'): return super(AbstractModel.__metaclass__, cls).__setattr__(name, value)
-      raise exception('create', name, cls)  # cannot create new properties before instantiation
+      # cannot mutate data before instantiation
+      if name in cls.__lookup__:
+        raise exception('mutate', name, cls)
+
+      # setting internal class-level properties
+      if name.startswith('__'):
+        return super(AbstractModel.__metaclass__, cls).__setattr__(name, value)
+
+      # cannot create new properties before instantiation
+      raise exception('create', name, cls)
 
     def __getitem__(cls, name, exception=exceptions.InvalidItem):
 
@@ -681,12 +766,11 @@ class AbstractModel(object):
             :py:class:`model.Property` object itself if accessed
             at a class level. '''
 
-      if name not in cls.__lookup__: raise exception('read', name, cls)  # cannot read non-data properties
+      if name not in cls.__lookup__:
+        raise exception('read', name, cls)  # cannot read non-data properties
       return cls.__dict__[name]
 
 
-  ## AbstractModel.PropertyValue
-  # Small, ultra-lightweight datastructure responsible for holding a property value bundle for an entity attribute.
   class _PropertyValue(tuple):
 
     ''' Named-tuple class for property value bundles.
@@ -1024,11 +1108,16 @@ class Property(object):
       DOCSTRING '''
 
   __metaclass__ = abc.ABCMeta  # enforce definition of `validate` for subclasses
-  __slots__ = ('name', '_options', '_indexed', '_required', '_repeated', '_basetype', '_default')
-  _sentinel = _EMPTY  # default sentinel for basetypes/values (read only, since it isn't specified in `__slots__`)
+  __slots__ = _PROPERTY_SLOTS  # setup slots for property options
+  _sentinel = _EMPTY  # default sentinel for basetypes/values
 
   ## = Internal Methods = ##
-  def __init__(self, name, basetype, default=_sentinel, required=False, repeated=False, indexed=True, **options):
+  def __init__(self, name, basetype,
+                           default=_sentinel,
+                           required=False,
+                           repeated=False,
+                           indexed=True,
+                           **options):
 
     ''' Initialize this Property.
 
@@ -1044,9 +1133,11 @@ class Property(object):
         :raises:
         :returns: '''
 
-    # copy locals specified above onto object properties of the same name, specified in `self.__slots__`
-    map(lambda args: setattr(self, *args), zip(self.__slots__, (name, options, indexed,
-                                                                required, repeated, basetype, default)))
+    # copy locals specified above onto object properties of the same name,
+    # specified in `self.__slots__`
+    map(lambda args: setattr(self, *args), (
+          zip(self.__slots__, (
+            name, options, indexed, required, repeated, basetype, default))))
 
   ## = Descriptor Methods = ##
   def __get__(self, instance, owner):
@@ -1061,7 +1152,9 @@ class Property(object):
 
     if instance:  # proxy to internal entity method.
 
-      # grab value, returning special a) property default or b) sentinel if we're in explicit mode and it is unset
+      # grab value, returning special
+      # a) property default or
+      # b) sentinel if we're in explicit mode and it is unset
       if self._default != Property._sentinel:  # we have a set default
         value = instance._get_value(self.name, default=self._default)
       else:

@@ -32,14 +32,27 @@ try:  # pragma: no cover
     @decorators.bind('uwsgi')
     class uWSGI(runtime.Runtime):
 
-      """  """
+      """ WIP """
 
-      @classmethod
-      def register_rpc(cls, method):
+      def handshake(self, key, origin=None):
 
-        """  """
+        """ WIP """
 
-        pass  # @TODO(sgammon): register methods
+        uwsgi.websocket_handshake(key, origin)
+
+      def send(self, payload, binary=False):
+
+        """ WIP """
+
+        return (uwsgi.websocket_send if not binary else (
+              uwsgi.websocket_send_binary))(payload)
+
+      def receive(self, blocking=True):
+
+        """ WIP """
+
+        return uwsgi.websocket_recv_nb if not blocking else (
+                  uwsgi.websocket_recv)()
 
 
     # if we make it here, we're running *inside* uWSGI

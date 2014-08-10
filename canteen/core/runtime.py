@@ -203,9 +203,31 @@ class Runtime(object):
       http.HTTPSemantics.new_response()
     )
 
+  def handshake(self, key, origin=None):
+
+    ''' WIP '''
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+
+  def send(self, payload, binary=False):
+
+    ''' WIP '''
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+  def receive(self, blocking=False):
+
+    ''' WIP '''
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
   def dispatch(self, environ, start_response):
 
-    """  """
+    """ WIP """
 
     from ..base import handler as base_handler
 

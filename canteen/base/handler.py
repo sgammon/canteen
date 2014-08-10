@@ -337,11 +337,9 @@ class Handler(object):
 
 class RealtimeHandler(Handler):
 
-  """ WIP """
-
   def dispatch(self, **url_args):
 
-    """ WIP """
+    ''' WIP '''
 
     # fallback to standard dispatch
     if self.realtime.hint not in self.environ:
@@ -363,13 +361,13 @@ class RealtimeHandler(Handler):
 
   def on_connect(self, socket):
 
-    """ WIP """
+    ''' WIP '''
 
     return NotImplemented
 
   def on_message(self, message):
 
-    """ WIP """
+    ''' WIP '''
 
     raise NotImplementedError()
 

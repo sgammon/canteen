@@ -335,6 +335,10 @@ class Handler(object):
     return self.__response__ if not direct else self
 
 
+<<<<<<< HEAD
+=======
+@decorators.configured
+>>>>>>> Initial buildout for FLY-8 and FLY-5, which are being developed in tandem.
 class RealtimeHandler(Handler):
 
   def dispatch(self, **url_args):

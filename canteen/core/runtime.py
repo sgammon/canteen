@@ -158,8 +158,7 @@ class Runtime(object):
 
     self.application, self.bridge = (
       app,
-      Bridge()
-    )
+      Bridge())
 
   def initialize(self):
 

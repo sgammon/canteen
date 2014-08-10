@@ -50,12 +50,10 @@ class RealtimeSocket(object):
 
     self.__id__, self.__runtime__ = (
       hashlib.sha1('::'.join((local, remote))).hexdigest(),
-      runtime
-    )
+      runtime)
 
     self.__local__, self.__remote__ = (
-      local, remote
-    )
+      local, remote)
 
   @property
   def id(self):
@@ -146,7 +144,6 @@ class RealtimeSemantics(logic.Logic):
 
       except (GeneratorExit, StopIteration):
         break
-
     return
 
 

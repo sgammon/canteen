@@ -19,6 +19,7 @@
 """
 
 # stdlib
+import abc
 import itertools
 
 # canteen core & util
@@ -296,6 +297,17 @@ class Handler(object):
 
     return self.respond()
 
+  def dispatch(self, **url_args):
+
+    ''' WIP '''
+
+      # resolve method to call - try lowercase first
+    method = getattr(self, self.request.method)
+    _response = method(**url_args)
+    if _response is not None:
+      self.__response__ = _response
+    return self.__response__
+
   def __call__(self, url_args, direct=False):
 
     """ Kick off the local response dispatch process, and run any necessary
@@ -314,14 +326,52 @@ class Handler(object):
     # run prepare hook, if specified
     if hasattr(self, 'prepare'): self.prepare(url_args, direct=direct)
 
-    # resolve method to call - try lowercase first
-    method = getattr(self, self.request.method)
-    _response = method(**url_args)
-
-    # assign response
-    if _response is not None: self.__response__ = _response
+    # dispatch local handler, expected to fill `self.__response__`
+    self.dispatch(**url_args)
 
     # run destroy hook, if specified
     if hasattr(self, 'destroy'): self.destroy(self.__response__)
 
     return self.__response__ if not direct else self
+
+
+class RealtimeHandler(Handler):
+
+  ''' WIP  '''
+
+  def dispatch(self, **url_args):
+
+    ''' WIP '''
+
+    # fallback to standard dispatch
+    if self.realtime.hint not in self.environ:
+      return super(RealtimeHandler, self).dispatch(**url_args)
+
+    try:
+      # websocket upgrade and session
+      self.socket = self.realtime.on_connect(self.runtime, self.request)
+
+      # bind local on_message and begin realtime flow
+      self.realtime.on_message(*(
+        self.runtime,
+        self.environ,
+        self.on_message,
+        self.runtime.send))
+
+    except NotImplementedError:
+      return self.error(400)  # raised when a non-websocket handler is hit
+
+  def on_connect(self, socket):
+
+    ''' WIP '''
+
+    return NotImplemented
+
+  def on_message(self, message):
+
+    ''' WIP '''
+
+    raise NotImplementedError()
+
+
+__all__ = ('Handler',)

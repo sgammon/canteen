@@ -27,8 +27,6 @@ from canteen import model
 from canteen.model.adapter import abstract
 
 
-## AbstractModelAdapterTests
-# Tests the `AbstractModelAdapter` class.
 class AbstractModelAdapterTests(FrameworkTest):
 
   ''' Tests `model.adapter.abstract.ModelAdapter` '''
@@ -69,8 +67,6 @@ class AbstractModelAdapterTests(FrameworkTest):
     assert hasattr(self.subject, 'encode_key')
 
 
-## IndexedModelAdapterTests
-# Tests the `IndexedModelAdapterAdapter` class.
 class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   ''' Tests `model.adapter.abstract.IndexedModelAdapter` '''
@@ -144,8 +140,6 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
     assert isinstance(converted, tuple)
 
 
-## GraphModelAdapterTests
-# Tests the `GraphModelAdapterAdapter` class.
 class GraphModelAdapterTests(IndexedModelAdapterTests):
 
   ''' Tests `model.adapter.abstract.GraphModelAdapter` '''

@@ -19,6 +19,9 @@
 from canteen import model
 from canteen.test import FrameworkTest
 
+# default inmemory adapter
+from canteen.model.adapter import inmemory
+
 
 class Person(model.Vertex):
 
@@ -28,9 +31,9 @@ class Person(model.Vertex):
   lastname = basestring
 
 
-class Friendship(model.Edge):
+class Teammates(model.Edge):
 
-  ''' sample friendship (edge that connects two people) '''
+  ''' sample teammate-ship (edge that connects two people) '''
 
   year_met = int
 
@@ -39,14 +42,14 @@ class VertexModelTests(FrameworkTest):
 
   ''' Tests `model.Vertex`. '''
 
-  subject = None
+  subject = inmemory.InMemoryAdapter()
 
   def test_construct(self):
 
     ''' Test constructing a `Vertex` model '''
 
     return Person(
-        key=model.Key(Person, 'sup'),
+        key=model.VertexKey(Person, 'sup'),
         firstname='John',
         lastname='Doe')
 
@@ -67,30 +70,56 @@ class EdgeModelTests(FrameworkTest):
 
   ''' Tests `model.Edge`. '''
 
-  subject = None
+  subject = inmemory.InMemoryAdapter()
 
-  def test_construct(self):
+  def test_construct_undirected(self):
 
-    ''' Test constructing an `Edge` model '''
+    ''' Test constructing an undirected `Edge` model '''
 
     # sam + alex
     sam, alex = Person(firstname='Sam'), Person(firstname='Alex')
 
     # low-level edge construct
-    sam_to_alex = Friendship(sam, alex,
-                              key=model.Key(Friendship, 'sup'),
-                              year_met=2003)
+    sam_to_alex = Teammates((sam, alex),
+                            key=model.EdgeKey(Teammates, 'sup'),
+                            year_met=2003)
 
     return sam_to_alex
 
-  def test_edge_put(self):
+  def test_construct_directed(self):
 
-    ''' Test saving an `Edge` model to storage '''
+    ''' Test constructing a directed `Edge` model '''
 
-    return self.test_construct().put(adapter=self.subject)
+    # ian + david
+    ian, david = Person(firstname='Sam'), Person(firstname='Alex')
 
-  def test_edge_get(self):
+    # low-level edge construct
+    ian_to_david = Teammates(ian, david,
+                              key=model.EdgeKey(Teammates, 'sup'),
+                              year_met=2003)
 
-    ''' Test retrieving an `Edge` by its key '''
+    return ian_to_david
 
-    assert Friendship.get(self.test_edge_put(), adapter=self.subject)
+  def test_undirected_edge_put(self):
+
+    ''' Test saving an undirected `Edge` model '''
+
+    return self.test_construct_undirected().put(adapter=self.subject)
+
+  def test_directed_edge_put(self):
+
+    ''' Test saving a directed `Edge` model '''
+
+    return self.test_construct_directed().put(adapter=self.subject)
+
+  def test_undirected_edge_get(self):
+
+    ''' Test retrieving an undirected `Edge` by its key '''
+
+    assert Teammates.get(self.test_undirected_edge_put(), adapter=self.subject)
+
+  def test_directed_edge_get(self):
+
+    ''' Test retrieving a directed `Edge` by its key '''
+
+    assert Teammates.get(self.test_directed_edge_put(), adapter=self.subject)

@@ -16,6 +16,9 @@
 
 '''
 
+# stdlib
+import datetime
+
 # testing
 from canteen import rpc
 from canteen import test
@@ -589,26 +592,49 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
     assert key.parent.parent.kind == 'Hola'
 
 
-"""
+
 class ProtoRPCAdaptedModelTests(test.FrameworkTest):
 
-  '''  '''
+  ''' Tests for the ProtoRPC `Model` mixin '''
 
   def test_model_to_message(self):
 
-    '''  '''
+    ''' Test converting a `Model` to a `Message` '''
 
-    pass
+    class SampleModel(model.Model):
 
+      ''' sample model '''
+
+      string = basestring
+      number = int
+      dt = datetime.datetime
+
+    now = datetime.datetime.now()
+    s = SampleModel(string='hi', number=5, dt=now)
+    m = s.to_message()
+
+    assert m.string == 'hi'
+    assert m.number == 5
+    assert m.dt == now.isoformat()
+
+    s2 = SampleModel(key=model.Key(SampleModel, 'sup'), string='hi', number=5, dt=now)
+    m2 = s2.to_message()
+
+    assert m2.string == 'hi'
+    assert m2.number == 5
+    assert m2.dt == now.isoformat()
+    assert m2.key.encoded == s2.key.urlsafe()
+
+  """
   def test_model_to_message_model(self):
 
-    '''  '''
+    ''' Test converting a `Model` class to a `Message` class '''
 
     pass
 
   def test_message_to_model(self):
 
-    '''  '''
+    ''' Test inflating a `Model` from a `Message` '''
 
     pass
   """

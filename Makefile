@@ -17,6 +17,8 @@ VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 BUILDROOT?=./
 BINPATH?=
+TEST_RESULTS?=$(BUILDROOT).develop/tests/xunit
+COVERAGE_RESULTS?=$(BUILDROOT).develop/coverage/xunit
 
 ## Flags
 TEST_FLAGS ?= --verbose \
@@ -33,12 +35,44 @@ TEST_FLAGS ?= --verbose \
 all: develop
 
 ifeq ($(TESTS),1)
-test: develop
-	@mkdir -p $(BUILDROOT).develop/tests/xunit $(BUILDROOT).develop/coverage/xunit
+test:
+	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
 	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
 else
 test:
 	@echo "Skipping tests."
+endif
+
+build: .Python dependencies
+	@$(BINPATH)python setup.py build
+
+package: test
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
+
+release: build test package
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS) upload
+
+ifeq ($(DEPS),1)
+develop: build
+	@echo "Installing development tools..."
+	@$(BINPATH)pip install --upgrade -r dev_requirements.txt
+
+	@echo "Building..."
+	@$(BINPATH)python setup.py develop
+else
+develop: build package
+	@echo "Building..."
+	@$(BINPATH)python setup.py develop
+endif
+
+ifeq ($(DEPS),1)
+dependencies:
+	# install pip dependencies
+	@$(BINPATH)python -c "import colorlog" > /dev/null || $(BINPATH)pip install colorlog
+	@$(BINPATH)pip install --upgrade -r requirements.txt
+else
+dependencies:
+	@echo "Skipping dependencies..."
 endif
 
 clean:
@@ -49,40 +83,8 @@ clean:
 	@rm -fr canteen.egg-info
 
 	@echo "Cleaning object files..."
-	@find . -name "*.pyc" -delete
-	@find . -name "*.pyo" -delete
-
-build: .Python dependencies
-	@$(BINPATH)python setup.py build
-
-ifeq ($(DEPS),1)
-develop: build
-	@echo "Installing development tools..."
-	@$(BINPATH)pip install -r dev_requirements.txt
-
-	@echo "Building..."
-	@$(BINPATH)python setup.py develop
-else
-develop: build package
-	@echo "Building..."
-	@$(BINPATH)python setup.py develop
-endif
-
-package: test
-	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
-
-release: build test package
-	@$(BINPATH)python setup.py $(DISTRIBUTIONS) upload
-
-ifeq ($(DEPS),1)
-dependencies:
-	# install pip dependencies
-	@$(BINPATH)pip install colorlog
-	@$(BINPATH)pip install -r requirements.txt
-else
-dependencies:
-	@echo "Skipping dependencies..."
-endif
+	@find $(BUILDROOT) -name "*.pyc" -delete
+	@find $(BUILDROOT) -name "*.pyo" -delete
 
 distclean: clean
 	@echo "Cleaning env..."
@@ -97,10 +99,11 @@ distclean: clean
 ifeq ($(VIRTUALENV),1)
 .Python:
 	# install pip/virtualenv if we have to
-	@which pip || sudo easy_install pip
-	@which virtualenv || pip install virtualenv
+	@which pip > /dev/null || sudo easy_install pip
+	@which virtualenv > /dev/null || pip install virtualenv
 
-	@virtualenv $(BUILDROOT)
+	@echo "Making virtualenv..."
+	@virtualenv $(BUILDROOT) > /dev/null
 else
 .Python:
 	@echo "Skipping env..."

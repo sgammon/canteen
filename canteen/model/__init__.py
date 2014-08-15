@@ -457,10 +457,8 @@ class AbstractModel(object):
 
   __slots__ = tuple()
 
-  ## = Encapsulated Classes = ##
 
-  ## AbstractModel.__metaclass__
-  # Initializes class-level property descriptors and re-writes model internals.
+  ## = Encapsulated Classes = ##
   class __metaclass__(MetaFactory):
 
     ''' Embedded `MetaFactory`-compliant metaclass.
@@ -664,11 +662,11 @@ class AbstractModel(object):
                    Vertex if _vertex else Edge,
                    Model, AbstractModel,
                    VertexMixin.compound if _vertex else EdgeMixin.compound,
-                   ModelMixin.compound, object]
+                   ModelMixin.compound]
 
         # vanilla non-base MRO
         return [i for i in cls.__bases__ if i not in base_models] + [
-                  Model, AbstractModel, ModelMixin.compound, object]
+                  Model, AbstractModel, ModelMixin.compound]
 
       # calculate common `Model` MRO
       base_model_mro = (
@@ -705,16 +703,18 @@ class AbstractModel(object):
 
           :returns: String representation of this `Model. '''
 
-      # primitive label before MRO
-      if not hasattr(cls, '__lookup__'):
-        return 'Model<%s>' % cls.__name__
-
-      if cls.__name__ not in _BASE_MODEL_CLS:
+      if hasattr(cls, '__lookup__') and cls.__name__ not in _BASE_MODEL_CLS:
         return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
 
       elif (cls.__name__ in _BASE_GRAPH_CLS and cls.__owner__ == 'Model') or (
         cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
         return "%s()" % cls.__name__
+
+      elif any((hasattr(b, '__graph__') for b in cls.__bases__)):
+        _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))
+        return ("Vertex<%s>" if _vertex else "Edge<%s>") % cls.__name__
+
+      return 'Model<%s>' % cls.__name__
 
     __str__ = __unicode__ = __repr__
 
@@ -791,8 +791,9 @@ class AbstractModel(object):
       return tuple.__new__(_cls, (data, dirty))  # pass up-the-chain to `tuple`
 
     # util: generate a string representatin of this `_PropertyValue`
-    __repr__ = lambda self: "Value(%s)%s" % (('"%s"' % self[0]) if isinstance(self[0], basestring)
-                                               else self[0].__repr__(), '*' if self[1] else '')
+    __repr__ = lambda self: "Value(%s)%s" % ((
+          '"%s"' % self[0]) if isinstance(self[0], basestring)
+              else self[0].__repr__(), '*' if self[1] else '')
 
     # util: reduce arguments for pickle
     __getnewargs__ = lambda self: tuple(self)
@@ -801,8 +802,8 @@ class AbstractModel(object):
     __dict__ = property(lambda self: dict(zip(self.__fields__, self)))
 
     # util: map data and dirty properties
-    data = property(operator.itemgetter(0), doc='Alias for `PropertyValue.data` at index 0.')
-    dirty = property(operator.itemgetter(1), doc='Alias for `PropertyValue.dirty` at index 1.')
+    data = property(operator.itemgetter(0))
+    dirty = property(operator.itemgetter(1))
 
   # = Internal Methods = #
   def __new__(cls, *args, **kwargs):
@@ -820,11 +821,11 @@ class AbstractModel(object):
       raise exceptions.AbstractConstructionFailure('AbstractModel')
     return super(AbstractModel, cls).__new__(cls, *args, **kwargs)
 
-  # util: generate a string representation of this entity, alias to string conversion methods too
-  __repr__ = lambda self: "%s(%s, %s)" % (self.__kind__, self.__key__,
-                                          ', '.join([
-                                            '='.join([k, str(self.__data__.get(k, None))])
-                                             for k in self.__lookup__]))
+  # util: generate a string representation of this entity
+  __repr__ = lambda self: "%s(%s, %s)" % (
+      self.__kind__, self.__key__,
+        ', '.join(['='.join([k, str(self.__data__.get(k, None))])
+                   for k in self.__lookup__]))
 
   __str__ = __unicode__ = __repr__  # map repr to str and unicode
 
@@ -840,9 +841,11 @@ class AbstractModel(object):
 
         :returns: '''
 
-    # internal properties, data properties and `key` can be written to after construction
+    # internal properties, data properties and `key`
+    # can be written to after construction
     if name.startswith('__') or name in self.__lookup__ or name == 'key':
-      return super(AbstractModel, self).__setattr__(name, value)  # delegate upwards for write
+      # delegate upwards for write
+      return super(AbstractModel, self).__setattr__(name, value)
     raise exception('set', name, self.kind())
 
   def __getitem__(self, name):
@@ -853,12 +856,14 @@ class AbstractModel(object):
 
         :returns: '''
 
-    if name not in self.__lookup__:  # only data properties are exposed via `__getitem__`
+    if name not in self.__lookup__:
+      # only data properties are exposed via `__getitem__`
       raise exceptions.InvalidItem('get', name, self.kind())
     return getattr(self, name)  # proxy to attribute API
 
   # util: support for python's item API
-  __setitem__ = lambda self, item, value: self.__setattr__(item, value, exceptions.InvalidItem)
+  __setitem__ = lambda self, item, value: (
+    self.__setattr__(item, value, exceptions.InvalidItem))
 
   def __context__(self, _type=None, value=None, traceback=None):
 
@@ -882,10 +887,11 @@ class AbstractModel(object):
   __len__ = lambda self: len(self.__data__)
   __nonzero__ = __len__
 
-  # util: `dirty` property flag, proxies to internal `_PropertyValue`(s) for dirtyness
-  __dirty__ = property(lambda self: any((dirty for value, dirty in self.__data__.itervalues())))
+  # util: `dirty` property flag, proxies to `_PropertyValue`(s) for dirtyness
+  __dirty__ = property(lambda self: any(
+    (dirty for value, dirty in self.__data__.itervalues())))
 
-  # util: `persisted` property flag, indicates whether internal key has been persisted in storage
+  # util: `persisted` property flag, indicates whether key has been persisted
   __persisted__ = property(lambda self: self.key.__persisted__)
 
   def __iter__(self):
@@ -900,7 +906,8 @@ class AbstractModel(object):
       # skip unset properties without a default, except in `explicit` mode
       if (value == Property._sentinel and (not self.__explicit__)):
         if self.__class__.__dict__[name]._default != Property._sentinel:
-          yield name, self.__class__.__dict__[name]._default  # return a prop's default in `implicit` mode
+          # return a prop's default in `implicit` mode
+          yield name, self.__class__.__dict__[name]._default
         continue  # pragma: no cover
       yield name, value
     raise StopIteration()
@@ -916,7 +923,8 @@ class AbstractModel(object):
     self.key.__persisted__ = True
     for name in self.__data__:  # iterate over set properties
       # set value to previous, with `False` dirty flag
-      self._set_value(name, self._get_value(name, default=Property._sentinel), False)
+      self._set_value(name, self._get_value(name,
+                      default=Property._sentinel), False)
     return self
 
   def _get_value(self, name, default=None):
@@ -934,7 +942,7 @@ class AbstractModel(object):
         value = self.__data__.get(name, Property._sentinel)
         if not value:
           if self.__explicit__ and value is Property._sentinel:
-            return Property._sentinel  # return _EMPTY sentinel in explicit mode, if property is unset
+            return Property._sentinel  # return _EMPTY sentinel in explicit mode
           return default  # return default value passed in
         return value.data  # return property value
       raise exceptions.InvalidAttribute('get', name, self.kind())
@@ -957,10 +965,12 @@ class AbstractModel(object):
       if isinstance(name, dict):
         name = name.items()  # convert dict to list of tuples
       # filter out flags from caller
-      return [self._set_value(k, i, _dirty=_dirty) for k, i in name if k not in ('key', '_persisted')]
+      return [self._set_value(k, i, _dirty=_dirty) for k, i in name if (
+                k not in ('key', '_persisted'))]
 
+    # allow a tuple of (name, value), for use in map/filter/etc
     if isinstance(name, tuple):  # pragma: no cover
-      name, value = name  # allow a tuple of (name, value), for use in map/filter/etc
+      name, value = name
 
     if name == 'key':  # if it's a key, set through _set_key
       return self._set_key(value).owner  # returns `self` :)
@@ -982,22 +992,33 @@ class AbstractModel(object):
         :raises:
         :returns: '''
 
+    _valid_key_classes = (self.__class__.__keyclass__, tuple, basestring)
+
     # cannot provide both a value and formats
     if value and kwargs:
       raise exceptions.MultipleKeyValues(self.kind(), value, kwargs)
 
     # for a literal key value
     if value is not None:
-      if not isinstance(value, (self.__class__.__keyclass__, tuple, basestring)):  # filter out invalid key types
-        raise exceptions.InvalidKey(type(value), value, self.__class__.__keyclass__.__name__)
+      if not isinstance(value, _valid_key_classes):  # filter out invalid keys
+        raise exceptions.InvalidKey(*(
+          type(value),
+          value,
+          self.__class__.__keyclass__.__name__))
 
-      self.__key__ = {  # set local key from result of dict->get(<formatter>)->__call__(<value>)
+      # set local key from result of dict->get(<formatter>)->__call__(<value>)
+      self.__key__ = {
 
-        self.__class__.__keyclass__: lambda x: x,  # return keys directly
-        tuple: self.__class__.__keyclass__.from_raw,  # pass tuples through `from_raw`
-        basestring: self.__class__.__keyclass__.from_urlsafe  # pass strings through `from_urlsafe`
+        # return keys directly
+        self.__class__.__keyclass__: lambda x: x,
 
-      }.get(type(value), lambda x: x)(value)._set_internal('owner', self)  # resolve by value type and execute
+        # pass tuples through `from_raw`
+        tuple: self.__class__.__keyclass__.from_raw,
+
+        # pass strings through `from_urlsafe`
+        basestring: self.__class__.__keyclass__.from_urlsafe
+
+      }.get(type(value), lambda x: x)(value)._set_internal('owner', self)
 
       return self.__key__  # return key
 
@@ -1006,17 +1027,23 @@ class AbstractModel(object):
       if len(kwargs) > 1:  # disallow multiple format kwargs
         raise exceptions.MultipleKeyFormats(', '.join(kwargs.keys()))
 
-      self.__key__ = {  # resolve key converter, if any, set owner, and `__key__`, and return
+      # resolve key converter, if any, set owner, and `__key__`, and return
+      self.__key__ = {
 
-        'raw': self.__class__.__keyclass__.from_raw,  # for raw, pass through `from_raw`
-        'urlsafe': self.__class__.__keyclass__.from_urlsafe,  # for strings, pass through `from_urlsafe`
-        'constructed': lambda x: x  # by default it's a constructed key
+        # for raw, pass through `from_raw`
+        'raw': self.__class__.__keyclass__.from_raw,
+
+        # for strings, pass through `from_urlsafe`
+        'urlsafe': self.__class__.__keyclass__.from_urlsafe,
+
+        # by default it's a constructed key
+        'constructed': lambda x: x
 
       }.get(formatter, lambda x: x)(value)._set_internal('owner', self)
       return self.__key__
 
-    # except in the case of a null value and no formatter args (completely empty `_set_key`)
-    raise exceptions.UndefinedKey(value, kwargs)  # fail if we don't have a key at all
+    # except in the case of a null value and no formatter args
+    raise exceptions.UndefinedKey(value, kwargs)
 
   ## = Property Bindings  = ##
   key = property(lambda self: self.__key__, _set_key)  # bind model key
@@ -1031,7 +1058,8 @@ class Key(AbstractKey):
       DOCSTRING '''
 
   __separator__ = u':'  # separator for joined/encoded keys
-  __schema__ = _DEFAULT_KEY_SCHEMA if not _MULTITENANCY else _MULTITENANT_KEY_SCHEMA
+  __schema__ = (_DEFAULT_KEY_SCHEMA if not (
+                _MULTITENANCY) else _MULTITENANT_KEY_SCHEMA)
 
   ## = Internal Methods = ##
   def __new__(cls, *parts, **formats):
@@ -1043,15 +1071,20 @@ class Key(AbstractKey):
         :raises:
         :returns: '''
 
-    formatter, value = formats.items()[0] if formats else ('__constructed__', None)  # extract 1st-provided format
+    # extract 1st-provided format
+    formatter, value = (
+      formats.items()[0] if formats else ('__constructed__', None))
 
-    if len(filter(lambda x: x[0] != '_persisted', formats.iteritems())) > 1:  # disallow multiple key formats
+    # disallow multiple key formats
+    if len(filter(lambda x: x[0] != '_persisted', formats.iteritems())) > 1:
       raise exceptions.MultipleKeyFormats(', '.join(formats.keys()))
 
     return {  # delegate full-key decoding to classmethods
       'raw': cls.from_raw,
       'urlsafe': cls.from_urlsafe
-    }.get(formatter, lambda x: super(AbstractKey, cls).__new__(cls, *parts, **formats))(value)
+    }.get(*(
+      formatter,
+      lambda x: super(AbstractKey, cls).__new__(cls, *parts, **formats)))(value)
 
   def __init__(self, *parts, **kwargs):
 
@@ -1064,24 +1097,34 @@ class Key(AbstractKey):
 
     if len(parts) > 1:  # normal case: it's a full/partially-spec'd key
 
-      if len(parts) <= len(self.__schema__):  # it's a fully- or partially-spec'ed key
-        mapped = zip([i for i in reversed(self.__schema__)][(len(self.__schema__) - len(parts)):],
-                         map(lambda x: x.kind() if hasattr(x, 'kind') else x, parts))
+      # it's a fully- or partially-spec'ed key
+      if len(parts) <= len(self.__schema__):
+        _parts_diff = (len(self.__schema__) - len(parts))
+        _pluck_kind = lambda x: x.kind() if hasattr(x, 'kind') else x
+        mapped = zip([i for i in reversed(self.__schema__)][_parts_diff:],
+                         map(_pluck_kind, parts))
 
       else:
         # for some reason the schema falls short of our parts
-        raise exceptions.KeySchemaMismatch(self.__class__.__name__, len(self.__schema__), str(self.__schema__))
+        raise exceptions.KeySchemaMismatch(*(
+              self.__class__.__name__,
+              len(self.__schema__),
+              str(self.__schema__)))
 
-      for name, value in map(lambda x: (x[0], x[1].kind()) if isinstance(x[1], Model) else x, mapped):
+      _pluck = lambda x: (x[0], x[1].kind()) if isinstance(x[1], Model) else x
+      for name, value in map(_pluck, mapped):
         setattr(self, name, value)  # set appropriate attribute via setter
 
     elif len(parts) == 1:  # special case: it's a kinded, empty key
       if hasattr(parts[0], 'kind'):
-        parts = (parts[0].kind(),)  # quick ducktyping: is it a model? (`issubclass` only supports classes)
+        parts = (parts[0].kind(),)  # quick ducktyping: is it a model?
       self.__kind__ = parts[0]
 
-    # if we *know* this is an existing key, `_persisted` should be `true`. also set kwarg-passed parent.
-    self._set_internal('parent', kwargs.get('parent'))._set_internal('persisted', kwargs.get('_persisted', False))
+    # if we *know* this is an existing key, `_persisted` should be `true`
+    self._set_internal('parent', kwargs.get('parent'))
+
+    # also set kwarg-passed parent.
+    self._set_internal('persisted', kwargs.get('_persisted', False))
 
   def __setattr__(cls, name, value):
 
@@ -1099,6 +1142,16 @@ class Key(AbstractKey):
       if getattr(cls, name) is not None:
         raise exceptions.InvalidKeyAttributeWrite('overwrite', name, cls)
     return super(AbstractKey, cls).__setattr__(name, value)
+
+
+class VertexKey(Key):
+
+  ''' Key class for ``Vertex`` records. '''
+
+
+class EdgeKey(Key):
+
+  ''' Key class for ``Edge`` records. '''
 
 
 ## Property
@@ -1271,7 +1324,6 @@ class Property(object):
     self.__filter__(other, query.Filter.LESS_THAN_EQUAL_TO))  # `<=` operator
 
 
-## Model
 class Model(AbstractModel):
 
   ''' Concrete Model class. '''
@@ -1302,22 +1354,57 @@ class Model(AbstractModel):
   kind = classmethod(lambda cls: cls.__name__)
 
 
-## Vertex
 class Vertex(Model):
 
   ''' Concrete Vertex class.
       DOCSTRING '''
 
-  __owner__ = 'Vertex'
+  __owner__, __keyclass__ = 'Vertex', VertexKey
 
 
-## Edge
 class Edge(Model):
 
   ''' Concrete Edge class.
       DOCSTRING '''
 
-  __owner__ = 'Edge'
+  __owner__, __keyclass__ = 'Edge', EdgeKey
+
+  ## == directed edges == ##
+  source = Vertex, {'indexed': True}
+  target = Vertex, {'indexed': True}
+
+  ## == undirected edges == ##
+  peers = Vertex, {'indexed': True, 'repeated': True}
+
+  ## = Internal Methods = ##
+  def __init__(self, pair_or_source=None, maybe_target=None, **properties):
+
+    ''' Initialize this ``Edge`` with a ``Vertex``
+        ``source`` and ``target`` pair.
+
+        :param pair_or_source:
+        :param maybe_target:
+        :param **properties:
+
+        :raises:
+        :returns: '''
+
+    source, target = (pair_or_source, maybe_target) if not (
+      isinstance(pair_or_source, tuple)) else pair_or_source
+
+    if (source is None or target is None) and not properties.get('_persisted'):
+      raise TypeError('Constructing an `Edge` requires at least'
+                      ' one `source` and `target`, or one pair'
+                      ' (`source`, `target`).')
+
+    # explicit target means directed edge
+    if maybe_target is None:
+      properties['source'], properties['target'] = (
+        source, target)
+    elif source and target:
+      properties['peers'] = (source, target)
+
+    super(Edge, self).__init__(**properties)
 
 
 # Module Globals

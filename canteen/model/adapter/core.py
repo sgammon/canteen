@@ -244,7 +244,8 @@ class AdaptedVertex(VertexMixin):
         :raises:
         :returns: '''
 
-    raise NotImplementedError('`edges` is currently stubbed')
+    adapter = kwargs.get('adapter', self.__class__.__adapter__)
+    return adapter._edges(self, *args, **kwargs)
 
   def neighbors(self, *args, **kwargs):  # pragma: no cover
 
@@ -257,7 +258,8 @@ class AdaptedVertex(VertexMixin):
         :raises:
         :returns: '''
 
-    raise NotImplementedError('`neighbors` is currently stubbed')
+    adapter = kwargs.get('adapter', self.__class__.__adapter__)
+    return adapter._neighbors(self, *args, **kwargs)
 
 
 ## AdaptedEdge
@@ -266,18 +268,6 @@ class AdaptedEdge(EdgeMixin):
   ''' Provides graph-oriented methods for ``Edge objects``. '''
 
   __graph__ = __edge__ = True  # mark as graph model and vertex
-
-  def peers(self, *args, **kwargs):  # pragma: no cover
-
-    ''' Retrieve ``Vertex``(es) attached to the tail and
-        head of this ``Edge``.
-
-        :param args:
-        :param kwargs:
-        :raises:
-        :returns: '''
-
-    raise NotImplementedError('`peers` is currently stubbed')
 
 
 ## DictMixin

@@ -199,7 +199,7 @@ class ModelAdapter(object):
 
       # validate entity, will raise validation exceptions
       for name, value in entity.to_dict(_all=True).items():
-        _model.__dict__[name].valid(entity)
+        _model[name].valid(entity)
 
       # resolve key if we have a zero-y key or key class
       if not entity.key or entity.key is None:
@@ -344,8 +344,6 @@ class ModelAdapter(object):
     return False  # by default, yield to key b64 builtin encoding
 
 
-## IndexedModelAdapter
-# Adapt canteen models to a storage backend that supports indexing.
 class IndexedModelAdapter(ModelAdapter):
 
   ''' Abstract base class for model adapters that support
@@ -358,8 +356,7 @@ class IndexedModelAdapter(ModelAdapter):
   _index_prefix = '__index__'
   _reverse_prefix = '__reverse__'
 
-  ## Indexer
-  # Holds routines and data type tools for indexing canteen models in Redis.
+
   class Indexer(object):
 
     ''' Holds methods for indexing and handling index
@@ -377,7 +374,7 @@ class IndexedModelAdapter(ModelAdapter):
 
       ''' Convert a :py:class:`model.Key` to an indexable value.
 
-          :param key: Target :py:class:`model.Key` to conver.
+          :param key: Target :py:class:`model.Key` to convert.
 
           :returns: Tupled ``(<magic key code>, <flattened key>)``,
             suitable for adding to the index. '''
@@ -631,30 +628,159 @@ class IndexedModelAdapter(ModelAdapter):
     raise NotImplementedError()
 
 
-## GraphModelAdapter
-# Adapt models to a Graph-based storage paradigm, defaulting to undirected.
 class GraphModelAdapter(IndexedModelAdapter):
 
   ''' Abstract base class for model adapters that support
       Graph-style paradigms for data storage. '''
 
-  def _edges(self, target):  # pragma: no cover
+  _graph_prefix = '__graph__'
 
-    ''' '''
+  class Indexer(IndexedModelAdapter.Indexer):
+
+    ''' Adds Graph-specific ``Indexer`` routines and
+        constants. '''
+
+    _magic = {
+      'key': 0x1,  # magic ID for `model.Key` references
+      'date': 0x2,  # magic ID for `datetime.date` instances
+      'time': 0x3,  # magic ID for `datetime.time` instances
+      'datetime': 0x4,  # magic ID for `datetime.datetime` instances
+      'vertex': 0x5,  # magic ID for `Vertex` `model.Key` references
+      'edge': 0x6  # magic ID for `Edge` `model.Key` references
+    }
+
+    @classmethod
+    def convert_key(cls, key):
+
+      ''' Convert a :py:class:`model.Key` to an indexable value,
+          considering ``Vertex`` and ``Edge`` keys as well.
+
+          :param key: Target :py:class:`model.Key` to convert.
+
+          :returns: Tupled ``(<magic key code>, <flattened key>)``,
+            suitable for adding to the index. '''
+
+      from canteen import model
+
+      joined, flattened = key.flatten(True)
+      sanitized = map(lambda x: x is not None, flattened)
+
+      if isinstance(key, model.Vertex.__keyclass__):
+        return cls._magic['vertex'], sanitized
+      elif isinstance(key, model.Edge.__keyclass__):
+        return cls._magic['edge'], sanitized
+      return cls._magic['key'], sanitized
+
+  @classmethod
+  def generate_indexes(cls, key, properties=None):
+
+    '''  '''
+
+    from canteen import model
+
+    if key:
+
+      if properties:
+
+        # we're writing indexes
+
+        # provision key/meta/graph indexes and defer upwards for the first 2
+        (key, meta_indexes, property_indexes), graph_indexes = (
+          super(GraphModelAdapter, cls).generate_indexes(key, properties)), []
+
+        # @(TODO): critical, finish graph-specific indexes
+
+        if isinstance(key, model.Vertex.__keyclass__):
+          # it's a vertex key
+          pass
+
+        elif isinstance(key, model.Edge.__keyclass__):
+          # it's an edge key
+          pass
+
+        return key, meta_indexes + graph_indexes, property_indexes
+
+      else:
+        # we're cleaning indexes
+        return super(GraphModelAdapter, cls).generate_indexes(key, properties)
+
+    else:
+      # we're generating indexes for properties only
+      return super(GraphModelAdapter, cls).generate_indexes(key, properties)
+
+    #return encoded_key, meta_indexes, property_indexes, graph_indexes
+    return super(GraphModelAdapter, cls).generate_indexes(key, properties)
+
+
+  def _edges(self, target, **options):
+
+    ''' Prepares a query to fetch the ``Edges`` for a
+        given ``target`` ``Vertex``.
+
+        Internal method, usually invoked from mixin-
+        mounted methods on ``Vertex`` and ``Key`` objects
+        themselves.
+
+        In charge of satisfying the aforementioned call
+        with implementation methods specified by compliant
+        adapters.
+
+        :param target: ``Vertex`` key to spawn an edge
+          query for.
+
+        :raises:
+        :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
     import pdb; pdb.set_trace()
 
-  def _connect(self, target):  # pragma: no cover
+  def _connect(self, source, *targets):
 
-    '''  '''
+    ''' Connects a ``source`` ``Vertex`` with one or
+        more ``Edge`` objects.
+
+        Internal method, usually invoked from mixin-
+        mounted methods on ``Vertex`` and ``Key`` objects
+        themselves.
+
+        In charge of satisfying the aforementioned call
+        with implementation methods specified by compliant
+        adapters.
+
+        :param source: Originating ``Vertex`` for the (``head``)
+          or (peered endpoint) for a (directed) or (undirected)
+          ``Graph`` ``Edge``.
+
+        :param *targets: A set of target ``Vertex``es to
+          connect as the (``tail``s) or (peered endpoints) for
+          a set of ``Graph`` ``Edge``s originating from
+          ``source``.
+
+        :raises:
+        :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
     import pdb; pdb.set_trace()
 
-  def _neighbors(self, target):  # pragma: no cover
+  def _neighbors(self, source, **options):
 
-    '''  '''
+    ''' Prepares a query to retrieve a ``source``
+        ``Vertex``'s neighbor ``Vertex``es, that are
+        connected to ``source`` via at least one ``Edge``.
+
+        Internal method, usually invoked from mixin-
+        mounted  methods on ``Vertex`` and ``Key`` objects
+        themselves.
+
+        In charge of satisfying the aforementioned call
+        with implementation methods specified by compliant
+        adapters.
+
+        :param source: Originating ``Vertex`` for which to
+          retrieve neighboring ``Vertex``es.
+
+        :raises:
+        :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
     import pdb; pdb.set_trace()
@@ -664,7 +790,14 @@ class GraphModelAdapter(IndexedModelAdapter):
 
     ''' Retrieve all ``Edges`` between ``key1`` and ``key2``
         (or just for ``key1``) if no peer key is provided),
-        optionally only of ``Edge`` type ``type``. '''
+        optionally only of ``Edge`` type ``type``.
+
+        :param key1:
+        :param key2:
+        :param type:
+
+        :raises:
+        :returns: '''
 
     raise NotImplementedError('`edges` is abstract.')
 
@@ -673,7 +806,14 @@ class GraphModelAdapter(IndexedModelAdapter):
 
     ''' Connect two objects (expressed as ``key1`` and ``key2``)
         as ``Vertexes`` by an ``Edge``. Accepts an ``Edge``
-        object to use for the connection. '''
+        object to use for the connection.
+
+        :param key1:
+        :param key2:
+        :param edge:
+
+        :raises:
+        :returns: '''
 
     raise NotImplementedError('`connect` is abstract.')
 
@@ -682,7 +822,13 @@ class GraphModelAdapter(IndexedModelAdapter):
 
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at
         least one ``Edge``, optionally filtered by ``Edge``
-        type with ``type``. '''
+        type with ``type``.
+
+        :param key:
+        :param type:
+
+        :raises:
+        :returns: '''
 
     raise NotImplementedError('`neighbors` is abstract.')
 
@@ -694,9 +840,22 @@ class DirectedGraphAdapter(GraphModelAdapter):
   ''' Abstract base class for model adpaters that support
       directed-graph-type models. '''
 
-  def _heads_or_tails(self, tails=False):  # pragma: no cover
+  def _heads_or_tails(self, key, type, tails=False):
 
-    '''  '''
+    ''' Prepares a query to retrieve directed ``Edge`` records
+        that either originate or terminate with ``key``. Defaults
+        to ``Edge``s that originate from ``key``.
+
+        :param key: ``Vertex`` ``Key`` for which to pull ``Edge``
+          ``tails`` or ``heads``.
+
+        :param tails: Boolean flag indicating a desire for ``Edge``
+          records that *terminate* at ``Key``, rather than
+          *originate* at ``Key`` (which are said to be ``tails``,
+          instead of ``heads``).
+
+        :raises:
+        :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
     import pdb; pdb.set_trace()
@@ -705,7 +864,13 @@ class DirectedGraphAdapter(GraphModelAdapter):
   def tails(cls, key, type=None, **kwargs):  # pragma: no cover
 
     ''' Retrieve all directed ``Edge``s that terminate at this node,
-        optionally filtering by ``Edge`` type ``type``. '''
+        optionally filtering by ``Edge`` type ``type``.
+
+        :param key:
+        :param type:
+
+        :raises:
+        :returns: '''
 
     raise NotImplementedError()
 
@@ -713,7 +878,13 @@ class DirectedGraphAdapter(GraphModelAdapter):
   def heads(cls, key, type=None, **kwargs):  # pragma: no cover
 
     ''' Retrieve all directed ``Edge``s that originate from this node,
-        optionally filtering by ``Edge`` type ``type``. '''
+        optionally filtering by ``Edge`` type ``type``.
+
+        :param key:
+        :param type:
+
+        :raises:
+        :returns: '''
 
     raise NotImplementedError()
 

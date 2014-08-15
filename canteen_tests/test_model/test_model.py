@@ -687,7 +687,7 @@ class ModelTests(FrameworkTest):
     p = Person(firstname='John')
 
     # try writing a new key
-    x = p._set_value('key', model.Key(Person, "john"))
+    x = p._set_value('key', model.VertexKey(Person, "john"))
     self.assertEqual(x, p)
 
     # try writing to invalid property
@@ -710,7 +710,7 @@ class ModelTests(FrameworkTest):
       p._set_key(5.5)
 
     # try writing via kwargs
-    k = model.Key(Person, "john")
+    k = model.VertexKey(Person, "john")
 
     # try constructing via urlsafe
     p._set_key(urlsafe=k.urlsafe())
@@ -919,6 +919,6 @@ class ModelTests(FrameworkTest):
     ''' Test proper MRO for ``Edge`` models '''
 
     assert hasattr(Friendship, 'peers')
-    assert hasattr(Friendship(), 'peers')
+    assert hasattr(Friendship, 'source')
+    assert hasattr(Friendship, 'target')
     assert issubclass(Friendship, model.Edge)
-    assert isinstance(Friendship(), model.Edge)

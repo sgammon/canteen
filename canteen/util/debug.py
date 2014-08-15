@@ -24,7 +24,7 @@ except ImportError:
   logging.basicConfig(stream=sys.stdout, level=10, format='%(message)s')
 
 
-def Logger(name):
+def Logger(name):  # pragma: no cover
 
   '''  '''
 

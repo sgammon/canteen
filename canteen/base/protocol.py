@@ -68,7 +68,6 @@ with runtime.Library('protorpc') as (library, protorpc):
   ))
 
 
-  @decorators.configured
   class Protocol(object):
 
     ''' Base ``Protocol`` class for adding serialization dialects to the RPC

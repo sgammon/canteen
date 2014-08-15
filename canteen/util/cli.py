@@ -74,10 +74,10 @@ class Tool(object):
         # is it a list of arguments?
         if isinstance(value, (list, tuple)) and key is 'arguments':
 
-          def _add_argument(_parser, _flag, _config):
+          def _add_argument(_parser, _flag, _config):  # pragma: no cover
             if isinstance(_flag, tuple):
               return _parser.add_argument(*_flag, **_config)
-            return _parser.add_argument(_flag, **_config)  # pragma: nocover
+            return _parser.add_argument(_flag, **_config)
 
           for bundle in value:
             if len(bundle) == 2:
@@ -91,7 +91,7 @@ class Tool(object):
         # is it a subtool?
         elif isinstance(value, type) and issubclass(value, Tool):
 
-          def _add_subparser(root, obj, subparsers):
+          def _add_subparser(root, obj, subparsers):  # pragma: no cover
             ## bind helptext from __doc__
             sub = subparsers.add_parser((getattr(obj, 'name') if (
               hasattr(obj, 'name')) else obj.__name__).lower(), **{
@@ -114,7 +114,7 @@ class Tool(object):
 
         elif not key.startswith('__') and not inspect.isfunction(value):
           # well those are the only two options
-          continue
+          continue  # pragma: no cover
 
       # construct class
       klass = super(cls, cls).__new__(cls, name, bases, properties)
@@ -196,7 +196,7 @@ class Tool(object):
         setattr(self, (impl.name if (
           hasattr(impl, 'name')) else impl.__name__).lower(), impl(subparser))
 
-    if autorun:
+    if autorun:  # pragma: no cover
       if safe:
         self(*_root_tool.parse_known_args())
       else:

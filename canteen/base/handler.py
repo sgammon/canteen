@@ -26,7 +26,6 @@ from ..core import injection
 from ..util import decorators
 
 
-@decorators.configured
 class Handler(object):
 
   ''' Base class structure for a ``Handler`` of some request or desired action.

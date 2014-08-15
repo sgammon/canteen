@@ -78,7 +78,5 @@ __all__ = (
   'debug',
   'decorators',
   'struct',
-  'configured',
-  'bind',
-  'cacheable'
+  'bind'
 )

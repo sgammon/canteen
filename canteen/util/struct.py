@@ -35,9 +35,9 @@ class Sentinel(object):
 
     ''' Construct a new sentinel.
 
-      :param name:
-      :param falsy:
-      :returns: '''
+        :param name:
+        :param falsy:
+        :returns: '''
 
     self.name, self.hash, self._falsy = (
       name, int((''.join(str(ord(c)) for c in name))), falsy)
@@ -111,22 +111,22 @@ class UtilStruct(object):
 class ObjectProxy(UtilStruct):
 
   ''' Same handy object as above, but stores the entries in an
-    _entries attribute rather than the class dict.  '''
+      _entries attribute rather than the class dict.  '''
 
   _entries = _case_sensitive = None
 
   def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
     ''' If handed a dictionary (or something) in init, send it to
-      fillStructure (and do the same for kwargs).
+        fillStructure (and do the same for kwargs).
 
-      :param struct:
-      :param case_sensitive:
-      :param kwargs:
+        :param struct:
+        :param case_sensitive:
+        :param kwargs:
 
-      :raises TypeError:
+        :raises TypeError:
 
-      :returns: '''
+        :returns: '''
 
     self._entries, self._case_sensitive = {}, case_sensitive
     if struct:
@@ -159,33 +159,37 @@ class ObjectProxy(UtilStruct):
 
     ''' 'x = struct[name]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param name:
+        :raises KeyError:
+        :returns: '''
 
     filtered = self.i_filter(name)
     if filtered not in self._entries:
-      raise KeyError("Cannot locate name '%s' in ObjectProxy '%s'." % (name, self))
+      raise KeyError("Cannot locate name '%s'"
+                     " in ObjectProxy '%s'." % (name, self))
     return self._entries[filtered]
 
   def __getattr__(self, name):
 
     ''' 'x = struct.name' override.
 
-      :param name:
-      :raises AttributeError
-      :returns: '''
+        :param name:
+        :raises AttributeError
+        :returns: '''
 
     filtered = self.i_filter(name)
     if filtered not in self._entries:
-      raise AttributeError("Could not find the attribute '%s' on the specified ObjectProxy." % name)
+      raise AttributeError("Could not find the attribute '%s'"
+                           " on the specified ObjectProxy." % name)
     return self._entries[filtered]
 
   # filter for case sensitivity
-  i_filter = lambda self, target: (self._case_sensitive and target) or str(target).lower()
+  i_filter = lambda self, target: (
+    (self._case_sensitive and target) or str(target).lower())
 
   # contains override
-  __contains__ = contains = lambda self, name: self.i_filter(name) in self._entries
+  __contains__ = contains = lambda self, name: (
+    self.i_filter(name) in self._entries)
 
   # dict-style buffered access
   keys = lambda self: self._entries.keys()
@@ -200,15 +204,16 @@ class ObjectProxy(UtilStruct):
 
 class WritableObjectProxy(ObjectProxy):
 
-  ''' Same handy object as `ObjectProxy`, but allows appending things at runtime. '''
+  ''' Same handy object as `ObjectProxy`, but
+      allows appending things at runtime. '''
 
   def __setitem__(self, name, value):
 
     ''' 'struct[name] = x' override.
 
-      :param name:
-      :param value:
-      :returns: '''
+        :param name:
+        :param value:
+        :returns: '''
 
     self._entries[name] = value
 
@@ -216,9 +221,9 @@ class WritableObjectProxy(ObjectProxy):
 
     ''' 'struct.name = x' override.
 
-      :param name:
-      :param value:
-      :returns: '''
+        :param name:
+        :param value:
+        :returns: '''
 
     if name in ('_entries', '_case_sensitive', '__slots__'):
       return object.__setattr__(self, name, value)
@@ -228,32 +233,34 @@ class WritableObjectProxy(ObjectProxy):
 
     ''' 'del struct.name' override.
 
-      :param name:
-      :raises AttributeError:
-      :returns: '''
+        :param name:
+        :raises AttributeError:
+        :returns: '''
 
     if self.i_filter(name) not in self._entries:
-      raise AttributeError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+      raise AttributeError("Could not find the entry '%s'"
+                           " on the specified ObjectProxy." % name)
     del self._entries[self.i_filter(name)]
 
   def __delitem__(self, name):
 
     ''' 'del struct[name]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param name:
+        :raises KeyError:
+        :returns: '''
 
     if self.i_filter(name) not in self._entries:
-      raise KeyError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+      raise KeyError("Could not find the entry '%s'"
+                     " on the specified ObjectProxy." % name)
     del self._entries[self.i_filter(name)]
 
 
 class CallbackProxy(ObjectProxy):
 
   ''' Handy little object that takes a dict and makes
-    it accessible via var[item], but returns the
-    result of an invoked ``callback(item)``. '''
+      it accessible via var[item], but returns the
+      result of an invoked ``callback(item)``. '''
 
   _entries = None  # cached entries
   callback = None  # callback func
@@ -261,12 +268,12 @@ class CallbackProxy(ObjectProxy):
   def __init__(self, callback, struct={}, **kwargs):
 
     ''' Map the callback and fillStructure if we
-      get one via `struct`.
+        get one via `struct`.
 
-      :param callback:
-      :param struct:
-      :param kwargs:
-      :returns: '''
+        :param callback:
+        :param struct:
+        :param kwargs:
+        :returns: '''
 
     self.callback = callback
 
@@ -277,21 +284,22 @@ class CallbackProxy(ObjectProxy):
 
     ''' 'x = struct[name]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param name:
+        :raises KeyError:
+        :returns: '''
 
     if self._entries and name not in self._entries:
-      raise KeyError("Could not retrieve item '%s' from CallbackProxy '%s'." % (name, self))
+      raise KeyError("Could not retrieve item '%s'"
+                     " from CallbackProxy '%s'." % (name, self))
     return self.callback((self._entries.get(name) if self._entries else name))
 
   def __getattr__(self, name):
 
     ''' 'x = struct.name' override.
 
-      :param name:
-      :raises AttributeError:
-      :returns: '''
+        :param name:
+        :raises AttributeError:
+        :returns: '''
 
     if self._entries and name not in self._entries:
       raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
@@ -304,8 +312,8 @@ class CallbackProxy(ObjectProxy):
 class ObjectDictBridge(UtilStruct):
 
   ''' Treat an object like a dict, or an object! Assign an object
-    with `ObjectDictBridge(<object>)`. Then access properties
-    with `bridge[item]` or `bridge.item`. '''
+      with `ObjectDictBridge(<object>)`. Then access properties
+      with `bridge[item]` or `bridge.item`. '''
 
   target = None  # target object
 
@@ -313,8 +321,8 @@ class ObjectDictBridge(UtilStruct):
 
     ''' constructor.
 
-      :param target_object:
-      :returns: '''
+        :param target_object:
+        :returns: '''
 
     super(ObjectDictBridge, self).__setattr__('target', target_object)
 
@@ -339,38 +347,35 @@ class ObjectDictBridge(UtilStruct):
 class BidirectionalEnum(object):
 
   ''' Small and simple datastructure for mapping
-    static flags to smaller values. '''
+      static flags to smaller values. '''
 
   class __metaclass__(abc.ABCMeta):
 
     ''' Metaclass for property-gather-enabled classes. '''
 
-    def __new__(cls, name, chain, mappings):
+    def __new__(cls, name, chain, _map):
 
       ''' Read mapped properties, store on the
-        object, along with a reverse mapping.
+          object, along with a reverse mapping.
 
-        :param name:
-        :param chain:
-        :param mappings:
-        :returns: '''
-
-      if name == 'ProxiedStructure':
-        return type(name, chain, mappings)
+          :param name:
+          :param chain:
+          :param _map:
+          :returns: '''
 
       # Init calculated data attributes
-      mappings['_pmap'] = {}
-      mappings['_plookup'] = []
+      _map['_pmap'] = {}
+      _map['_plookup'] = []
 
       # Define __contains__ proxy
       def _contains(proxied_o, flag_or_value):
 
         ''' Bidirectionally-compatible __contains__
-          replacement.
+            replacement.
 
-          :param proxied_o:
-          :param flag_or_value:
-          :returns: '''
+            :param proxied_o:
+            :param flag_or_value:
+            :returns: '''
 
         return flag_or_value in proxied_o._plookup
 
@@ -378,11 +383,11 @@ class BidirectionalEnum(object):
       def _getitem(proxied_o, fragment):
 
         ''' Attempt to resolve the fragment by a
-          forward, then reverse resolution chain.
+            forward, then reverse resolution chain.
 
-          :param proxied_o:
-          :param fragment:
-          :returns: '''
+            :param proxied_o:
+            :param fragment:
+            :returns: '''
 
         if proxied_o.__contains__(fragment):
           return proxied_o._pmap.get(fragment)
@@ -391,13 +396,13 @@ class BidirectionalEnum(object):
       def _setitem(proxied_o, n, v):
 
         ''' Block setitem calls, because this is a
-          complicated object that is supposed
-          to be a modelling tool only.
+            complicated object that is supposed
+            to be a modelling tool only.
 
-          :param proxied_o:
-          :param n:
-          :param v:
-          :raises NotImplementedError: '''
+            :param proxied_o:
+            :param n:
+            :param v:
+            :raises NotImplementedError: '''
 
         raise NotImplementedError('Not implemented')
 
@@ -411,32 +416,39 @@ class BidirectionalEnum(object):
           yield k, v
 
       # Map properties into data and lookup attributes
-      map(lambda x: [mappings['_pmap'].update(dict(x)), mappings['_plookup'].append([x[0][0], x[1][0]])],
-                  (((attr, value), (value, attr)) for attr, value in mappings.items() if not attr.startswith('_')))
+      map(lambda x: ([
+        _map['_pmap'].update(dict(x)),
+        _map['_plookup'].append([x[0][0], x[1][0]])]),
+        (((a, v), (v, a)) for a, v in _map.items() if not a.startswith('_')))
 
-      if '__getitem__' not in mappings:
-        mappings['__getitem__'] = _getitem
-      if '__setitem__' not in mappings:
-        mappings['__setitem__'] = _setitem
-      if '__contains__' not in mappings:
-        mappings['__contains__'] = _contains
-      if '__iter__' not in mappings:
-        mappings['__iter__'] = _iter
+      if '__getitem__' not in _map:
+        _map['__getitem__'] = _getitem
+      if '__setitem__' not in _map:
+        _map['__setitem__'] = _setitem
+      if '__contains__' not in _map:
+        _map['__contains__'] = _contains
+      if '__iter__' not in _map:
+        _map['__iter__'] = _iter
 
-      return super(cls, cls).__new__(cls, name, chain, mappings)
+      return super(cls, cls).__new__(cls, name, chain, _map)
 
   # forward and reverse resolve
-  reverse_resolve = classmethod(lambda cls, code: cls._pmap.get(code, False))
-  forward_resolve = classmethod(lambda cls, flag: cls.__getattr__(flag) if flag in cls._pmap else False)
-  resolve = forward_resolve
+  reverse_resolve = (
+    classmethod(lambda cls, code: cls._pmap.get(code, False)))
+  forward_resolve = resolve = (
+    classmethod(lambda cls, flag: cls.__getattr__(flag, False)))
 
   # serialization and string repr
   __json__ = classmethod(lambda cls: cls.__serialize__())
-  __serialize__ = classmethod(lambda cls: dict(((k, v) for k, v in cls._plookup if not k.startswith('_'))))
+  __serialize__ = (
+    classmethod(lambda cls: dict(((k, v) for k, v in cls._plookup if not (
+      k.startswith('_'))))))
+
   __repr__ = classmethod(lambda cls: ('::'.join([
       "<%s" % cls.__name__,
       ','.join([
-        block for block in ('='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
+        block for block in (
+          '='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
       "BiDirectional>"])))
 
 

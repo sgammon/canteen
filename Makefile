@@ -46,7 +46,7 @@ endif
 build: .Python dependencies
 	@$(BINPATH)python setup.py build
 
-package: test
+package: develop test
 	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
 
 release: build test package

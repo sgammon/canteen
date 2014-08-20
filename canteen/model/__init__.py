@@ -704,7 +704,6 @@ class AbstractModel(object):
           :returns: String representation of this `Model. '''
 
       if hasattr(cls, '__lookup__') and cls.__name__ not in _BASE_MODEL_CLS:
-        if isinstance(cls, type): return cls.__name__
         return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
 
       elif (cls.__name__ in _BASE_GRAPH_CLS and cls.__owner__ == 'Model') or (
@@ -1289,7 +1288,8 @@ class Property(object):
       :returns: Stringified, human-readable
       value describing this :py:class:`Property`. '''
 
-    return "Property(%s, type=%s)" % (self.name, self._basetype.__name__)
+    return "%s(%s, type=%s)" % (
+      self.__class__.__name__, self.name, self._basetype.__name__)
 
   __unicode__ = __str__ = __repr__
 
@@ -1472,7 +1472,7 @@ class EdgeSpec(object):
     '''  '''
 
     # subtype construction generates ``Edge`` subclasses
-    if name and bases and pmap:
+    if name and bases and isinstance(pmap, dict):
       return type(name, (Edge,), dict(pmap or {}, __spec__=bases[0]))
 
     # different signature if we're not constructing (for clarity)
@@ -1517,7 +1517,9 @@ class EdgeSpec(object):
           (if directed). '''
 
     return "(%s %s %s)" % (
-      self.origin, '<->' if not self.directed else '->', self.peering)
+      self.origin.kind(), '<->' if not self.directed else '->', (
+        self.peering.kind() if issubclass(self.peering, Model) else ', '.join((
+          k.kind() for k in self.peering))))
 
 
 class Edge(Model):

@@ -530,7 +530,7 @@ class IndexedModelAdapter(ModelAdapter):
         :returns: Query results, if any. '''
 
     return self.execute_query(*(
-      self.kind, (self.filters, self.sorts), query.options))
+      query.kind, (query.filters, query.sorts), query.options))
 
   @classmethod
   def generate_indexes(cls, key, properties=None):

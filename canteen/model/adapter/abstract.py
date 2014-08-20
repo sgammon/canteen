@@ -518,6 +518,20 @@ class IndexedModelAdapter(ModelAdapter):
 
     return _map
 
+  def _execute_query(self, query):
+
+    ''' Execute a ``query.Query`` object, returning results that
+        match the search terms specified in ``query`` and the
+        attached ``query.QueryOptions`` object.
+
+        :param query: ``query.Query`` to execute via the local
+          adapter.
+
+        :returns: Query results, if any. '''
+
+    return self.execute_query(*(
+      self.kind, (self.filters, self.sorts), query.options))
+
   @classmethod
   def generate_indexes(cls, key, properties=None):
 
@@ -711,7 +725,6 @@ class GraphModelAdapter(IndexedModelAdapter):
     #return encoded_key, meta_indexes, property_indexes, graph_indexes
     return super(GraphModelAdapter, cls).generate_indexes(key, properties)
 
-
   def _edges(self, target, **options):
 
     ''' Prepares a query to fetch the ``Edges`` for a
@@ -727,34 +740,6 @@ class GraphModelAdapter(IndexedModelAdapter):
 
         :param target: ``Vertex`` key to spawn an edge
           query for.
-
-        :raises:
-        :returns: '''
-
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
-
-  def _connect(self, source, *targets):
-
-    ''' Connects a ``source`` ``Vertex`` with one or
-        more ``Edge`` objects.
-
-        Internal method, usually invoked from mixin-
-        mounted methods on ``Vertex`` and ``Key`` objects
-        themselves.
-
-        In charge of satisfying the aforementioned call
-        with implementation methods specified by compliant
-        adapters.
-
-        :param source: Originating ``Vertex`` for the (``head``)
-          or (peered endpoint) for a (directed) or (undirected)
-          ``Graph`` ``Edge``.
-
-        :param *targets: A set of target ``Vertex``es to
-          connect as the (``tail``s) or (peered endpoints) for
-          a set of ``Graph`` ``Edge``s originating from
-          ``source``.
 
         :raises:
         :returns: '''
@@ -792,6 +777,9 @@ class GraphModelAdapter(IndexedModelAdapter):
         (or just for ``key1``) if no peer key is provided),
         optionally only of ``Edge`` type ``type``.
 
+        Typically called before ``execute_query`` for
+        ``Edge``-originating queries.
+
         :param key1:
         :param key2:
         :param type:
@@ -802,27 +790,14 @@ class GraphModelAdapter(IndexedModelAdapter):
     raise NotImplementedError('`edges` is abstract.')
 
   @abc.abstractmethod
-  def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
-
-    ''' Connect two objects (expressed as ``key1`` and ``key2``)
-        as ``Vertexes`` by an ``Edge``. Accepts an ``Edge``
-        object to use for the connection.
-
-        :param key1:
-        :param key2:
-        :param edge:
-
-        :raises:
-        :returns: '''
-
-    raise NotImplementedError('`connect` is abstract.')
-
-  @abc.abstractmethod
   def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
 
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at
         least one ``Edge``, optionally filtered by ``Edge``
         type with ``type``.
+
+        Typically called before ``execute_query`` for
+        ``Edge``-originating queries.
 
         :param key:
         :param type:
@@ -889,8 +864,6 @@ class DirectedGraphAdapter(GraphModelAdapter):
     raise NotImplementedError()
 
 
-## Mixin
-# Metaclass for registering mixins and applying them later.
 class Mixin(object):
 
   ''' Abstract parent for detecting and registering `Mixin` classes. '''
@@ -1007,8 +980,6 @@ class Mixin(object):
     for mixin in cls.__registry__.itervalues(): yield mixin
 
 
-## KeyMixin
-# Extendable, registered class that mixes in attributes to `Key`.
 class KeyMixin(Mixin):
 
   ''' Allows injection of attributes into `Key`. '''
@@ -1018,8 +989,6 @@ class KeyMixin(Mixin):
   __registry__ = Mixin._key_mixin_registry
 
 
-## ModelMixin
-# Extendable, registered class that mixes in attributes to `Model`.
 class ModelMixin(Mixin):
 
   ''' Allows injection of attributes into `Model`. '''
@@ -1029,8 +998,6 @@ class ModelMixin(Mixin):
   __registry__ = Mixin._model_mixin_registry
 
 
-## VertexMixin
-# Extendable, registered class that mixes in attributes to `Vertex`.
 class VertexMixin(Mixin):
 
   ''' Allows injection of attributes into `Vertex`. '''
@@ -1040,8 +1007,6 @@ class VertexMixin(Mixin):
   __registry__ = Mixin._vertex_mixin_registry
 
 
-## EdgeMixin
-# Extendable, registered class that mixes in attributes to `Edge`.
 class EdgeMixin(Mixin):
 
   ''' Allows injection of attributes into `Edge`. '''

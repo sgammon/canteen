@@ -30,7 +30,6 @@ from .abstract import IndexedModelAdapter
 _conditionals = []
 
 
-## AdaptedKey
 class AdaptedKey(KeyMixin):
 
   ''' Provides bridged methods between `model.Key`
@@ -125,7 +124,6 @@ class AdaptedKey(KeyMixin):
     return cls.from_raw(base64.b64decode(encoded), _persisted=_persisted)
 
 
-## AdaptedModel
 class AdaptedModel(ModelMixin):
 
   ''' Provides bridged methods between `model.Model` and
@@ -226,7 +224,6 @@ class AdaptedModel(ModelMixin):
     return adapter._delete(self.__key__, **kwargs)
 
 
-## AdaptedVertex
 class AdaptedVertex(VertexMixin):
 
   ''' Provides graph-oriented methods for
@@ -262,7 +259,6 @@ class AdaptedVertex(VertexMixin):
     return adapter._neighbors(self, *args, **kwargs)
 
 
-## AdaptedEdge
 class AdaptedEdge(EdgeMixin):
 
   ''' Provides graph-oriented methods for ``Edge objects``. '''
@@ -270,7 +266,6 @@ class AdaptedEdge(EdgeMixin):
   __graph__ = __edge__ = True  # mark as graph model and vertex
 
 
-## DictMixin
 class DictMixin(KeyMixin, ModelMixin):
 
   ''' Provides `to_dict`-type methods for first-class
@@ -369,7 +364,6 @@ class DictMixin(KeyMixin, ModelMixin):
     return schema
 
 
-## JSONMixin
 class JSONMixin(KeyMixin, ModelMixin):
 
   ''' Provides JSON serialization/deserialization support to
@@ -422,7 +416,6 @@ except ImportError as e:  # pragma: no cover
 else:
 
 
-  ## MsgpackMixin
   class MsgpackMixin(KeyMixin, ModelMixin):
 
     ''' Provides Msgpack serialization/deserialization support

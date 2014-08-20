@@ -14,7 +14,7 @@
 '''
 
 
-__version__ = 'v4'
+__version__ = 'v5'
 
 
 # stdlib
@@ -95,7 +95,7 @@ class QueryOptions(object):
 
   __slots__ = frozenset(('__explicit__',)) | options
 
-  option_names = frozenset(('_'.join(option.split('_')[1:]) for option in options))
+  option_names = frozenset(('_'.join(opt.split('_')[1:]) for opt in options))
 
   # == Option Defaults == #
   _defaults = {
@@ -128,7 +128,8 @@ class QueryOptions(object):
 
     self.__explicit__ = False  # initialize explicit flag
     map(lambda bundle: self._set_option(*bundle),
-        map(lambda slot: (slot, kwargs.get(slot, datastructures._EMPTY)), self.option_names))
+        map(lambda slot: (
+          slot, kwargs.get(slot, datastructures._EMPTY)), self.option_names))
 
   def __iter__(self):
 
@@ -207,7 +208,8 @@ class QueryOptions(object):
 
     if not isinstance(name, basestring):
       raise ValueError('Argument `name` of `_set_option` must'
-                       ' be a string internal propery name. Got: "%s".' % str(name))
+                       ' be a string internal propery name.'
+                       ' Got: "%s".' % str(name))
 
     name = '_' + name if name[0] != '_' else name  # build internal name
 
@@ -241,7 +243,8 @@ class QueryOptions(object):
 
     if not isinstance(name, basestring):  # pragma: no cover
       raise ValueError('Argument `name` of `_get_option` must'
-                       ' be a string internal property name. Got: "%s".' % str(name))
+                       ' be a string internal property name.'
+                       ' Got: "%s".' % str(name))
 
     name = '_' + name  # build internal name
 
@@ -311,6 +314,32 @@ class QueryOptions(object):
                     lambda self, value: self._set_option('cursor', value))
 
 
+class GraphQueryOptions(QueryOptions):
+
+  ''' Specifies Graph-related query options in addition
+      to standard ``Query`` properties. '''
+
+  # == Options == #
+  options = QueryOptions.options | frozenset((
+    '_base',
+  ))
+
+  __slots__ = QueryOptions.options | options
+
+  option_names = frozenset(('_'.join(opt.split('_')[1:]) for opt in options))
+
+  # == Option Defaults == #
+  _defaults = dict(QueryOptions._defaults, **{
+    '_graph_base': None
+  })
+
+
+  ## == Public Properties == ##
+
+  # ``base`` - graph-specific base key
+  base = property(lambda self: self._get_option('base'))
+
+
 class AbstractQuery(object):
 
   ''' Specifies base structure and interface for all
@@ -328,7 +357,8 @@ class AbstractQuery(object):
         :raises NotImplementedError: Always, as this method is abstract.
         :returns: ``self``, for chainability. '''
 
-    raise NotImplementedError('`filter` is abstract and may not be invoked directly.')
+    raise NotImplementedError('`filter` is abstract and may not'
+                              ' be invoked directly.')
 
   @abc.abstractmethod
   def sort(self, expression):  # pragma: no cover
@@ -340,7 +370,8 @@ class AbstractQuery(object):
         :raises NotImplementedError: Always, as this method is abstract.
         :returns: ``self``, for chainability. '''
 
-    raise NotImplementedError('`sort` is abstract and may not be invoked directly.')
+    raise NotImplementedError('`sort` is abstract and may not'
+                              ' be invoked directly.')
 
   @abc.abstractmethod
   def hint(self, directive):  # pragma: no cover
@@ -352,7 +383,8 @@ class AbstractQuery(object):
         :raises NotImplementedError: Always, as this method is abstract.
         :returns: ``self``, for chainability. '''
 
-    raise NotImplementedError('`hint` is abstract and may not be invoked directly.')
+    raise NotImplementedError('`hint` is abstract and may not'
+                              ' be invoked directly.')
 
   @abc.abstractmethod
   def fetch(self, **options):  # pragma: no cover
@@ -371,7 +403,8 @@ class AbstractQuery(object):
         truthy) yielded from current :py:class:`Query`, or an empty ``list``
         if no results were found. '''
 
-    raise NotImplementedError('`fetch` is abstract and may not be invoked directly.')
+    raise NotImplementedError('`fetch` is abstract and may not'
+                              ' be invoked directly.')
 
   @abc.abstractmethod
   def get(self, **options):  # pragma: no cover
@@ -390,7 +423,8 @@ class AbstractQuery(object):
         matching the current :py:class:`Query`, or ``None``
         if no matching entities were found. '''
 
-    raise NotImplementedError('`fetch` is abstract and may not be invoked directly.')
+    raise NotImplementedError('`fetch` is abstract and may not'
+                              ' be invoked directly.')
 
 
 class Query(AbstractQuery):
@@ -427,7 +461,8 @@ class Query(AbstractQuery):
         sorts = [sorts]
 
     options = kwargs.get('options', QueryOptions(**kwargs))
-    self.kind, self.filters, self.sorts, self.options = kind, filters or [], sorts or [], options
+    self.kind, self.filters, self.sorts, self.options = (
+      kind, filters or [], sorts or [], options)
 
   def __repr__(self):
 
@@ -481,7 +516,9 @@ class Query(AbstractQuery):
     if self.options and options:
       options = self.options.overlay(options)
     else:
-      options = options or kwargs.get('options', QueryOptions(**kwargs) if kwargs else self.options)
+      options = (options or (
+        kwargs.get('options', (
+          QueryOptions(**kwargs) if kwargs else self.options))))
 
     ## fail for projection queries
     if options.projection:
@@ -490,7 +527,7 @@ class Query(AbstractQuery):
     if self.kind:  # kinded query
 
       # delegate to driver
-      return self.kind.__adapter__.execute_query(self.kind, (self.filters, self.sorts), options)
+      return self.kind.__adapter__._execute_query(self)
 
     else:
 
@@ -510,8 +547,8 @@ class Query(AbstractQuery):
     if isinstance(expression, Filter):
       self.filters.append(expression)
     else:  # pragma: no cover
-      raise NotImplementedError('Query method `filter` does not yet support non-'
-                                '`Filter` component types.')
+      raise NotImplementedError('Query method `filter` does not yet support'
+                                ' non-`Filter` component types.')
     return self
 
   def sort(self, expression):
@@ -643,7 +680,11 @@ class Filter(QueryComponent):
   GREATER_THAN_EQUAL_TO = GE = GREATER_THAN_EQUAL_TO
   CONTAINS = IN = CONTAINS
 
-  def __init__(self, prop, value, AND=None, OR=None, type=PROPERTY, operator=EQUALS):
+  def __init__(self, prop, value,
+                            AND=None,
+                            OR=None,
+                            type=PROPERTY,
+                            operator=EQUALS):
 
     ''' Initialize this :py:class:`Filter`.
 
@@ -665,7 +706,8 @@ class Filter(QueryComponent):
     if prop._repeated and operator is EQUALS:
       self.operator = operator = CONTAINS
 
-    self.target, self.value, self.kind, self.operator, self.chain = prop, value, type, operator, []
+    self.target, self.value, self.kind, self.operator, self.chain = (
+      prop, value, type, operator, [])
 
     if AND or OR:
       for var in (AND, OR):
@@ -681,7 +723,8 @@ class Filter(QueryComponent):
         :returns: '''
 
     return 'Filter(%s %s %s)' % (
-      (self.sub_operator.name + ' ') if self.sub_operator else '' + self.target.name,
+      (self.sub_operator.name + ' ') if self.sub_operator else (
+        '' + self.target.name),
       _operator_strings[self.operator], str(self.value))
 
   def AND(self, filter_expression):
@@ -745,13 +788,15 @@ class Filter(QueryComponent):
         ``False`` otherwise. '''
 
     if self.operator not in _operator_map:  # pragma: no cover
-      raise RuntimeError('Invalid comparison operator could not be matched: "%s".' % self.operator)
+      raise RuntimeError('Invalid comparison operator'
+                         ' could not be matched: "%s".' % self.operator)
 
     try:
       # it's a raw entity -> dict
       if isinstance(target, dict):
         if self.target.name in target:
-          return _operator_map[self.operator](target[self.target.name], self.value.data)
+          return _operator_map[self.operator](*(
+            target[self.target.name], self.value.data))
         # no such property
         return False  # pragma: no cover
 
@@ -760,7 +805,8 @@ class Filter(QueryComponent):
         return _operator_map[self.operator](target, self.value.data)
 
       # it's a model or something
-      return _operator_map[self.operator](getattr(target, self.target.name), self.value.data)
+      return _operator_map[self.operator](*(
+        getattr(target, self.target.name), self.value.data))
 
     except AttributeError:  # pragma: no cover
       return False  # no such property

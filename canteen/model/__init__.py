@@ -13,7 +13,7 @@
 
 '''
 
-__version__ = 'v3'
+__version__ = 'v5'
 
 # stdlib
 import abc
@@ -704,11 +704,12 @@ class AbstractModel(object):
           :returns: String representation of this `Model. '''
 
       if hasattr(cls, '__lookup__') and cls.__name__ not in _BASE_MODEL_CLS:
+        if isinstance(cls, type): return cls.__name__
         return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
 
       elif (cls.__name__ in _BASE_GRAPH_CLS and cls.__owner__ == 'Model') or (
         cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
-        return "%s()" % cls.__name__
+        return cls.__name__
 
       elif any((hasattr(b, '__graph__') for b in cls.__bases__)):
         _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))
@@ -1361,6 +1362,163 @@ class Vertex(Model):
 
   __owner__, __keyclass__ = 'Vertex', VertexKey
 
+  class __metaclass__(AbstractModel.__metaclass__):
+
+    ''' DOCSTRING '''
+
+    def __gt__(cls, target):
+
+      ''' Syntactic sugar for creating an on-the-fly
+          :py:class:`Edge` subclass.
+
+          Overrides the syntax:
+            ``class Friends(Person > Person): [...]```
+
+          :param other: Target :py:class:`Vertex` subclass
+            to factory an :py:class:`Edge` to.
+
+          :returns: Factoried :py:class:`Edge` subclass that
+            represents a type connecting ``self`` to ``other``. '''
+
+      return cls.to(target, directed=False)
+
+    def __lt__(cls, origin):
+
+      ''' Syntactic sugar for creating an on-the-fly
+          :py:class:`Edge` subclass.
+
+          Overrides the syntax:
+            ``class Supporting(Organization < Person): [...]```
+
+          :param other: Target :py:class:`Vertex` subclass
+            to factory an :py:class:`Edge` to.
+
+          :returns: Factoried :py:class:`Edge` subclass that
+            represents a type connecting ``self`` to ``other``. '''
+
+      return origin.to(cls, directed=False)
+
+    def __rshift__(cls, target):
+
+      ''' Syntactic sugar for creating an on-the-fly
+          :py:class:`Edge` subclass. This syntactic
+          extension spawns a **directed** ``Edge``.
+
+          Overrides the syntax:
+            ``class Comment(Person >> Post): [...]```
+
+          :param other: Target :py:class:`Vertex` subclass
+            to factory an :py:class:`Edge` to.
+
+          :returns: Factoried :py:class:`Edge` subclass that
+            represents a type connecting ``self`` to ``other``. '''
+
+      return cls.to(target, directed=True)
+
+    def __lshift__(cls, origin):
+
+      ''' Syntactic sugar for creating an on-the-fly
+          :py:class:`Edge` subclass. This syntactic
+          extension spawns a **directed** ``Edge``.
+
+          Overrides the syntax:
+            ``class Contribution(Legislator << Contributor): [...]```
+
+          :param other: Target :py:class:`Vertex` subclass
+            to factory an :py:class:`Edge` to.
+
+          :returns: Factoried :py:class:`Edge` subclass that
+            represents a type connecting ``self`` to ``other``. '''
+
+      return origin.to(cls, directed=True)
+
+  @classmethod
+  def to(cls, *targets, **options):
+
+    ''' Syntactic sugar for creating an on-the-fly
+        :py:class:`Edge` subclass.
+
+        :param target: Target :py:class:`Vertex` subclass
+          to factory an :py:class:`Edge` to.
+
+        :param directed: Whether the target :py:class:`Edge`
+          subclass should be considered directional in nature.
+
+        :raises TypeError: In the case that a non-``Vertex``
+          is passed for ``target``.
+
+        :returns: Factoried :py:class:`Edge` subclass that
+          represents a type connecting ``self`` to ``other``. '''
+
+    # classes only plz
+    for target in targets:
+      if not issubclass(target, Vertex):
+        raise TypeError("Vertices can only point to other Vertices."
+                        " An Edge from `%s` to `%s` was requested, but `%s` is"
+                        " not a Vertex." % (cls, target, target))
+
+    return Edge.__spec_class__(cls, targets, options.get('directed', False))
+
+
+class EdgeSpec(object):
+
+  ''' Specifies the peering and directed-ness
+      of an :py:class:`Edge`. '''
+
+  __slots__ = ('origin', 'peering', 'directed')
+
+  def __new__(cls, name=None, bases=None, pmap=None):
+
+    '''  '''
+
+    # subtype construction generates ``Edge`` subclasses
+    if name and bases and pmap:
+      return type(name, (Edge,), dict(pmap or {}, __spec__=bases[0]))
+
+    # different signature if we're not constructing (for clarity)
+    origin, peering, directed = name, bases, pmap
+
+    # allow construction as well (for use as a config symbol, essentially)
+    return object.__new__(cls, origin, peering, directed)
+
+  def __init__(self, origin, peering, directed):
+
+    ''' Initialize an ``EdgeSpec`` class, according
+        to the specified ``peering`` configuration.
+
+        :param origin:
+
+        :param peering: An ordered iterable of ``Vertex``
+          subclasses to connect via an ``Edge``, where
+          index ``0`` is always considered the **origin**
+          and the remaining items are targets that can
+          be validly connected to **origin**.
+
+        :param directed: Flag (``bool``) indicating that
+          this ``Edge`` represents a directional
+          relationship between each ``origin -> target``
+          pair. '''
+
+    if not len(peering) > 0:
+      raise TypeError('Cannot specify an `Edge` without at'
+                      ' least one target.')
+
+    self.origin, self.peering, self.directed = (
+      origin, peering[0] if len(peering) == 1 else peering, directed)
+
+  def __repr__(self):
+
+    ''' Generate a string representation for the
+        relationship specified by this ``EdgeSpec``
+        class.
+
+        :returns: String, like ``(origin <-> target, ...)``
+          (if undirected), otherwise ``(origin -> target, ...)``
+          (if directed). '''
+
+    return "(%s %s %s)" % (
+      self.origin, '<->' if not self.directed else '->', self.peering)
+
 
 class Edge(Model):
 
@@ -1368,6 +1526,21 @@ class Edge(Model):
       DOCSTRING '''
 
   __owner__, __keyclass__ = 'Edge', EdgeKey
+
+
+  class __metaclass__(Model.__metaclass__):
+
+    ''' DOCSTRING '''
+
+    @classmethod
+    def initialize(cls, name, bases, pmap):
+
+      ''' DOCSTRING '''
+
+      return super(cls, cls).initialize(name, bases, pmap)
+
+  __spec_class__ = EdgeSpec
+
 
   ## == directed edges == ##
   source = Vertex, {'indexed': True}

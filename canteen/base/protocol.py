@@ -206,7 +206,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
     ## == Abstract Methods == ##
     @abc.abstractmethod
-    def encode_message(self, message):  # pragma: no cover
+    def encode_message(self, message):
 
       ''' Encode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
@@ -223,10 +223,11 @@ with runtime.Library('protorpc') as (library, protorpc):
                     to return an encoded ``str``/``unicode`` representation
                     of ``message``. '''
 
-      raise NotImplementedError('Method `Protocol.encode_message` is abstract.')
+      raise NotImplementedError('Method `Protocol.encode_message`'
+                                ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def decode_message(self, message_type, encoded_message):  # pragma: no cover
+    def decode_message(self, message_type, encoded_message):
 
       ''' Decode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
@@ -246,7 +247,8 @@ with runtime.Library('protorpc') as (library, protorpc):
                     to return an inflated ``message_type`` based on the
                     provided ``encoded_message``. '''
 
-      raise NotImplementedError('Method `Protocol.decode_message` is abstract.')
+      raise NotImplementedError('Method `Protocol.decode_message`'
+                                ' is abstract.')  # pragma: no cover
 
     CONTENT_TYPE = content_type
     ALTERNATIVE_CONTENT_TYPES = alternative_content_types

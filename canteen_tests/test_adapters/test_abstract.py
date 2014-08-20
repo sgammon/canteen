@@ -152,7 +152,6 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
     ''' Test `GraphModelAdapter` interface compliance '''
 
     assert hasattr(self.subject, 'edges')
-    assert hasattr(self.subject, 'connect')
     assert hasattr(self.subject, 'neighbors')
 
   def test_make_vertex(self):
@@ -200,8 +199,6 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
   """
 
 
-## DirectedGraphAdapter
-# Tests the `DirectedGraphAdapter` class.
 class DirectedGraphAdapterTests(GraphModelAdapterTests):
 
   ''' Tests `model.adapter.abstract.DirectedGraphAdapter` '''

@@ -19,6 +19,7 @@ import json
 import base64
 import datetime
 import itertools
+import collections
 
 # adapter API
 from .abstract import GraphModelAdapter
@@ -45,7 +46,6 @@ _sorted_types = (
 _to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 
-## InMemoryAdapter
 class InMemoryAdapter(GraphModelAdapter):
 
   ''' Adapt model classes to RAM. '''
@@ -57,17 +57,20 @@ class InMemoryAdapter(GraphModelAdapter):
   _data_encoder = json.dumps
   _data_compressor = None
 
+  is_supported = classmethod(lambda cls: True)  # always supported
+
   @classmethod
   def acquire(cls, name, bases, properties):
 
     ''' Perform first initialization. '''
 
     global _init
+    global _graph
     global _metadata
 
     # perform first init, if it hasn't been done
     if not _init:
-      _init, _metadata = True, {
+      _init, _metadata, _graph = True, {
         'ops': {  # holds count of performed operations
           'get': 0,  # track # of entity get() operations
           'put': 0,  # track # of entity put() operations
@@ -75,25 +78,28 @@ class InMemoryAdapter(GraphModelAdapter):
         },
         'kinds': {},  # holds current count and ID increment pointer for each kind
         'global': {  # holds global metadata, like entity count across kind classes
-          'entity_count': 0  # holds global count of all entities
+          'entity_count': 0,  # holds global count of all entities
+          'node_count': 0,  # holds count of known nodes
+          'edge_count': 0  # holds count of known edges
         },
         cls._key_prefix: set([]),  # full, simple indexed set of all keys
         cls._kind_prefix: {},  # maps keys to their kinds
         cls._group_prefix: {},  # maps keys to their entity groups
         cls._index_prefix: {},  # maps property values to keys
         cls._reverse_prefix: {}  # maps keys to indexes they are present in
+      }, {
+        'nodes': collections.defaultdict(lambda: set()),
+        'edges': {
+          'directed': {
+            'in': collections.defaultdict(lambda: set()),
+            'out': collections.defaultdict(lambda: set())
+          },
+          'undirected': collections.defaultdict(lambda: set())
+        }
       }
 
     # pass up the chain to create a singleton
     return super(InMemoryAdapter, cls).acquire(name, bases, properties)
-
-  @classmethod
-  def is_supported(cls):
-
-    ''' Check whether this adapter is supported in the current environment. '''
-
-    # always supported: used in dev/debug, RAM is always there
-    return True
 
   @classmethod
   def get(cls, key, **kwargs):
@@ -120,6 +126,9 @@ class InMemoryAdapter(GraphModelAdapter):
 
     ''' Persist an entity to storage in Python RAM. '''
 
+    from canteen import model as api
+
+    global _graph
     global _metadata
     global _datastore
 
@@ -143,6 +152,24 @@ class InMemoryAdapter(GraphModelAdapter):
 
       # save to datastore
       _datastore[encoded] = entity.to_dict()
+
+      # store vertexes separately
+      if issubclass(model, api.Vertex):
+        _graph['nodes'][entity.key.kind].add(key)
+
+      # store edges separately
+      elif issubclass(model, api.Edge):
+
+        # directed edges
+        if model.__spec__.directed:
+          _graph['edges']['directed']['out'][entity['source']].add(entity['target'])
+          _graph['edges']['directed']['in'][entity['target']].add(entity['source'])
+
+        # undirected edges
+        else:
+          for origin in entity['peers']:
+            for target in entity['peers']:
+              _graph['edges']['undirected'][origin].add(target)
 
     return entity.key
 

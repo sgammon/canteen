@@ -31,7 +31,7 @@ class Person(model.Vertex):
   lastname = basestring
 
 
-class Teammates(model.Edge):
+class Teammates(Person > Person):
 
   ''' sample teammate-ship (edge that connects two people) '''
 
@@ -80,7 +80,7 @@ class EdgeModelTests(FrameworkTest):
     sam, alex = Person(firstname='Sam'), Person(firstname='Alex')
 
     # low-level edge construct
-    sam_to_alex = Teammates((sam, alex),
+    sam_to_alex = Teammates(sam, alex,
                             key=model.EdgeKey(Teammates, 'sup'),
                             year_met=2003)
 

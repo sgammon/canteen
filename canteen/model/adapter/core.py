@@ -231,18 +231,18 @@ class AdaptedVertex(VertexMixin):
 
   __graph__ = __vertex__ = True  # mark as graph model and vertex
 
-  def edges(self, *args, **kwargs):  # pragma: no cover
+  def edges(self, *types, **kwargs):  # pragma: no cover
 
     ''' Retrieve edges for the current ``Vertex``.
 
-        :param args:
+        :param types:
         :param kwargs:
 
         :raises:
         :returns: '''
 
     adapter = kwargs.get('adapter', self.__class__.__adapter__)
-    return adapter._edges(self, *args, **kwargs)
+    return adapter._edges(self, types or None, **kwargs)
 
   def neighbors(self, *args, **kwargs):  # pragma: no cover
 

@@ -1539,20 +1539,19 @@ class Edge(Model):
 
       ''' DOCSTRING '''
 
+      if '__spec__' in pmap and pmap['__spec__'].directed:
+        pmap['source'] = Vertex, {'indexed': True}
+        pmap['target'] = Vertex, {'indexed': True, 'repeated': True}
+      elif '__spec__' not in pmap or (
+           '__spec__' in pmap and not pmap['__spec__'].directed):
+        pmap['peers'] = Vertex, {'indexed': True, 'repeated': True}
+
       return super(cls, cls).initialize(name, bases, pmap)
 
   __spec_class__ = EdgeSpec
 
-
-  ## == directed edges == ##
-  source = Vertex, {'indexed': True}
-  target = Vertex, {'indexed': True}
-
-  ## == undirected edges == ##
-  peers = Vertex, {'indexed': True, 'repeated': True}
-
   ## = Internal Methods = ##
-  def __init__(self, pair_or_source=None, maybe_target=None, **properties):
+  def __init__(self, source=None, *targets, **properties):
 
     ''' Initialize this ``Edge`` with a ``Vertex``
         ``source`` and ``target`` pair.
@@ -1564,20 +1563,16 @@ class Edge(Model):
         :raises:
         :returns: '''
 
-    source, target = (pair_or_source, maybe_target) if not (
-      isinstance(pair_or_source, tuple)) else pair_or_source
-
-    if (source is None or target is None) and not properties.get('_persisted'):
+    if (source is None or not targets) and not properties.get('_persisted'):
       raise TypeError('Constructing an `Edge` requires at least'
                       ' one `source` and `target`, or one pair'
                       ' (`source`, `target`).')
 
-    # explicit target means directed edge
-    if maybe_target is None:
+    if hasattr(self, '__spec__') and self.__spec__.directed:
       properties['source'], properties['target'] = (
-        source, target)
-    elif source and target:
-      properties['peers'] = (source, target)
+        source, targets)
+    else:
+      properties['peers'] = tuple([source] + list(targets))
 
     super(Edge, self).__init__(**properties)
 

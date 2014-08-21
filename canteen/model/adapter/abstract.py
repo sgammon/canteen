@@ -725,7 +725,7 @@ class GraphModelAdapter(IndexedModelAdapter):
     #return encoded_key, meta_indexes, property_indexes, graph_indexes
     return super(GraphModelAdapter, cls).generate_indexes(key, properties)
 
-  def _edges(self, target, **options):
+  def _edges(self, target, types=None, **options):
 
     ''' Prepares a query to fetch the ``Edges`` for a
         given ``target`` ``Vertex``.
@@ -771,7 +771,7 @@ class GraphModelAdapter(IndexedModelAdapter):
     import pdb; pdb.set_trace()
 
   @abc.abstractmethod
-  def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
+  def edges(cls, key1, key2=None, type=None, **kwargs):
 
     ''' Retrieve all ``Edges`` between ``key1`` and ``key2``
         (or just for ``key1``) if no peer key is provided),
@@ -787,10 +787,10 @@ class GraphModelAdapter(IndexedModelAdapter):
         :raises:
         :returns: '''
 
-    raise NotImplementedError('`edges` is abstract.')
+    raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
 
   @abc.abstractmethod
-  def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
+  def neighbors(cls, key, type=None, **kwargs):
 
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at
         least one ``Edge``, optionally filtered by ``Edge``
@@ -805,7 +805,7 @@ class GraphModelAdapter(IndexedModelAdapter):
         :raises:
         :returns: '''
 
-    raise NotImplementedError('`neighbors` is abstract.')
+    raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover
 
 
 ## DirectedGraphAdapter

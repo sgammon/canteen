@@ -25,6 +25,7 @@ TEST_FLAGS ?= --verbose \
 							--with-coverage \
 							--cover-package=canteen \
 							--cover-package=canteen_tests \
+							--cover-branches \
 							--cover-html \
 							--cover-xml \
 							--with-xunit \

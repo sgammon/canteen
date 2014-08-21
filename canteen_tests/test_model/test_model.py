@@ -53,8 +53,6 @@ from canteen.util import struct as datastructures
 
 ## == Test Models == ##
 
-## Car
-# Simple model simulating a car.
 class Car(model.Model):
 
   ''' An automobile. '''
@@ -65,8 +63,6 @@ class Car(model.Model):
   color = basestring, {'choices': ('blue', 'green', 'red', 'silver', 'white', 'black')}
 
 
-## Person
-# Simple model simulating a person which is also a ``Vertex``.
 class Person(model.Vertex):
 
   ''' A human being. '''
@@ -77,13 +73,11 @@ class Person(model.Vertex):
   cars = Car, {'repeated': True}
 
 
-## Friendship
-# Simple model simulating a friendship, which acts as an ``Edge`` between people.
-class Friendship(model.Edge):
+class Friendship(Person > Person):
 
   ''' A friendship between people. '''
 
-  people = Person, {'repeated': True}
+  year_met = int
 
 
 ## ModelTests
@@ -919,6 +913,4 @@ class ModelTests(FrameworkTest):
     ''' Test proper MRO for ``Edge`` models '''
 
     assert hasattr(Friendship, 'peers')
-    assert hasattr(Friendship, 'source')
-    assert hasattr(Friendship, 'target')
     assert issubclass(Friendship, model.Edge)

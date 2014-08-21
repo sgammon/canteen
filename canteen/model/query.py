@@ -209,7 +209,7 @@ class QueryOptions(object):
     if not isinstance(name, basestring):
       raise ValueError('Argument `name` of `_set_option` must'
                        ' be a string internal propery name.'
-                       ' Got: "%s".' % str(name))
+                       ' Got: "%s".' % str(name))  # pragma: no cover
 
     name = '_' + name if name[0] != '_' else name  # build internal name
 
@@ -250,7 +250,7 @@ class QueryOptions(object):
 
     if name not in self.__slots__:
       raise AttributeError('`QueryOptions` object has no option by'
-                           ' the name "%s".' % name)
+                           ' the name "%s".' % name)  # pragma: no cover
 
     val = getattr(self, name)  # get value
 
@@ -260,7 +260,7 @@ class QueryOptions(object):
         return datastructures._EMPTY
       if default is datastructures._EMPTY:
         return self._defaults.get(name, None)
-      return default
+      return default  # pragma: no cover
     return val
 
   def overlay(self, other, override=False):
@@ -453,12 +453,11 @@ class Query(AbstractQuery):
 
         :returns: Nothing, as this is an initializer. '''
 
-    if filters:
-      if not isinstance(filters, (list, tuple)):
-        filters = [filters]
-    if sorts:
-      if not isinstance(sorts, (list, tuple)):
-        sorts = [sorts]
+    filters = filters and ([filters] if not (
+      isinstance(filters, (list, tuple))) else filters) or None
+
+    sorts = sorts and ([sorts] if not (
+      isinstance(sorts, (list, tuple))) else sorts) or None
 
     options = kwargs.get('options', QueryOptions(**kwargs))
     self.kind, self.filters, self.sorts, self.options = (
@@ -522,7 +521,8 @@ class Query(AbstractQuery):
 
     ## fail for projection queries
     if options.projection:
-      raise NotImplementedError('Projection queries are not yet supported.')
+      raise NotImplementedError('Projection queries are not'
+                                ' yet supported.')  # pragma: no cover
 
     if self.kind:  # kinded query
 
@@ -532,7 +532,8 @@ class Query(AbstractQuery):
     else:
 
       # kindless queries are not yet supported
-      raise NotImplementedError('Kindless queries are not yet supported.')
+      raise NotImplementedError('Kindless queries are not'
+                                ' yet supported.')  # pragma: no cover
 
   def filter(self, expression):
 
@@ -605,8 +606,7 @@ class Query(AbstractQuery):
         if no matching entities were found. '''
 
     result = self._execute(options=QueryOptions(**options))
-    if result: return result[0]
-    return result
+    return result[0] if result else result
 
   def fetch(self, **options):
 
@@ -637,7 +637,8 @@ class Query(AbstractQuery):
         :returns: '''
 
     # @TODO(sgammon): build out paging support
-    raise NotImplementedError('Query method `fetch_page` is currently stubbed.')
+    raise NotImplementedError('Query method `fetch_page`'
+                              ' is currently stubbed.')  # pragma: no cover
 
 
 class QueryComponent(object):
@@ -711,9 +712,8 @@ class Filter(QueryComponent):
 
     if AND or OR:
       for var in (AND, OR):
-        if not isinstance(var, (list, tuple, set, frozenset)):
-          var = [var]
-        self.chain += var
+        self.chain += (var if (
+          isinstance(var, (list, tuple, set, frozenset))) else [var])
 
   def __repr__(self):
 
@@ -823,7 +823,7 @@ class Filter(QueryComponent):
         :returns: ``True`` if ``target`` matches,
         otherwise ``False``. '''
 
-    return self.match(target)
+    return self.match(target)  # pragma: no cover
 
 
 class KeyFilter(Filter):

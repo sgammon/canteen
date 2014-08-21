@@ -93,8 +93,8 @@ class HookResponder(object):
           'self', 'cls')], _hook_i.keywords is not None)
 
       # carry through DI bindings
-      if isinstance(self.__wrap__, decorators.bind):
-        self.__binding__ = hook.__binding__
+      self.__binding__ = hook.__binding__ if (
+        isinstance(self.__wrap__, decorators.bind)) else None
 
       def run_hook(*args, **kwargs):
 

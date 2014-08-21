@@ -41,25 +41,22 @@ _core_mixin_classes = (
 )
 
 ## Computed Classes
-CompoundKey = None
-CompoundModel = None
-CompoundVertex = None
-CompoundEdge = None
+CompoundKey = CompoundModel = CompoundVertex = CompoundEdge = None
 
 try:
   import zlib; _compressor = zlib
-except ImportError:  # pragma: no cover
-  pass
+except ImportError:
+  pass  # pragma: no cover
 
 try:
   import lz4; _compressor = lz4
-except ImportError:  # pragma: no cover
-  pass
+except ImportError:
+  pass  # pragma: no cover
 
 try:
   import snappy; _compressor = snappy
 except ImportError:
-  pass
+  pass  # pragma: no cover
 
 
 class ModelAdapter(object):
@@ -192,7 +189,7 @@ class ModelAdapter(object):
 
     # resolve model class
     _model = self.registry.get(entity.kind())
-    if not _model:
+    if not _model:  # pragma: no cover
       raise ValueError('Could not resolve model class "%s".' % entity.kind())
 
     with entity:  # enter explicit mode
@@ -278,7 +275,9 @@ class ModelAdapter(object):
         :param key: Target :py:class:`model.Key` to retrieve.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.get`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def put(cls, key, entity, model, **kwargs):  # pragma: no cover
@@ -295,7 +294,9 @@ class ModelAdapter(object):
         :param model: :py:class:`model.Model` class for target ``entity``.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.put`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def delete(cls, key, **kwargs):  # pragma: no cover
@@ -309,7 +310,9 @@ class ModelAdapter(object):
         :param key: Target :py:class:`model.Key` to delete.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.delete`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def allocate_ids(cls, key_cls, kind, count=1, **kwargs):  # pragma: no cover
@@ -323,10 +326,12 @@ class ModelAdapter(object):
         :param count: Count of IDs to provision, defaults to ``1``.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.allocate_ids`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @classmethod
-  def encode_key(cls, key, joined=None, flattened=None):  # pragma: no cover
+  def encode_key(cls, key, joined=None, flattened=None):
 
     ''' Encode a :py:class:`model.Key` for storage. This method is
         abstract and *should* be overridden by concrete implementors
@@ -341,7 +346,8 @@ class ModelAdapter(object):
         :returns: The encoded :py:class:`model.Key`, or ``False`` to
               yield to the default encoder. '''
 
-    return False  # by default, yield to key b64 builtin encoding
+    # by default, yield to key b64 builtin encoding
+    return False  # pragma: no cover
 
 
 class IndexedModelAdapter(ModelAdapter):
@@ -602,7 +608,7 @@ class IndexedModelAdapter(ModelAdapter):
     return _property_indexes  # pragma: no cover
 
   @abc.abstractmethod
-  def write_indexes(cls, writes, **kwargs):  # pragma: no cover
+  def write_indexes(cls, writes, **kwargs):
 
     ''' Write a batch of index updates generated earlier
         via :py:meth:`generate_indexes`. This method is
@@ -613,10 +619,12 @@ class IndexedModelAdapter(ModelAdapter):
           generated via :py:meth:`generate_indexes`.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`IndexedModelAdapter.write_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def clean_indexes(cls, key, **kwargs):  # pragma: no cover
+  def clean_indexes(cls, key, **kwargs):
 
     ''' Clean indexes and index entries matching a
         particular :py:class:`model.Key`. This method is
@@ -627,10 +635,12 @@ class IndexedModelAdapter(ModelAdapter):
           indexes for.
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`IndexedModelAdapter.clean_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
+  def execute_query(cls, kind, spec, options, **kwargs):
 
     ''' Execute a query, specified by ``spec``, across
         one (or multiple) indexed properties.
@@ -639,7 +649,9 @@ class IndexedModelAdapter(ModelAdapter):
           specifying the query to satisfy..
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
 
-    raise NotImplementedError()
+    raise NotImplementedError('`IndexedModelAdapter.execute_query`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
 
 class GraphModelAdapter(IndexedModelAdapter):
@@ -679,51 +691,13 @@ class GraphModelAdapter(IndexedModelAdapter):
       joined, flattened = key.flatten(True)
       sanitized = map(lambda x: x is not None, flattened)
 
-      if isinstance(key, model.Vertex.__keyclass__):
-        return cls._magic['vertex'], sanitized
-      elif isinstance(key, model.Edge.__keyclass__):
-        return cls._magic['edge'], sanitized
-      return cls._magic['key'], sanitized
+      _GRAPH_KEYS = (model.Vertex.__keyclass__, model.Edge.__keyclass__)
 
-  @classmethod
-  def generate_indexes(cls, key, properties=None):
-
-    '''  '''
-
-    from canteen import model
-
-    if key:
-
-      if properties:
-
-        # we're writing indexes
-
-        # provision key/meta/graph indexes and defer upwards for the first 2
-        (key, meta_indexes, property_indexes), graph_indexes = (
-          super(GraphModelAdapter, cls).generate_indexes(key, properties)), []
-
-        # @(TODO): critical, finish graph-specific indexes
-
-        if isinstance(key, model.Vertex.__keyclass__):
-          # it's a vertex key
-          pass
-
-        elif isinstance(key, model.Edge.__keyclass__):
-          # it's an edge key
-          pass
-
-        return key, meta_indexes + graph_indexes, property_indexes
-
-      else:
-        # we're cleaning indexes
-        return super(GraphModelAdapter, cls).generate_indexes(key, properties)
-
-    else:
-      # we're generating indexes for properties only
-      return super(GraphModelAdapter, cls).generate_indexes(key, properties)
-
-    #return encoded_key, meta_indexes, property_indexes, graph_indexes
-    return super(GraphModelAdapter, cls).generate_indexes(key, properties)
+      return cls._magic[(
+        'key' if not isinstance(key, _GRAPH_KEYS) else (
+          'vertex' if isinstance(key, model.Vertex.__keyclass__) else (
+            'edge' if isinstance(key, model.Vertex.__keyclass__) else None))
+        )], sanitized
 
   def _edges(self, target, types=None, **options):
 
@@ -745,7 +719,7 @@ class GraphModelAdapter(IndexedModelAdapter):
         :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()  # pragma: no cover
 
   def _neighbors(self, source, **options):
 
@@ -768,7 +742,7 @@ class GraphModelAdapter(IndexedModelAdapter):
         :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()  # pragma: no cover
 
   @abc.abstractmethod
   def edges(cls, key1, key2=None, type=None, **kwargs):
@@ -808,8 +782,6 @@ class GraphModelAdapter(IndexedModelAdapter):
     raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover
 
 
-## DirectedGraphAdapter
-# Adapt canteen models to a directed-graph-based storage paradigm.
 class DirectedGraphAdapter(GraphModelAdapter):
 
   ''' Abstract base class for model adpaters that support
@@ -833,7 +805,7 @@ class DirectedGraphAdapter(GraphModelAdapter):
         :returns: '''
 
     # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()  # pragma: no cover
 
   @abc.abstractmethod
   def tails(cls, key, type=None, **kwargs):  # pragma: no cover
@@ -847,7 +819,7 @@ class DirectedGraphAdapter(GraphModelAdapter):
         :raises:
         :returns: '''
 
-    raise NotImplementedError()
+    raise NotImplementedError()  # pragma: no cover
 
   @abc.abstractmethod
   def heads(cls, key, type=None, **kwargs):  # pragma: no cover
@@ -861,7 +833,7 @@ class DirectedGraphAdapter(GraphModelAdapter):
         :raises:
         :returns: '''
 
-    raise NotImplementedError()
+    raise NotImplementedError()  # pragma: no cover
 
 
 class Mixin(object):
@@ -1014,6 +986,7 @@ class EdgeMixin(Mixin):
   __slots__ = tuple()
   __compound__ = 'CompoundEdge'
   __registry__ = Mixin._edge_mixin_registry
+
 
 
 __all__ = (

@@ -51,6 +51,23 @@ class HookResponderTests(test.FrameworkTest):
 
     return r
 
+  def test_implied_argspec(self):
+
+    ''' Test binding `Context` with an implied argspec '''
+
+    def responder(item_one):
+
+      ''' implied responder, satisfied using inspection '''
+
+      # i don't do anything
+      assert item_one == 5
+      return item_one
+
+    r = hooks.HookResponder('test_event')(responder)
+
+    # try executing
+    r('test_event', item_one=5)
+
   def test_bind_context(self):
 
     ''' Test binding `Context` for a `HookResponder` '''

@@ -338,6 +338,13 @@ class QueryTests(FrameworkTest):
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
     assert q.filters[0].match(matching_model)
 
+    q = inmemory.InMemoryModel.query(options=options)
+    q.filter((inmemory.InMemoryModel.number <= 5).OR(inmemory.InMemoryModel.string == 'womp'))
+
+    assert len(q.filters) == 1
+    assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
+    assert q.filters[0].match(matching_model)
+
   def test_manual_filter_match_value(self):
 
     ''' Test manually matching a raw value against a `Filter` '''
@@ -440,3 +447,43 @@ class QueryTests(FrameworkTest):
     assert 'Filter' in result
     assert 'ASCENDING' in result
     assert '<=' in result
+
+  def test_chained_construction(self):
+
+    ''' Test constructing a chained query with `Query` '''
+
+    class SomeModel(model.Model):
+
+        ''' Some sample model '''
+
+        string = basestring
+        integer = int
+
+    filter_one = query.Filter(SomeModel.string, 'hi', operator=query.EQUALS)
+    filter_two = query.Filter(SomeModel.integer, 5, operator=query.GREATER_THAN, AND=(filter_one,))
+
+    q = SomeModel.query(filter_one, filter_two)
+
+    assert len(q.filters) == 2
+    assert filter_one in q.filters
+    assert filter_two in q.filters
+
+    q = query.Query(filters=filter_one)
+
+  def test_repeated_contains(self):
+
+    ''' Test constructing a CONTAINS query with EQUALS on a repeated property '''
+
+    class SomeModel(model.Model):
+
+        ''' Some sample model '''
+
+        string = basestring, {'repeated': True}
+        integer = int
+
+    filter_one = query.Filter(SomeModel.string, 'hi', operator=query.EQUALS)
+    q = SomeModel.query(filter_one)
+
+    assert len(q.filters) == 1
+    assert filter_one in q.filters
+    assert filter_one.operator is query.CONTAINS

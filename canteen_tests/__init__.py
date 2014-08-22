@@ -27,7 +27,6 @@ if __debug__:
 
   # import testsuite
   from . import test__init__
-  from . import test__main__
   from . import test_core
   from . import test_dispatch
   from . import test_rpc
@@ -43,7 +42,7 @@ if __debug__:
 
     def test_math_sanity(self):
 
-      ''' Make sure that math still works (lol). '''
+      ''' Test that math still works (lol) '''
 
       self.assertEqual(1 + 1, 2)
       self.assertEqual(2 - 1, 1)
@@ -53,11 +52,12 @@ if __debug__:
 
     def test_assert_sanity(self):
 
-      ''' Make sure ``assert`` statements are working as expected. '''
+      ''' Test `assert` behavior '''
 
       try:
         assert 1 == 2
       except AssertionError:
         pass
-      else:
-        raise RuntimeError('Assertions are disabled. Something is wrong, as `__debug__` is truthy.')
+      else:  # pragma: no cover
+        raise RuntimeError('Assertions are disabled. Something is wrong, '
+                           ' as `__debug__` is truthy.')

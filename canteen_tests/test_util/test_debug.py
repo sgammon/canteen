@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: debug tests
-  ~~~~~~~~~~~~~~~~~~~~
+  debug tests
+  ~~~~~~~~~~~
 
   tests for canteen's debugging and development utilities.
 

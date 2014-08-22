@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model meta tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  model meta tests
+  ~~~~~~~~~~~~~~~~
 
   tests metacomponents of canteen's model layer.
 
@@ -34,7 +34,7 @@ class MetaFactoryTests(FrameworkTest):
 
   def test_abstract_factory(self):
 
-    ''' Make sure `model.MetaFactory` is only usable abstractly. '''
+    ''' Test that `MetaFactory` is only usable abstractly. '''
 
     # constructing metafactory should raise an ABC exception
     self.assertTrue(inspect.isabstract(MetaFactory))
@@ -43,7 +43,7 @@ class MetaFactoryTests(FrameworkTest):
 
   def test_abstract_enforcement(self):
 
-    ''' Define a class that violates enforced abstraction rules. '''
+    ''' Test abstraction enforcement on `MetaFactory` '''
 
     class InsolentClass(MetaFactory):
 
@@ -57,7 +57,7 @@ class MetaFactoryTests(FrameworkTest):
 
   def test_resolve_adapters(self):
 
-    ''' Make sure `model.MetaFactory` resolves adapters correctly. '''
+    ''' Test that `MetaFactory` resolves adapters correctly '''
 
     # test that resolve exists
     self.assertTrue(inspect.ismethod(MetaFactory.resolve))

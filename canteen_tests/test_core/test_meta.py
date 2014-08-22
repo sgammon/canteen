@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core meta tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  core meta tests
+  ~~~~~~~~~~~~~~~
 
   tests canteen's core, which contains abstract/meta code for constructing
   and gluing together the rest of canteen.
@@ -30,20 +30,18 @@ from canteen.util import decorators
 
 class CoreMetaTest(test.FrameworkTest):
 
-  ''' Tests for :py:mod:`canteen.core.meta`. '''
+  ''' Tests for :py:mod:`canteen.core.meta` '''
 
   def test_module_proxy(self):
 
-    ''' Test the metaproxy that exposes `Factory`, `Registry`
-        and `Component`. '''
+    ''' Test that metaproxy exposes `Factory`, `Registry` and `Component` '''
 
     assert hasattr(meta, 'Proxy')
     assert hasattr(meta, 'MetaFactory')
 
   def test_proxy_attributes(self):
 
-    ''' Test that `meta.Proxy` properly exposes attributes
-        for each meta-metaclass. '''
+    ''' Test that `meta.Proxy` properly exposes each meta-metaclass '''
 
     assert hasattr(Proxy, 'Factory')
     assert hasattr(Proxy, 'Registry')
@@ -52,12 +50,11 @@ class CoreMetaTest(test.FrameworkTest):
 
 class MetaFactoryTest(test.FrameworkTest):
 
-  ''' Tests for :py:class:`canteen.core.meta.MetaFactory`. '''
+  ''' Tests for :py:class:`MetaFactory` '''
 
   def test_new_concrete_metafactory(self):
 
-    ''' Test that :py:class:`canteen.core.meta.MetaFactory`
-        cannot be constructed directly. '''
+    ''' Test that `MetaFactory` cannot be constructed directly '''
 
     with self.assertRaises(NotImplementedError):
       meta.MetaFactory()
@@ -70,15 +67,13 @@ class MetaFactoryTest(test.FrameworkTest):
 
   def test_new_meta_metafactory(self):
 
-    ''' Test that :py:class:`canteen.core.meta.MetaFactory`
-        is usable as a metaclass, via `Proxy.Factory`. '''
+    ''' Test that `MetaFactory` is usable as a metaclass via `Proxy.Factory` '''
 
     assert isinstance(meta.Proxy.Factory('TargetMeta', (object,), {}), type)
 
   def test_meta_mro(self):
 
-    ''' Test that `meta.Proxy.Factory` properly overwrites
-        object MRO. '''
+    ''' Test that `meta.Proxy.Factory` properly overwrites object MRO '''
 
     klass = meta.Proxy.Factory('TargetMeta', (object,), {'__metaclass__': meta.Proxy.Factory})
     assert klass.__mro__ == (klass, object)
@@ -86,12 +81,11 @@ class MetaFactoryTest(test.FrameworkTest):
 
 class ClassFactoryTest(test.FrameworkTest):
 
-  ''' Tests for `meta.Proxy.Factory`. '''
+  ''' Tests for `meta.Proxy.Factory` '''
 
   def test_construct_factory(self):
 
-    ''' Try constructing a new `meta.Proxy.Factory`
-        meta-implementor. '''
+    ''' Test constructing a new `meta.Proxy.Factory` meta-implementor '''
 
     # make fake factory sub
     class FactoryMetaclass(object):
@@ -103,8 +97,7 @@ class ClassFactoryTest(test.FrameworkTest):
 
   def test_initialize_factory(self):
 
-    ''' Try overriding `meta.Proxy.Factory.initialize`
-        in a meta-implementor. '''
+    ''' Test overriding `meta.Proxy.Factory.initialize` in a meta-implementor '''
 
     # make subfactory
     class FactorySubclass(meta.Proxy.Factory):
@@ -124,12 +117,11 @@ class ClassFactoryTest(test.FrameworkTest):
 
 class ClassRegistryTest(test.FrameworkTest):
 
-  ''' Tests for `meta.Proxy.Registry`. '''
+  ''' Tests for `meta.Proxy.Registry` '''
 
   def test_construct_registry(self):
 
-    ''' Try constructing a new `meta.Proxy.Registry`
-        meta-implementor. '''
+    ''' Test constructing a new `meta.Proxy.Registry` meta-implementor '''
 
     # make fake registry sub
     class RegistryMetaclass(object):
@@ -141,8 +133,7 @@ class ClassRegistryTest(test.FrameworkTest):
 
   def test_registry_internals(self):
 
-    ''' Make sure internals of `meta.Proxy.Registry`
-        work correctly. '''
+    ''' Test internals of `meta.Proxy.Registry` '''
 
     # make a registered class tree
     class RegistryTestRegistry(object):
@@ -159,8 +150,7 @@ class ClassRegistryTest(test.FrameworkTest):
 
   def test_iterate_children(self):
 
-    ''' Try iterating over a registered class'
-        children. '''
+    ''' Test iterating over a registered class' children '''
 
     # make a registered class tree
     class IterateChildrenRegistry(object):
@@ -181,8 +171,7 @@ class ClassRegistryTest(test.FrameworkTest):
 
   def test_list_children(self):
 
-    ''' Try retrieving a list of a registered class'
-        children. '''
+    ''' Test retrieving a list of a registered class children '''
 
     # make a registered class tree
     class ListChildrenRegistry(object):
@@ -201,12 +190,11 @@ class ClassRegistryTest(test.FrameworkTest):
 
 class ClassComponentTest(test.FrameworkTest):
 
-  ''' Tests for :py:class:`meta.Proxy.Component`. '''
+  ''' Tests for :py:class:`meta.Proxy.Component` '''
 
   def test_construct_component(self):
 
-    ''' Try constructing a new `meta.Proxy.Component`
-        meta-implementor. '''
+    ''' Test constructing a new `meta.Proxy.Component` meta-implementor '''
 
     # make fake component sub
     class ComponentMetaclass(object):
@@ -220,8 +208,7 @@ class ClassComponentTest(test.FrameworkTest):
 
   def test_collapse(self):
 
-    ''' Try manually collapsing a class with known
-        bindings. '''
+    ''' Test manually collapsing a class with known bindings '''
 
     meta.Proxy.Component.reset_cache()
 
@@ -296,9 +283,7 @@ class ClassComponentTest(test.FrameworkTest):
 
   def test_singleton_map(self):
 
-    ''' Try setting a :py:class:`Component`
-        meta-implementor into ``singleton``
-        mode. '''
+    ''' Test setting a `Component` meta-implementor into `singleton` mode '''
 
 
     @decorators.singleton

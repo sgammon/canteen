@@ -12,17 +12,34 @@
 
 ## Vars
 DEPS?=1
+TESTS?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
+BUILDROOT?=./
+BINPATH?=
 
 ## Flags
-TEST_FLAGS ?= --verbose --with-coverage --cover-package=canteen --cover-package=canteen_tests
-
+TEST_FLAGS ?= --verbose \
+							--with-coverage \
+							--cover-package=canteen \
+							--cover-package=canteen_tests \
+							--cover-html \
+							--cover-xml \
+							--with-xunit \
+							--cover-html-dir=.develop/coverage/html \
+							--cover-xml-file=.develop/coverage/clover.xml \
+							--xunit-file=.develop/tests/xunit.xml
 
 all: develop
 
+ifeq ($(TESTS),1)
+test: develop
+	@mkdir -p $(BUILDROOT).develop/tests/xunit $(BUILDROOT).develop/coverage/xunit
+	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
+else
 test:
-	@nosetests $(TEST_FLAGS) canteen_tests
+	@echo "Skipping tests."
+endif
 
 clean:
 	@echo "Cleaning buildspace..."
@@ -36,26 +53,32 @@ clean:
 	@find . -name "*.pyo" -delete
 
 build: .Python dependencies
-	@python setup.py build
+	@$(BINPATH)python setup.py build
 
-develop: build package
+ifeq ($(DEPS),1)
+develop: build
 	@echo "Installing development tools..."
-	@pip install -r dev_requirements.txt
+	@$(BINPATH)pip install -r dev_requirements.txt
 
 	@echo "Building..."
-	@python setup.py develop
+	@$(BINPATH)python setup.py develop
+else
+develop: build package
+	@echo "Building..."
+	@$(BINPATH)python setup.py develop
+endif
 
 package: test
-	@python setup.py $(DISTRIBUTIONS)
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
 
 release: build test package
-	@python setup.py $(DISTRIBUTIONS) upload
+	@$(BINPATH)python setup.py $(DISTRIBUTIONS) upload
 
 ifeq ($(DEPS),1)
 dependencies:
 	# install pip dependencies
-	@bin/pip install colorlog
-	@bin/pip install -r requirements.txt
+	@$(BINPATH)pip install colorlog
+	@$(BINPATH)pip install -r requirements.txt
 else
 dependencies:
 	@echo "Skipping dependencies..."
@@ -77,7 +100,7 @@ ifeq ($(VIRTUALENV),1)
 	@which pip || sudo easy_install pip
 	@which virtualenv || pip install virtualenv
 
-	@virtualenv .
+	@virtualenv $(BUILDROOT)
 else
 .Python:
 	@echo "Skipping env..."

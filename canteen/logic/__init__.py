@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: logic
-  ~~~~~~~~~~~~~~
+  logic
+  ~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -15,11 +15,17 @@
 
 # submodules
 from .http import *
+from .cache import *
+from .assets import *
+from .session import *
+from .template import *
 from .realtime import *
 
 
 __all__ = (
   'url',
   'http',
-  'realtime'
+  'cache',
+  'realtime',
+  'template'
 )

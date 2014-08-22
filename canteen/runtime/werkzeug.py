@@ -62,7 +62,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       'SecurityError': exceptions.SecurityError
     })
 
-    def bind(self, interface, address):
+    def bind(self, interface, address):  # pragma: no cover
 
       '''  '''
 
@@ -77,8 +77,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           '/assets': self.config.app['paths']['assets'],
           '/favicon.ico': self.config.app['paths'].get('favicon', False) or os.path.join(
             self.config.app['paths']['assets'],
-            'favicon.ico'
-        )})
+            'favicon.ico')})
 
       # append any extra asset paths
       if self.config.assets.get('config', {}).get('extra_assets'):

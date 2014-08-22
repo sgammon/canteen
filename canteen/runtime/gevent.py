@@ -21,6 +21,3 @@ from ..core import runtime
 
 with runtime.Library('gevent'):
   raise NotImplementedError('gevent is stubbed.')
-
-
-  __all__ = tuple()

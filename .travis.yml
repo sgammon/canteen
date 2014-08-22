@@ -12,3 +12,6 @@ script: make package
 
 after_success:
   coveralls
+
+notifications:
+  slack: momentum-labs:qdIanVeSHF2oFXDY0GbNxofo#automata

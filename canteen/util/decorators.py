@@ -16,6 +16,9 @@
 
 '''
 
+from __future__ import print_function
+
+
 ## ``classproperty`` - use like ``@property``, but at the class-level.
 class classproperty(property):
 
@@ -116,7 +119,7 @@ class cached(object):
 
 
 ## ``configured`` - markup a class for use with canteen.
-def configured(debug=False, path=None):
+def configured(path=None, debug=__debug__):
 
     ''' Prepare to inject config/path values
         at ``debug`` and ``path``.
@@ -133,64 +136,60 @@ def configured(debug=False, path=None):
         :returns: Closure that constructs an injected
         target class. '''
 
-    # resolve appconfig
-    try:
-        import config as appconfig
-    except ImportError:
-        class Config(object):
-            debug = True
-            config = {}
-        appconfig = Config()
+    # so path may be a class...
+    if isinstance(path, type):
+      return path
+    else:
 
-    # build injection closure
-    def inject(klass):
+      # build injection closure
+      def inject(klass):
 
-        ''' Injection closure that prepares ``klass``
-            with basic apptools structure.
+          ''' Injection closure that prepares ``klass``
+              with basic canteen structure.
 
-            :param klass: Target class slated for injection.
-            :returns: Injected class structure. '''
+              :param klass: Target class slated for injection.
+              :returns: Injected class structure. '''
 
-        def _config(cls):
+          def _config(cls):
 
-            ''' Named config pipe. Resolves configuration
-                at the local class' :py:attr:`cls._config_path`,
-                if any, which is usually injected by apptools
-                utils or provided manually.
+              ''' Named config pipe. Resolves configuration
+                  at the local class' :py:attr:`cls._config_path`,
+                  if any, which is usually injected by canteen
+                  utils or provided manually.
 
-                :returns: Configuration ``dict``, from main appconfig,
-                or default ``dict`` of ``{'debug': True}``. '''
+                  :returns: Configuration ``dict``, from main appconfig,
+                  or default ``dict`` of ``{'debug': True}``. '''
 
-            #return appconfig.config.get(path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__)), {'debug': True})
+              #return appconfig.config.get(path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__)), {'debug': True})
 
-        def _logging(cls):
+          def _logging(cls):
 
-            ''' Named logging pipe. Prepares custom Logbook/Python-backed
-                ``Logger`` via config path and class name. Allows fine
-                grained control of logging output, even at the individual
-                class level.
+              ''' Named logging pipe. Prepares custom Logbook/Python-backed
+                  ``Logger`` via config path and class name. Allows fine
+                  grained control of logging output, even at the individual
+                  class level.
 
-                :returns: Customized :py:class:`debug.AppToolsLogger` class,
-                attached with injectee's module path and name (or config
-                path, if configured). '''
+                  :returns: Customized :py:class:`debug.Logger` class,
+                  attached with injectee's module path and name (or config
+                  path, if configured). '''
 
-            #from apptools.util import debug
+              #from canteen.util import debug
 
-            # calculate configuration path
-            #_config_path = path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__))
-            #_csplit = _config_path.split('.')
+              # calculate configuration path
+              #_config_path = path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__))
+              #_csplit = _config_path.split('.')
 
-            #return debug.AppToolsLogger(**{
-            #    'path': '.'.join(_csplit[:-1]),
-            #    'name': _csplit[-1]
-            #})._setcondition(cls.config.get('debug', True))
+              #return debug.Logger(**{
+              #    'path': '.'.join(_csplit[:-1]),
+              #    'name': _csplit[-1]
+              #})._setcondition(cls.config.get('debug', True))
 
-        # attach injected properties and classmethods
-        #klass._config_path = path or '.'.join((klass.__module__, klass.__name__))
-        klass.config, klass.logging = memoize(classproperty(_config)), memoize(classproperty(_logging))
-        return klass
+          # attach injected properties and classmethods
+          #klass._config_path = path or '.'.join((klass.__module__, klass.__name__))
+          klass.config, klass.logging = memoize(classproperty(_config)), memoize(classproperty(_logging))
+          return klass
 
-    return inject
+      return inject
 
 
 def singleton(target):
@@ -335,7 +334,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # check expiration - flush if we have to
       if expiration and not (time.time() < expiration):
 
-        print "Cache item expired: '%s'." % key
+        print("Cache item expired: '%s'." % key)
 
         cache.CacheAPI.delete(key)
         val = None
@@ -345,7 +344,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
       # refresh the cache if we have to
       if not val:
 
-        print "Cache miss: '%s'." % key
+        print("Cache miss: '%s'." % key)
 
         val = func(*args, **kwargs)
 
@@ -353,7 +352,7 @@ def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
           cache.CacheAPI.set(key, val)
 
       else:
-        print "Cache hit: '%s'." % key
+        print("Cache hit: '%s'." % key)
 
       return val
 

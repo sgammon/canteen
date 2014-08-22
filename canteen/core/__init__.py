@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core
-  ~~~~~~~~~~~~~
+  core
+  ~~~~
 
   classes, utilities and stuff that is core to the proper operation of canteen.
   meta stuff, abstract stuff, and runtime utilities.
@@ -17,15 +17,15 @@
 '''
 
 # submodules
-from .api import *
 from .meta import *
+from .hooks import *
 from .runtime import *
 from .injection import *
 
 
 __all__ = (
   'meta',
-  'injection',
+  'hooks',
   'runtime',
-  'api'
+  'injection'
 )

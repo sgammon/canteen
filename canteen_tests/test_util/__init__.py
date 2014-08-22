@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: util tests
-  ~~~~~~~~~~~~~~~~~~~
+  util tests
+  ~~~~~~~~~~
 
   tests for canteen's most basic utilities.
 

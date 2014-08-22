@@ -47,8 +47,8 @@ else:
 
 ## Environment checks
 if not CHECK_SETUPTOOLS():
-  log.warning('Setuptools out of date with version "%s", where'
-                  'at least version "%s" is required. Attempting upgrade...' % (SETUPTOOLS_VERSION))
+  log.warning('Setuptoo¡s out of date with version "%s", where'
+              'at least version "%s" is required. Attempting upgrade...' % (SETUPTOOLS_VERSION))
   dependencies.append('setuptools<=%s' % SETUPTOOLS_VERSION)
 
   try:
@@ -83,17 +83,18 @@ except ImportError:
   dependencies.append('hamlish_jinja==%s' % HAMLISH_VERSION)
 
 
-tools.setup(name="canteen",
+tools.setup(
+      name="canteen",
       version="0.2-alpha",
       description="Minimally complicated, maximally blasphemous approach to app development",
       author="Sam Gammon",
       author_email="sam@momentum.io",
+      zip_safe=True,
       url="https://github.com/sgammon/canteen",
       packages=[
         "canteen",
         "canteen.base",
         "canteen.core",
-        "canteen.core.api",
         "canteen.logic",
         "canteen.logic.http",
         "canteen.model",
@@ -114,9 +115,9 @@ tools.setup(name="canteen",
         "werkzeug",
         "protorpc"
       ] + dependencies),
+      tests_require=("nose",),
       dependency_links=(
         "git+git://github.com/sgammon/protobuf.git#egg=protobuf-%s" % PROTOBUF_VERSION,
         "git+git://github.com/sgammon/hamlish-jinja.git#egg=hamlish_jinja-%s" % HAMLISH_VERSION
-      ),
-      tests_require=("nose",)
+      )
 )

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: runtime core
-  ~~~~~~~~~~~~~~~~~~~~~
+  core runtime
+  ~~~~~~~~~~~~
 
   platform internals and logic to discover/load/inject.
 
@@ -14,6 +14,8 @@
             the root of the project.
 
 '''
+
+from __future__ import print_function
 
 # stdlib
 import os
@@ -44,8 +46,8 @@ class Runtime(object):
   __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, _so power_
   __metaclass__ = Proxy.Component  # this should be injectable
-  __precedence__ = False  # marked if a specific a runtime should win in selection
-  precedence = property(lambda self: self.__precedence__)  # protect writes to precedence
+  __precedence__ = False  # marked if a specific runtime should win in selection
+  precedence = property(lambda self: self.__precedence__)  # protect writes
 
   # == Abstract Properties == #
   @abc.abstractproperty
@@ -92,10 +94,11 @@ class Runtime(object):
     return cls
 
   @classmethod
-  def add_hook(cls, hook, (context, func)):
+  def add_hook(cls, hook, context_and_func):
 
     '''  '''
 
+    context, func = context_and_func
     assert isinstance(hook, basestring), "hook name must be a string"
     if hook not in cls.__hooks__: cls.__hooks__[hook] = []
     cls.__hooks__[hook].append((context, func))
@@ -131,12 +134,15 @@ class Runtime(object):
           else:
 
             # must have a singleton if we're running in object context
-            if not hasattr(context, '__singleton__') or not context.__singleton__:
-              raise RuntimeError('Cannot execute hook method "%s" without matching singleton context.' % hook)
+            if not (
+              hasattr(context, '__singleton__') or not context.__singleton__):
+              raise RuntimeError('Cannot execute hook method "%s"'
+                                 ' without matching singleton context.' % hook)
 
             # resolve singleton by context name
             obj = Proxy.Component.singleton_map.get(context.__name__)
-            if not obj: raise RuntimeError('No matching singleton for hook method "%s".' % hook)
+            if not obj: raise RuntimeError('No matching singleton'
+                                           ' for hook method "%s".' % hook)
 
             # run in singleton context
             hook(point, obj, *args, **kwargs)
@@ -180,8 +186,8 @@ class Runtime(object):
 
     try:
       server.serve_forever()
-    except (KeyboardInterrupt, Exception) as e:
-      print "Exiting."
+    except (KeyboardInterrupt, Exception):
+      print("Exiting.")
       sys.exit(0)
 
   def bind_environ(self, environ):
@@ -283,18 +289,21 @@ class Runtime(object):
         self.execute_hooks(('response', 'complete'), **context)
         return _response(environ, start_response)
 
+      # unpack response
       status, headers, content_type, content = (
         context['status'],
         context['headers'],
         context['content_type'],
         context['content']
-      ) = result.status, result.headers, result.content_type, result.response  # unpack response
+      ) = result.status, result.headers, result.content_type, result.response
 
       # call response hooks
       self.execute_hooks(('response', 'complete'), **context)
 
       # send start_response
-      start_response(result.status, [(k.encode('utf-8').strip(), v.encode('utf-8').strip()) for k, v in result.headers])
+      start_response(result.status, [(
+        k.encode('utf-8').strip(), v.encode('utf-8').strip()
+      ) for k, v in result.headers])
 
       # buffer and return (i guess) @TODO(sgammon): can we do this better?
       return iterator or result.response  # it's a werkzeug Response
@@ -323,7 +332,7 @@ class Runtime(object):
       _foreign_runtime_bridge.start_response = start_response
       context['start_response'] = _foreign_runtime_bridge
 
-      # call handler hooks, initialize foreign handler with replaced start_response
+      # call hooks, initialize foreign handler with replaced start_response
       self.execute_hooks('handler', **context)
       return handler(environ, _foreign_runtime_bridge)
 
@@ -357,7 +366,9 @@ class Runtime(object):
         )
 
         self.execute_hooks(('response', 'complete'), **context)
-        return response(environ, start_response)  # it's a Response class - call it to start_response
+
+        # it's a Response class - delegate to attached start_response
+        return response(environ, start_response)
 
       # a tuple bound to a URL - static response
       elif isinstance(result, tuple):
@@ -387,7 +398,8 @@ class Runtime(object):
           if isinstance(headers, dict):
             headers = headers.items()
             if 'Content-Type' not in headers:
-              headers['Content-Type'] = context['headers']['Content-Type'] = 'text/html; charset=utf-8'
+              headers['Content-Type'] = context['headers']['Content-Type'] = (
+                'text/html; charset=utf-8')
 
           # call response hooks
           self.execute_hooks(('response', 'complete'), **context)
@@ -437,22 +449,26 @@ class Runtime(object):
 
       # profiler support
       if 'profiler' in dev_config:
-        if dev_config['profiler'].get('enable', False):
+        profiler_cfg = dev_config['profiler']
+
+        if profiler_cfg.get('enable', False):
 
           ## grab a profiler
           try:
             import cProfile as profile
-          except ImportError as e:
+          except ImportError:
             import profile
 
           ## calculate dump file path
-          profile_path = dev_config['profiler'].get('dump_file', os.path.abspath(os.path.join(os.getcwd(), '.develop', 'app.profile')))
+          profile_path = profiler_cfg.get('dump_file', os.path.abspath(
+            os.path.join(*(os.getcwd(), '.develop', 'app.profile'))))
 
           ## current profile
-          _current_profile = profile.Profile(**dev_config['profiler'].get('profile_kwargs', {}))
+          pkwargs = profiler_cfg.get('profile_kwargs', {})
+          _current_profile = profile.Profile(**pkwargs)
 
           ## handle flushing mechanics
-          if dev_config['profiler'].get('on_request', True):
+          if profiler_cfg.get('on_request', True):
 
             def maybe_flush_profile():
 
@@ -461,7 +477,9 @@ class Runtime(object):
               _current_profile.dump_stats(profile_path)
 
           else:
-            raise RuntimeError('Cross-request profiling is currently unsupported.')  # @TODO(sgammon): cross-request profiling
+            # @TODO(sgammon): cross-request profiling
+            raise RuntimeError('Cross-request profiling'
+                               ' is currently unsupported.')
 
           def _dispatch(*args, **kwargs):
 
@@ -491,7 +509,7 @@ class Runtime(object):
       return self.wrap(self.dispatch)(environ, start_response)
 
     except self.base_exception as exc:
-      return exc(environ, start_response)  # it's an acceptable exception that can be returned as a response
+      return exc(environ, start_response)  # it's an acceptable exception
 
     except Exception:
       raise  # just raise it k?
@@ -505,7 +523,7 @@ class Library(object):
   strict = False  # whether to hard-fail on ImportError
   package = None  # reference to the actual library package/module
   exception = None  # captured ImportError or AttributeError exception, if any
-  supported = None  # boolean flag indicating whether this lib is supported or not
+  supported = None  # boolean indicating whether this lib is supported or not
 
   __owner__, __metaclass__ = "Library", Proxy.Component
 

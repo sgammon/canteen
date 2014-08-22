@@ -14,9 +14,11 @@
 '''
 
 # submodules
-from . import jsonrpc
+from . import json
+from . import msgpack
 
 
 __all__ = (
-  'jsonrpc',
+  'json',
+  'msgpack'
 )

@@ -2,10 +2,8 @@
 
 '''
 
-  canteen: RPC tests
-  ~~~~~~~~~~~~~~~~~~
-
-  tests canteen's server-side RPC layer.
+  HTTP agent logic tests
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

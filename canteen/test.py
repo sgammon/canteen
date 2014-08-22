@@ -15,8 +15,10 @@
 
 '''
 
-if __debug__:
+from __future__ import print_function
 
+
+if __debug__:
 
   # stdlib
   import os
@@ -116,7 +118,7 @@ if __debug__:
 
     if arguments:
       if len(arguments) > 2:
-        print "Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT."
+        print("Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT.")
         sys.exit(1)
       if len(arguments) == 2:
         format, output = tuple(arguments)
@@ -136,7 +138,7 @@ if __debug__:
         'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
       })
     except Exception as e:
-      print e
+      print(e)
       sys.exit(1)
     else:
       sys.exit(0)

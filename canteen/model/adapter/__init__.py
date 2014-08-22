@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model adapters
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  model adapters
+  ~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -15,7 +15,7 @@
 
 # module constants
 __version__ = (0, 7)  # module version-string
-__doc__ = "Contains modules that adapt apptools models to various storage backends."
+__doc__ = "Contains modules that adapt canteen models to various storage backends."
 
 
 # abstract adapters
@@ -23,6 +23,8 @@ from . import abstract
 from .abstract import Mixin
 from .abstract import KeyMixin
 from .abstract import ModelMixin
+from .abstract import VertexMixin
+from .abstract import EdgeMixin
 from .abstract import ModelAdapter
 from .abstract import IndexedModelAdapter
 
@@ -49,7 +51,8 @@ from . import core
 from .core import DictMixin
 from .core import JSONMixin
 
+base_mixins = [KeyMixin, ModelMixin, VertexMixin, EdgeMixin]
 builtin_mixins = [DictMixin, JSONMixin]
 
 
-__adapters__ = tuple(abstract_adapters + modules + concrete + builtin_mixins)
+__adapters__ = tuple(abstract_adapters + modules + concrete + builtin_mixins + base_mixins)

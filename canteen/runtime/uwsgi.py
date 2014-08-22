@@ -21,7 +21,7 @@ from ..util import decorators
 from ..core import hooks, runtime
 
 
-try:
+try:  # pragma: no cover
 
   with runtime.Library('uwsgi', strict=True) as (library, uwsgi):
 

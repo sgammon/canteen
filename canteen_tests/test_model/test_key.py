@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: model key tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  model key tests
+  ~~~~~~~~~~~~~~~
 
   tests canteen's model keys.
 
@@ -32,7 +32,7 @@ class KeyTests(FrameworkTest):
 
   def test_construct_key(self):
 
-    ''' Try constructing a key manually. '''
+    ''' Test constructing a `Key` manually '''
 
     # test kinded empty key
     k = Key("TestKind")
@@ -57,7 +57,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_inheritance(self):
 
-    ''' Make sure there's a proper inheritance structure for `model.Key`. '''
+    ''' Test proper inheritance structure for `Key` '''
 
     # test basic key inheritance
     k = Key("TestKind", "sample")
@@ -78,7 +78,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_stringify(self):
 
-    ''' Test the string representation of a `Key` object. '''
+    ''' Test string representation of a `Key` object '''
 
     # build and stringify key
     k = Key("SampleKind", "sample_id")
@@ -97,7 +97,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_class_stringify(self):
 
-    ''' Test the string representation of a `Key` class. '''
+    ''' Test the string representation of a `Key` class '''
 
     # build and stringify key
     x = str(Key)
@@ -113,7 +113,7 @@ class KeyTests(FrameworkTest):
 
   def test_abstract_key(self):
 
-    ''' Make sure `model.AbstractKey` works abstractly. '''
+    ''' Test that `AbstractKey` works abstractly '''
 
     # should not be able to instantiate `AbstractKey`
     with self.assertRaises(exceptions.AbstractConstructionFailure):
@@ -121,14 +121,29 @@ class KeyTests(FrameworkTest):
 
     self.assertIsInstance(Key(), AbstractKey)
 
-  def test_concrete_key(self):
+  def test_abstract_key_concrete(self):
 
-    ''' Make sure `model.Key` works concretely. '''
+    ''' Test that `AbstractKey` works concretely '''
+
+    # sample `Key` subclass
+    class SampleKey(AbstractKey):
+      ''' Tests subclasses of `AbstractKey`. '''
+      __schema__ = ('id', 'kind')
+
+    # perform tests
+    self.assertTrue(SampleKey("Sample", "id"))
+    self.assertIsInstance(SampleKey("Sample", "id"), Key)
+    self.assertTrue(hasattr(SampleKey, '__schema__'))
+    self.assertEqual(len(SampleKey.__schema__), 2)
+
+  def test_key_concrete(self):
+
+    ''' Test that `Key` works concretely '''
 
     # sample `Key` subclass
     class SampleKey(Key):
       ''' Tests subclasses of `Key`. '''
-      __schema__ = tuple(['id', 'kind'])
+      __schema__ = ('id', 'kind')
 
     # perform tests
     self.assertTrue(SampleKey("Sample", "id"))
@@ -138,7 +153,7 @@ class KeyTests(FrameworkTest):
 
   def test_raw_key_format(self):
 
-    ''' Try constructing a key from a raw iterable. '''
+    ''' Test constructing a key from a raw iterable '''
 
     # sample key
     k = Key("Sample", "sample")
@@ -154,7 +169,7 @@ class KeyTests(FrameworkTest):
 
   def test_urlsafe_key_format(self):
 
-    ''' Try constructing a key from its URL-encoded form. '''
+    ''' Test constructing a key from its encoded form '''
 
     # sample key
     k = Key("Sample", "sample")
@@ -165,7 +180,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_flatten(self):
 
-    ''' Try flattening a Key into a raw iterable. '''
+    ''' Test flattening a Key into a raw iterable '''
 
     # sample key
     k = Key("Sample", "sample")
@@ -176,7 +191,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_nonzero(self):
 
-    ''' Test nonzero functionality in a key. '''
+    ''' Test nonzero functionality in a key '''
 
     # sample zero key and nonzero key
     k, nk = Key("Sample"), Key("Sample", "sample")
@@ -187,7 +202,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_len(self):
 
-    ''' Test the length of a `Key`, which should only be 0 in the case of an incomplete key. '''
+    ''' Test the length of a `Key`, which should only be 0 in the case of an incomplete key '''
 
     k, nk = Key("Sample"), Key("Sample", "sample")
 
@@ -197,7 +212,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_with_model_class_kind(self):
 
-    ''' Test making a `Key` via using a model class as the kind. '''
+    ''' Test making a `Key` via using a model class as the kind '''
 
     ## KindedModel
     # Used to test using classes for kinds in `model.Key`.
@@ -221,7 +236,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_ancestry(self):
 
-    ''' Make a key with ancestry and test it a bunch. '''
+    ''' Test `Key` ancestry mechanisms '''
 
     # manufacture keys
     pk = model.Key("ParentKind", "parent_id")
@@ -259,7 +274,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_with_overflowing_schema(self):
 
-    ''' Test construction of a `Key` with too many schema items. '''
+    ''' Test construction of a `Key` with too many schema items '''
 
     # try and make a key with a ton of arguments
     with self.assertRaises(TypeError):
@@ -267,7 +282,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_construct_multiple_formats(self):
 
-    ''' Test constuction of a `Key` with multiple formats, which is not supported. '''
+    ''' Test constuction of a `Key` with multiple formats, which is not supported '''
 
     # sample key
     ok = model.Key("Sample", "sample_id")
@@ -278,7 +293,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_auto_id(self):
 
-    ''' Test an integer-based ID field. '''
+    ''' Test an integer-based ID field '''
 
     class AutoincrementTest(model.Model):
 
@@ -303,7 +318,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_adapter(self):
 
-    ''' Make sure the adapter is attached correctly to `model.Key`. '''
+    ''' Test that the adapter is attached correctly to `Key` '''
 
     # build test obj
     k = model.Key("TestKind", "test")
@@ -318,7 +333,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_equality(self):
 
-    ''' Make sure keys equal each other when they should. '''
+    ''' Test that keys equal each other when they should '''
 
     conditions = []
 
@@ -341,7 +356,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_inequality(self):
 
-    ''' Make sure keys don't equal each other when they shouldn't. '''
+    ''' Test that keys don't equal each other when they shouldn't '''
 
     conditions = []
 
@@ -374,7 +389,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_format(self):
 
-    ''' Make sure there's a proper format spec on `model.Key`. '''
+    ''' Test format specification on `Key` '''
 
     # build object
     k1 = model.Key("Test", "testkey")
@@ -391,7 +406,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_set_unknown_attribute(self):
 
-    ''' Try setting an unknown and known attribute. '''
+    ''' Test setting an unknown and known attribute on a `Key` '''
 
     k = model.Key("CoolKind", "coolid")
     with self.assertRaises(AttributeError):
@@ -399,7 +414,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_overwrite_known_attribute(self):
 
-    ''' Try overwriting a known (schema-d) attribute. '''
+    ''' Test overwriting a known (schema-d) attribute on a `Key` '''
 
     k = model.Key("CoolKind", "coolid")
     with self.assertRaises(AttributeError):
@@ -409,7 +424,7 @@ class KeyTests(FrameworkTest):
 
   def test_key_set_attribute_persisted(self):
 
-    ''' Try setting a valid attribute _after_ a Key has been persisted. '''
+    ''' Test setting a valid attribute on a persisted `Key` '''
 
     class PersistedKeyTest(model.Model):
 

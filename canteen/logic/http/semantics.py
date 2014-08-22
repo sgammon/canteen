@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: HTTP semantics
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  HTTP semantics
+  ~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -13,6 +13,9 @@
 
 '''
 
+# session API
+from .. import session
+
 # core
 from canteen.base import logic
 from canteen.core import runtime
@@ -20,10 +23,6 @@ from canteen.core import runtime
 # canteen util
 from canteen.util import config
 from canteen.util import decorators
-
-# cache & session APIs
-from canteen.core.api import cache
-from canteen.core.api import session
 
 
 def url(name_or_route, route=None, **kwargs):
@@ -138,9 +137,11 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     #### ==== Routing ==== ####
     @classmethod
-    def add_route(cls, (route, name), target, **kwargs):
+    def add_route(cls, route, target, **kwargs):
 
       '''  '''
+
+      route, name = route
 
       # compile route and set in routing cache
       cls.router.set(route, (name, target, kwargs))
@@ -175,8 +176,10 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       '''  '''
 
+      from canteen.logic import cache
+
       if not cls.__router__:
-        cls.__router__ = cache.CacheAPI.spawn('router')
+        cls.__router__ = cache.Caching.spawn('router')
       return cls.__router__
 
     @decorators.classproperty
@@ -211,8 +214,9 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       # sanity checks
       if (not url and not name) or (url and name):
-        raise TypeError('Must provide either a URL or name to redirect to - not both and at least one or the other. Got "%s" and "%s".' % (url, name))
-      return utils.redirect(url if url else self.url_for(name, *args, **kwargs), code=302 if not permanent else 301)
+        raise TypeError('Must provide either a URL or name to redirect to -'
+                        ' not both and at least one or the other. Got "%s" and "%s".' % (url, name))
+      return utils.redirect(url if url else cls.url_for(name, *args, **kwargs), code=302 if not permanent else 301)
 
     @decorators.bind('response', wrap=classmethod)
     def response(cls, *args, **kwargs):
@@ -222,47 +226,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       return wrappers.Response(*args, **kwargs)
 
     #### ==== HTTP Methods ==== ####
-    @decorators.bind('GET')
-    def GET(self):
 
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
-
-    @decorators.bind('POST')
-    def POST(self):
-
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
-
-    @decorators.bind('PUT')
-    def PUT(self):
-
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
-
-    @decorators.bind('HEAD')
-    def HEAD(self):
-
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
-
-    @decorators.bind('OPTIONS')
-    def OPTIONS(self):
-
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
-
-    @decorators.bind('TRACE')
-    def TRACE(self):
-
-      '''  '''
-
-      self.error(405)  # default to a `Method Not Allowed`
+    # default to a `Method Not Allowed`
+    GET = decorators.bind('GET')(lambda self: self.error(405))
+    POST = decorators.bind('POST')(lambda self: self.error(405))
+    PUT = decorators.bind('PUT')(lambda self: self.error(405))
+    HEAD = decorators.bind('HEAD')(lambda self: self.error(405))
+    OPTIONS = decorators.bind('OPTIONS')(lambda self: self.error(405))
+    TRACE = decorators.bind('TRACE')(lambda self: self.error(405))
 
 
     __all__ = (

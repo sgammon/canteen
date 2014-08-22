@@ -2,12 +2,8 @@
 
 '''
 
-  canteen: adapter core tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  tests core adapter functionality, like MRO-based method
-  injection into regular :py:class:`model.Key` and
-  :py:class:`model.Model` classes.
+  HTTP redirect logic tests
+  ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

@@ -65,7 +65,8 @@ class Tool(object):
           objects provided by :py:mod:`argparse`. '''
 
       # initialize `Tool` regularly to apply this metaclass downwards
-      if name == 'Tool': return super(cls, cls).__new__(cls, name, bases, properties)
+      if name == 'Tool':
+        return super(cls, cls).__new__(cls, name, bases, properties)
 
       _subtools, _arguments = [], []
       for key, value in properties.viewitems():
@@ -91,9 +92,13 @@ class Tool(object):
         elif isinstance(value, type) and issubclass(value, Tool):
 
           def _add_subparser(root, obj, subparsers):
-            sub = subparsers.add_parser((getattr(obj, 'name') if hasattr(obj, 'name') else obj.__name__).lower(), **{
+            ## bind helptext from __doc__
+            sub = subparsers.add_parser((getattr(obj, 'name') if (
+              hasattr(obj, 'name')) else obj.__name__).lower(), **{
               'conflict_handler': 'resolve',
-              'help': textwrap.dedent(getattr(obj, '__doc__').strip()) if hasattr(obj, '__doc__') and (getattr(obj, '__doc__') is not None) else None  ## bind helptext from __doc__
+              'help': textwrap.dedent(getattr(obj, '__doc__').strip()) if (
+                hasattr(obj, '__doc__') and (
+                  getattr(obj, '__doc__') is not None)) else None
             })
 
             sub.set_defaults(func=obj.execute)
@@ -111,12 +116,14 @@ class Tool(object):
           # well those are the only two options
           continue
 
-      klass = super(cls, cls).__new__(cls, name, bases, properties)  # construct class
+      # construct class
+      klass = super(cls, cls).__new__(cls, name, bases, properties)
 
       # add to registered parsers
       cls.parsers[name] = {
         'name': (properties['name'] if 'name' in properties else name).lower(),
-        'description': textwrap.dedent(properties['__doc__']) if '__doc__' in properties else None,
+        'description': textwrap.dedent(properties['__doc__']) if (
+          '__doc__' in properties) else None,
         'implementation': klass,
         'objects': {
           'subtools': _subtools,
@@ -153,6 +160,10 @@ class Tool(object):
         Execution cascades from the tip to sub- :py:class:`Tool`s, and
         then to arguments.
 
+        :param parser:
+        :param autorun:
+        :param safe:
+
         :returns: ``None``, as this is an initializer method. '''
 
     global _root_tool
@@ -164,21 +175,26 @@ class Tool(object):
 
     if not parser:
       # start top-level argument parser
-      parser = argparse.ArgumentParser(prog=(self.name if hasattr(self, 'name') else self.__class__.__name__).lower(), description=textwrap.dedent(self.__doc__.strip()) if not (sys.flags.optimize > 1) else '')
+      parser = argparse.ArgumentParser(prog=(self.name if (
+        hasattr(self, 'name')) else self.__class__.__name__).lower(),
+        description=textwrap.dedent(self.__doc__.strip()) if not (
+          (sys.flags.optimize > 1)) else '')
       if not _root_tool: _root_tool = parser
 
     self.parser = parser  # assign local parser
 
     # local args
-    for callable, flag, _config in config.get('objects', {}).get('arguments', []):
+    for callable, flag, _config in (
+      config.get('objects', {}).get('arguments', [])):
       callable(parser, flag, _config)  # initialize each argument
 
     # local subtools
     if config.get('objects', {}).get('subtools', []):
       commands = parser.add_subparsers(dest='subcommand', title='bundled tools')
       for impl, callable in config.get('objects', {}).get('subtools', []):
-        subparser = callable(_root_tool, impl, commands)  # initialize each subtool
-        setattr(self, (impl.name if hasattr(impl, 'name') else impl.__name__).lower(), impl(subparser))
+        subparser = callable(_root_tool, impl, commands)  # initialize subtools
+        setattr(self, (impl.name if (
+          hasattr(impl, 'name')) else impl.__name__).lower(), impl(subparser))
 
     if autorun:
       if safe:
@@ -186,13 +202,15 @@ class Tool(object):
       else:
         self(_root_tool.parse_args())
 
-  def __call__(self, arguments, unknown=None):
+  def __call__(self, arguments, unknown=None):  # pragma: no cover
 
     ''' Begins dispatching execution from a set of parsed arguments,
         as the product of a :py:meth:`parser.parse_args()` call.
 
         :param arguments: :py:class:`argparse.Namespace` object,
         resulting from ``parser.parse_args()``.
+
+        :param unknown:
 
         :returns: Unix return code, suitable for passing directly
         to ``sys.exit()``. '''
@@ -212,7 +230,7 @@ class Tool(object):
         else:
           return_value = arguments.func(arguments)
 
-    except Exception as exc:
+    except Exception:
       raise
     return 1 if not return_value else 0
 

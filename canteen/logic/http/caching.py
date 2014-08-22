@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: HTTP caching logic
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  HTTP caching logic
+  ~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

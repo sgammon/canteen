@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: protorpc model extensions
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  protorpc model extensions
+  ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -73,6 +73,7 @@ else:
   # build quick builtin lookup
   _builtin_fields = frozenset(_field_explicit_map.keys())
 
+
   # recursive message builder
   def build_message(_model):
 
@@ -128,8 +129,8 @@ else:
         if not isinstance(explicit, (basestring, tuple)):
           context = (name, _model.kind(), type(explicit))
           raise TypeError('Invalid type found for explicit message field implementation binding - property'
-                  '\"%s\" of model \"%s\" cannot bind to field of type \"%s\". A basestring field'
-                  'name or tuple of (name, *args, <**kwargs>) was expected.' % context)
+                          ' \"%s\" of model \"%s\" cannot bind to field of type \"%s\". A basestring field'
+                          ' name or tuple of (name, *args, <**kwargs>) was expected.' % context)
 
         elif isinstance(explicit, tuple):
 
@@ -202,43 +203,6 @@ else:
         _model_message[name] = pmessages.MessageField(*_pargs)
         continue
 
-      elif isinstance(prop._basetype, type) and issubclass(prop._basetype, datastructures.BidirectionalEnum):
-
-        # quick check: empty enums create stringfields
-        if not len(prop._basetype.__forward__):
-          _field_i = _field_i + 1
-          _pargs.append(_field_i)
-          _model_message[name] = pmessages.StringField(*_pargs, **_pkwargs)
-          continue
-
-        # pop first data item off and check type
-        if isinstance(getattr(prop._basetype, prop._basetype.__forward__[0]), basestring):
-
-          # for string values, simply use a string property...
-          _field_i = _field_i + 1
-          _pargs.append(_field_i)
-          _model_message[name] = pmessages.StringField(*_pargs, **_pkwargs)
-
-        else:
-          # it's an enum-compatible class, dynamically build one
-          # ... build class internals
-          enum_klass = {
-            '__module__': prop._basetype.__module__
-          }
-
-          # otherwise, just add data properties
-          enum_klass.update(prop._basetype.__serialize__())
-
-          # construct enum class
-          enum = type(prop._basetype.__name__, (pmessages.Enum,), enum_klass)
-
-          # build field and advance
-          _field_i = _field_i + 1
-          _pargs.append(enum)
-          _pargs.append(_field_i)
-          _model_message[name] = pmessages.EnumField(*_pargs, **_pkwargs)
-          continue
-
       # check builtin basetypes
       elif prop._basetype in _builtin_basetypes:
 
@@ -260,7 +224,7 @@ else:
       else:
         context = (name, _model.kind(), prop._basetype)
         raise ValueError("Could not resolve proper serialization for property \"%s\""
-                 "of model \"%s\" (found basetype \"%s\")." % context)
+                         " of model \"%s\" (found basetype \"%s\")." % context)
 
     # construct message class on-the-fly
     return type(_model.kind(), (pmessages.Message,), _model_message)
@@ -271,14 +235,27 @@ else:
 
     ''' Adapt `Key` classes to ProtoRPC messages. '''
 
-    def to_message(self):
+    def to_message(self, flat=False, encoded=False):
 
       ''' Convert a `Key` instance to a ProtoRPC `Message` instance.
 
         :returns: Constructed :py:class:`protorpc.Key` message object. '''
 
       from canteen import rpc
-      return rpc.Key(id=str(self.id), kind=self.kind, encoded=self.urlsafe())
+
+      args = {
+        'id': self.id,
+        'kind': self.kind,
+        'encoded': self.urlsafe()
+      }
+
+      if self.parent:
+        if encoded:
+          # indication from outer method that we should only encode
+          return rpc.Key(**args)
+        args['parent'] = self.parent.to_message(not flat, flat)
+
+      return rpc.Key(**args)
 
     @classmethod
     def to_message_model(cls):
@@ -295,8 +272,12 @@ else:
 
       '''  '''
 
+      parent = cls.from_message(key_message.parent) if (
+        key_message.parent
+      ) else None
+
       # decode recursively for parent key, if specified
-      return cls(key_message.kind, key_message.id, parent=cls.from_message(key_message.parent)if key_message.parent else None)
+      return cls(key_message.kind, key_message.id, parent=parent)
 
 
   ## ProtoRPCModel

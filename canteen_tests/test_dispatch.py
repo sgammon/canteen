@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: dispatch tests
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  dispatch tests
+  ~~~~~~~~~~~~~~
 
   tests WSGI dispatch gateway and assorted relevant machinery.
 

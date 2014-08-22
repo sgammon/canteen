@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: core injection tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  core injection tests
+  ~~~~~~~~~~~~~~~~~~~~
 
   tests the injection core, which is the "frontend" to the DI system.
   "compound" meta-objects, defined by the module tested by this code,

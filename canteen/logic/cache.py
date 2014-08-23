@@ -35,16 +35,14 @@ _BUILTIN_TYPES = (int, float, str, list, dict, tuple, unicode, type(abc))
 
 class Cache(object):
 
-  ''' Specifies an instance of a cache, that supports
-      storage and retrieval of arbitrary native Python
-      values.
+  ''' Specifies an instance of a cache, that supports storage and retrieval of
+      arbitrary native Python values.
 
-      Attached to every :py:class:`Cache` is a ``Strategy``
-      and a ``Target``, specifying the management policy
-      and underlying caching engine, respectively.
+      Attached to every :py:class:`Cache` is a ``Strategy`` and a ``Target``,
+      specifying the management policy and underlying caching engine,
+      respectively.
 
-      Both components are extendable to create custom
-      caching solutions. '''
+      Both components are extendable to create custom caching solutions. '''
 
   class Engine(object):
 
@@ -58,16 +56,13 @@ class Cache(object):
     ## == Internals == ##
     def __init__(self, target, strategy=None):
 
-      ''' Initialize a new ``Cache``, utilizing
-          ``target`` as a cache adapter/library
-          ``strategy`` as a cache management
-          policy.
+      ''' Initialize a new ``Cache``, utilizing ``target`` as a cache
+          adapter/library ``strategy`` as a cache management policy.
 
-          :param target: Target library or cache
-          system.
+          :param target: Target library or cache system.
 
-          :param strategy: Cache management
-          policy, extending ``Cache.Strategy``. '''
+          :param strategy: Cache management policy, extending
+            ``Cache.Strategy``. '''
 
       self.target, self.strategy = target, strategy
 
@@ -75,16 +70,15 @@ class Cache(object):
     @abc.abstractmethod
     def get(self, key):
 
-      ''' Specifies abstract version of ``Cache.get``,
-          which is used to retrieve cached items.
+      ''' Specifies abstract version of ``Cache.get``, which is used to retrieve
+          cached items.
 
           :param key: Cached item's key.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return the cached
-          item stored at ``key``. '''
+          :returns: Implementors must return the cached item stored at
+            ``key``. '''
 
       raise NotImplementedError('`Cache.get`'
                                 ' is abstract.')  # pragma: no cover
@@ -92,18 +86,16 @@ class Cache(object):
     @abc.abstractmethod
     def get_multi(self, keys):
 
-      ''' Specifies abstract version of ``Cache.get_multi`,
-          which is used to retrieve multiple cache items
-          ine one call.
+      ''' Specifies abstract version of ``Cache.get_multi`, which is used to
+          retrieve multiple cache items ine one call.
 
           :param keys: Iterable of cached item keys.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return a dict of cached items
-          cached items, or ``None``, according to that
-          result's position in the original ``keys`` iterable. '''
+          :returns: Implementors must return a dict of cached items cached
+            items, or ``None``, according to that result's position in the
+            original ``keys`` iterable. '''
 
       raise NotImplementedError('`Cache.get_multi`'
                                 ' is abstract.')  # pragma: no cover
@@ -113,21 +105,18 @@ class Cache(object):
     @abc.abstractmethod
     def set(self, key, value):
 
-      ''' Specifies abstract version of ``Cache.set``,
-          which is used to store individual items in
-          the ``Cache``.
+      ''' Specifies abstract version of ``Cache.set``, which is used to store
+          individual items in the ``Cache``.
 
-          :param key: String key the item should be
-          stored at, for future reference.
+          :param key: String key the item should be stored at, for future
+            reference.
 
-          :param value: Raw value to be stored in the
-          cache at ``key``.
+          :param value: Raw value to be stored in the cache at ``key``.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return the original
-          value passed in to be cached at ``value``. '''
+          :returns: Implementors must return the original value passed in to be
+            cached at ``value``. '''
 
       raise NotImplementedError('`Cache.set`'
                                 ' is abstract.')  # pragma: no cover
@@ -135,20 +124,16 @@ class Cache(object):
     @abc.abstractmethod
     def set_multi(self, map):
 
-      ''' Specifies abstract version of ``Cache.set_multi``,
-          which is used to write multiple items to the
-          ``Cache`` in one call.
+      ''' Specifies abstract version of ``Cache.set_multi``, which is used to
+          write multiple items to the ``Cache`` in one call.
 
-          :param map: Iterable of ``(key, value)`` tuples
-          or ``dict`` of ``key=>value`` mappings that should
-          be saved to the cache.
+          :param map: Iterable of ``(key, value)`` tuples or ``dict`` of
+            ``key=>value`` mappings that should be saved to the cache.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return the original
-          iterable or ``dict`` of values passed in to be
-          cached at ``map``. '''
+          :returns: Implementors must return the original iterable or ``dict``
+            of values passed in to be cached at ``map``. '''
 
       raise NotImplementedError('`Cache.set_multi`'
                                 ' is abstract.')  # pragma: no cover
@@ -157,18 +142,16 @@ class Cache(object):
     @abc.abstractmethod
     def delete(self, key):
 
-      ''' Specifies abstract version of ``Cache.delete``,
-          which is used to delete an individual item from
-          the ``Cache``.
+      ''' Specifies abstract version of ``Cache.delete``, which is used to
+          delete an individual item from the ``Cache``.
 
-          :param key: String key under which an item may be
-          stored in the ``Cache`` that should be deleted.
+          :param key: String key under which an item may be stored in the
+            ``Cache`` that should be deleted.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return the original
-          ``key`` at which an item should have been deleted. '''
+          :returns: Implementors must return the original ``key`` at which an
+            item should have been deleted. '''
 
       raise NotImplementedError('`Cache.delete`'
                                 ' is abstract.')  # pragma: no cover
@@ -176,19 +159,16 @@ class Cache(object):
     @abc.abstractmethod
     def delete_multi(self, keys):
 
-      ''' Specifies abstract version of ``Cache.delete_multi``,
-          which is used to delete multiple items from the
-          ``Cache`` in one call.
+      ''' Specifies abstract version of ``Cache.delete_multi``, which is used to
+          delete multiple items from the ``Cache`` in one call.
 
-          :param keys: Iterable of string keys under which
-          existing cached items should be deleted.
+          :param keys: Iterable of string keys under which existing cached items
+            should be deleted.
 
-          :raises NotImplementedError: Always, as this
-          method is abstract.
+          :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: Implementors must return the original
-          iterable of ``keys`` under which items should have
-          been deleted. '''
+          :returns: Implementors must return the original iterable of ``keys``
+            under which items should have been deleted. '''
 
       raise NotImplementedError('`Cache.delete_multi`'
                                 ' is abstract.')  # pragma: no cover
@@ -196,12 +176,11 @@ class Cache(object):
     @abc.abstractmethod
     def clear(self):
 
-      ''' Specifies abstract version of ``Cache.clear``, which
-          is used to nuke the cache (clearing it of all items)
-          in one call.
+      ''' Specifies abstract version of ``Cache.clear``, which is used to nuke
+          the cache (clearing it of all items) in one call.
 
-          :returns: ``None``, as the cache should have been
-          nuked and what else would we return? '''
+          :returns: ``None``, as the cache should have been nuked and what else
+            would we return? '''
 
       raise NotImplementedError('`Cache.clear`'
                                 ' is abstract.')  # pragma: no cover
@@ -214,16 +193,15 @@ class Cache(object):
     @abc.abstractmethod
     def should_expire(self, key):
 
-      ''' Specifies abstract version of ``Cache.Strategy.should_expire``,
-          which is called by the ``Cache`` internals on an implementing
-          cache strategy to discern whether a key should be dropped from
-          the cache.
+      ''' Specifies abstract version of ``Cache.Strategy.should_expire``, which
+          is called by the ``Cache`` internals on an implementing cache strategy
+          to discern whether a key should be dropped from the cache.
 
-          :param key: String key that should be evaluated against this
-          cache management policy.
+          :param key: String key that should be evaluated against this cache
+            management policy.
 
-          :returns: Implementors are expected to return ``True`` if the
-          key should expire or ``False`` if the key should be kept. '''
+          :returns: Implementors are expected to return ``True`` if the key
+            should expire or ``False`` if the key should be kept. '''
 
       raise NotImplementedError('`Cache.Strategy.should_expire`'
                                 ' is abstract.')  # pragma: no cover
@@ -232,15 +210,14 @@ class Cache(object):
     @abc.abstractmethod
     def tick(self, timestamp):
 
-      ''' Specifies abstract version of ``Cache.Strategy.tick``, which
-          is called by the ``Cache`` internals every so often to trim
-          or clean the cache.
+      ''' Specifies abstract version of ``Cache.Strategy.tick``, which is called
+          by the ``Cache`` internals every so often to trim or clean the cache.
 
-          :param timestamp: Current integer Unix timestamp, handed-in
-          for convenience.
+          :param timestamp: Current integer Unix timestamp, handed-in for
+            convenience.
 
-          :returns: Nothing is expected of implementors for a return
-          value from this method. '''
+          :returns: Nothing is expected of implementors for a return value from
+            this method. '''
 
       raise NotImplementedError('`Cache.Strategy.tick`'
                                 ' is abstract.')  # pragma: no cover
@@ -249,24 +226,24 @@ class Cache(object):
 @decorators.bind('cache')
 class Caching(logic.Logic):
 
-  ''' Bundled logic that provides basic caching functionality
-      through Canteen's builtin ``Cache`` APIs. Formerly the
-      'Core Cache API'. '''
+  ''' Bundled logic that provides basic caching functionality through Canteen's
+      builtin ``Cache`` APIs. Formerly the 'Core Cache API'. '''
 
   #### ==== Cache Strategies ==== ####
   class PersistentCache(Cache.Strategy):
 
-    ''' Offers a ``Cache.Strategy`` designed to *never* expire
-        keys and refuse to clean/trim during cache ``tick``. '''
+    ''' Offers a ``Cache.Strategy`` designed to *never* expire keys and refuse
+        to clean/trim during cache ``tick``. '''
 
     def should_expire(self, key, timestamp):
 
-      ''' Always return ``False`` as this strategy specifies
-          that no keys should be dropped, ever.
+      ''' Always return ``False`` as this strategy specifies that no keys should
+          be dropped, ever.
 
           :param key: String ``key`` to not-drop.
-          :param timestamp: Integer ``timestamp`` for ``now``,
-          as understood by the client. Handed in for convenience.
+
+          :param timestamp: Integer ``timestamp`` for ``now``, as understood by
+            the client. Handed in for convenience.
 
           :returns: ``False``. Always. '''
 
@@ -274,9 +251,8 @@ class Caching(logic.Logic):
 
     def tick(self, timestamp):
 
-      ''' Always return ``NotImplemented`` as a sentinel to
-          the ``Cache`` internals that this strategy refuses
-          to clean/trim on cache tick.
+      ''' Always return ``NotImplemented`` as a sentinel to the ``Cache``
+          internals that this strategy refuses to clean/trim on cache tick.
 
           :returns: ``NotImplemented``. Always. '''
 

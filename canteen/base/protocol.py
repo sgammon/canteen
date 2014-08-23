@@ -161,8 +161,7 @@ with runtime.Library('protorpc') as (library, protorpc):
         klass.__label__, klass.__content_types__, klass.__config__ = (
           name,
           types,
-          config
-        )
+          config)
 
         if name not in Protocol.__protocols__:
           Protocol.__protocols__[name] = klass  # register :)

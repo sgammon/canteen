@@ -39,12 +39,19 @@ class Delegate(object):
 
       ''' Construct a new ``Delegate`` subclass.
 
-          :param name_or_target:
-          :param bases:
-          :param properties:
+          :param name_or_target: Either the ``str`` name of a subtype extending
+            ``Delegate`` directly or a name to wrap into an ephemeral
+            ``Delegate`` type (mainly for use in labelling).
 
-          :raises:
-          :returns: '''
+          :param bases: Unset (``None``) unless extending ``Delegate``,
+            otherwise a tuple of ``bases``.
+
+          :param properties: Unset (``None``) unless extending ``Delegate``,
+            otherwise a ``dict`` mapping of class-level attributes and values.
+
+          :returns: Factoried ``Delegate`` subtype, wrapped with an injection
+            responder closure suitable for use in MRO-based dependency
+            resolution. '''
 
       # if it only comes through with a target, it's a subdelegate
       if bases or properties:
@@ -60,16 +67,26 @@ class Delegate(object):
         ''' Injected responder for attribute accesses that hit the DI pool.
             Resolves a ``key`` for a given ``klass``, if possible.
 
-            :param klass:
-            :param key:
+            :param klass: Origin class for which we should generate a DI pool
+              on-the-fly. This could be thought of as the *"perspective"* or
+              *"client"* of a dependency *"request"*, due to be injected ASAP.
 
-            :raises:
-            :returns: '''
+            :param key: Symbol that the caller would like to be provided by the
+              DI pool, after exhausting more scope-specific options in the MRO
+              chain.
+
+            :raises AttributeError: If an attribute could not be found in the
+              dependency pool, to simulate "not finding" a property on the
+              origin ``klass``.
+
+            :returns: Any result that the dependency pool can provide, from all
+              known dependency resources available to ``klass``, available at
+              ``key``. '''
 
         # @TODO(sgammon): make things not jank here (don't always `collapse`)
         try:
           bridge = Proxy.Component.collapse(klass)
-          if isinstance(bridge[key], tuple):
+          if isinstance(bridge[key], tuple):  # pragma: no cover
             return getattr(*bridge[key])  # bridge key is (responder, attribute)
           return bridge[key]  # return value directly if it's not a tuple
         except KeyError:  # pragma: nocover
@@ -90,7 +107,7 @@ class Delegate(object):
       ''' Generate a string representation of the local ``Delegate``, including
           whatever class context we're running in, if any.
 
-          :returns: '''
+          :returns: String representation of a bound or root delegate. '''
 
       return "<delegate root>" if not (
         cls.__target__) else "<delegate '%s'>" % cls.__target__.__name__
@@ -101,8 +118,10 @@ class Delegate(object):
     ''' Factory a new ``Delegate`` subclass, bound to the ``target`` context
         class.
 
-        :param target:
-        :returns: '''
+        :param target: Subject class to bind and spawn a ``Delegate`` subtype
+          for.
+
+        :returns: Bound ``Delegate`` subtype, suitable for MRO mixing. '''
 
     # wrap in Delegate class context as well
     return cls.__metaclass__.__new__(cls, target)
@@ -124,7 +143,9 @@ class Compound(type):
     ''' Prepares MRO (Method Resolution Order) with a customized ``Delegate``
         that provides a view into the DI pool.
 
-        :returns: '''
+        :returns: Prepared MRO for a dependency-injected metatype, known as a
+          ``Compound`` because it is essentially the product of itself and a
+          collapsed set of ``Component`` injectables. '''
 
     for base in cls.__bases__:
       # check if we've seen any of these bases
@@ -158,5 +179,4 @@ class Bridge(object):
 __all__ = (
   'Delegate',
   'Compound',
-  'Bridge'
-)
+  'Bridge')

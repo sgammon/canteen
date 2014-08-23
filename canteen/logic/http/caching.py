@@ -29,9 +29,6 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    pass
-
 
   __all__ = (
-    'Caching',
-  )
+    'Caching',)

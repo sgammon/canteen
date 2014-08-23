@@ -344,6 +344,7 @@ class Templates(logic.Logic):
       'round': round, 'slice': slice,
       'xrange': xrange, 'filter': filter,
       'reduce': reduce, 'sorted': sorted,
+      'getattr': getattr, 'setattr': setattr,
       'unicode': unicode, 'reversed': reversed,
       '__debug__': __debug__ and config.Config().debug,
       'isinstance': isinstance, 'issubclass': issubclass

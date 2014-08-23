@@ -25,18 +25,142 @@ if __debug__:
   import sys
   import unittest
 
-  # registry magic
+  # internals
   from .core import meta
+  from .core import Library
+  from .util import config
+  from .util import ObjectProxy
+
+  # dispatch tools
+  from .dispatch import spawn
+
+  # HTTP logic
+  from .logic.http import semantics
 
 
-  class AppTest(unittest.TestCase):
+  class BaseTest(unittest.TestCase):
+
+    '''  '''
+
+    __appconfig__ = None  # class-level assignment of app config state
+
+    @classmethod
+    def set_config(cls, target):
+
+      '''  '''
+
+      cls.__appconfig__ = target  # assign at class-level
+
+
+    with Library('werkzeug', strict=True) as (library, werkzeug):
+
+      __werkzeug__ = ObjectProxy({
+        'test': library.load('test'),
+        'testapp': library.load('testapp'),
+        'wrappers': library.load('wrappers')
+      })
+
+      def _dispatch_endpoint(self):
+
+        '''  '''
+
+        return spawn(None, dev=True, config=config.Config(**self.__appconfig__))
+
+      def _spawn_client(self, wsgi_target=None):
+
+        '''  '''
+
+        return self.__werkzeug__.test.Client(*(
+          wsgi_target or self.__werkzeug__.testapp.test_app,
+          semantics.HTTPSemantics.HTTPResponse))
+
+      def dispatch(self, app, method, *args, **kwargs):
+
+        '''  '''
+
+        return getattr(self._spawn_client(app), method.lower())(*args, **kwargs)
+
+      def GET(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'GET'))
+
+      def POST(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'POST'))
+
+      def HEAD(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'HEAD'))
+
+      def OPTIONS(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'OPTIONS'))
+
+      def PUT(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'PUT'))
+
+      def DELETE(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'DELETE'))
+
+      def TRACE(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'TRACE'))
+
+      def PATCH(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'PATCH'))
+
+      def CONNECT(self, *args, **kwargs):
+
+        '''  '''
+
+        return self.dispatch(*(
+          kwargs.get('app', self._dispatch_endpoint()),
+          'CONNECT'))
+
+
+  class AppTest(BaseTest):
 
     '''  '''
 
     __root__, __owner__, __metaclass__ = True, 'AppTest', meta.Proxy.Registry
 
 
-  class FrameworkTest(unittest.TestCase):
+  class FrameworkTest(BaseTest):
 
     '''  '''
 

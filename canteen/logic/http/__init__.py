@@ -30,5 +30,4 @@ __all__ = (
   'Caching',
   'Redirects',
   'UserAgent',
-  'HTTPSemantics'
-)
+  'HTTPSemantics')

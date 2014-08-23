@@ -27,5 +27,4 @@ __all__ = (
   'page', 'Page',
   'logic', 'Logic',
   'handler', 'Handler',
-  'protocol', 'Protocol'
-)
+  'protocol', 'Protocol')

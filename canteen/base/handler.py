@@ -92,15 +92,13 @@ class Handler(object):
     self.__runtime__, self.__environ__, self.__callback__ = (
       runtime,  # reference to the active runtime
       environ,  # reference to WSGI environment
-      start_response  # reference to WSGI callback
-    )
+      start_response)  # reference to WSGI callback
 
     # setup HTTP/dispatch stuff
     self.__status__, self.__headers__, self.__content_type__ = (
       200,  # default response stauts
       {},  # default repsonse headers
-      'text/html; charset=utf-8'  # default content type
-    )
+      'text/html; charset=utf-8')  # default content type
 
     # request & response
     self.__request__, self.__response__ = request, response

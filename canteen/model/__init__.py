@@ -165,7 +165,8 @@ class MetaFactory(type):
 
       for i in bases:
         if hasattr(i, '__adapter__'):
-          return i.__adapter__
+          # parent specifies adapter and no explicit, so use that
+          return None, i.__adapter__.acquire(name, bases, properties)
 
       # grab each supported adapter
       _adapters = [option for option in concrete if option.is_supported()]
@@ -262,6 +263,11 @@ class AbstractKey(object):
       _adapter = cls.resolve(name, bases, pmap)
       _module = pmap.get('__module__', 'canteen.model')
 
+      if isinstance(_adapter, tuple):
+        _base, _adapter = _adapter
+      else:
+        _base, _adapter = False, _adapter  # use concrete adapter
+
       if name == 'AbstractKey':  # <-- must be a string
         return name, bases, dict([('__adapter__', _adapter)] + pmap.items())
 
@@ -270,9 +276,11 @@ class AbstractKey(object):
         ('__bases__', bases),  # define bases for class
         ('__name__', name),  # set class name internals
         ('__owner__', None),  # reference to current owner entity
-        ('__adapter__', _adapter),  # resolve adapter for key
         ('__module__', _module),  # add class package
         ('__persisted__', False)]  # default to not persisted
+
+      if _base is not None:  # allow adapter definition to defer upwards
+        key_class.append(('__adapter__', _adapter))
 
       # resolve schema and add key format items, initted to None
       _schema = [
@@ -587,6 +595,10 @@ class AbstractModel(object):
 
         # resolve default adapter for model
         model_adapter = cls.resolve(name, bases, properties)
+        if isinstance(model_adapter, tuple):
+          _base, model_adapter = model_adapter
+        else:
+          _base = False  # we have an adapter, use it
 
         _model_internals = {  # build class layout, initialize core model
           '__impl__': {},  # holds cached implementation classes
@@ -594,9 +606,12 @@ class AbstractModel(object):
           '__kind__': name,  # kindname defaults to model class name
           '__bases__': bases,  # stores a model class's bases, so MRO can work
           '__lookup__': prop_lookup,  # frozenset of allocated attributes
-          '__adapter__': model_adapter,  # resolves default adapter class
           '__module__': properties.get('__module__'),  # add model's module
           '__slots__': tuple()}  # seal-off object attributes
+
+        # resolves default adapter class, but allow deference upwards
+        if _base is not None:
+          _model_internals['__adapter__'] = model_adapter
 
         modelclass.update(property_map)  # update at class-level
         modelclass.update(_nondata_map)  # update at class-level with non data
@@ -626,7 +641,7 @@ class AbstractModel(object):
 
         # inject our own property map
         impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)
-        return impl.__adapter__._register(impl)
+        return model_adapter._register(impl)
 
       return name, bases, properties  # pass-through to `type`
 

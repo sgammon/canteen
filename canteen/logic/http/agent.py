@@ -55,9 +55,7 @@ class AgentInfo(object):
           i,
           str(getattr(self, i) if (
             hasattr(self, i)) else None))) for i in (
-              self.__slots__) if not i.startswith('__'))
-      )
-    )
+              self.__slots__) if not i.startswith('__'))))
 
 
 class AgentVersion(AgentInfo):
@@ -253,6 +251,9 @@ class AgentFingerprint(AgentInfo):
 
     detected['languages'], detected['mimetypes'] = (
       request.accept_languages, request.accept_mimetypes)
+
+    if ua is None:
+      return cls(**{})
 
     # detect version first
     version = detected['version'] = ua.version.split('.')

@@ -35,8 +35,7 @@ class HookResponder(object):
     '__wrap__',  # hook wrapper
     '__hooks__',  # event names to fire on
     '__argspec__',  # argspec (explicit or implied)
-    '__binding__'  # binding to carry through if wrap is a bind
-  )
+    '__binding__')  # binding to carry through if wrap is a bind
 
   def __init__(self, *events, **kwargs):
 

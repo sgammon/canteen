@@ -68,7 +68,7 @@ class Cache(object):
 
     #### ==== Read Methods ==== ####
     @abc.abstractmethod
-    def get(self, key):
+    def get(self, key):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.get``, which is used to retrieve
           cached items.
@@ -84,7 +84,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def get_multi(self, keys):
+    def get_multi(self, keys):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.get_multi`, which is used to
           retrieve multiple cache items ine one call.
@@ -100,10 +100,33 @@ class Cache(object):
       raise NotImplementedError('`Cache.get_multi`'
                                 ' is abstract.')  # pragma: no cover
 
+    @abc.abstractmethod
+    def items(self, timestamp):  # pragma: no cover
+
+      ''' Specifies abstract version of ``Cache.items``, which is used to
+          iterate over items in the cache, optionally current to ``timestamp``.
+
+          This method is optional for implementors but must always be defined.
+          If an implementing class wishes not to implement this method, it must
+          return ``NotImplemented``.
+
+          :param timestamp: Optionally only return cached items that were saved
+            after the given ``datetime.datetime`` or integer Unix timestamp.
+
+          :raises NotImplementedError: Always, as this method is abstract.
+
+          :returns: Implementors must either return ``NotImplemented`` (if they
+            choose not to provide an ``items`` implementation) or an iterator
+            that will yield ``(key, value)`` tuples of items in the cache,
+            optionally current to ``timestamp``. '''
+
+      raise NotImplementedError('`Cache.items`'
+                                ' is abstract.')  # pragma: no cover
+
 
     #### ==== Write Methods ==== ####
     @abc.abstractmethod
-    def set(self, key, value):
+    def set(self, key, value):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.set``, which is used to store
           individual items in the ``Cache``.
@@ -122,7 +145,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def set_multi(self, map):
+    def set_multi(self, map):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.set_multi``, which is used to
           write multiple items to the ``Cache`` in one call.
@@ -140,7 +163,7 @@ class Cache(object):
 
     #### ==== Delete Methods ==== ####
     @abc.abstractmethod
-    def delete(self, key):
+    def delete(self, key):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.delete``, which is used to
           delete an individual item from the ``Cache``.
@@ -157,7 +180,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def delete_multi(self, keys):
+    def delete_multi(self, keys):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.delete_multi``, which is used to
           delete multiple items from the ``Cache`` in one call.
@@ -174,7 +197,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def clear(self):
+    def clear(self):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.clear``, which is used to nuke
           the cache (clearing it of all items) in one call.
@@ -191,7 +214,7 @@ class Cache(object):
 
     #### ==== Expiration Methods ==== ####
     @abc.abstractmethod
-    def should_expire(self, key):
+    def should_expire(self, key):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.Strategy.should_expire``, which
           is called by the ``Cache`` internals on an implementing cache strategy
@@ -208,7 +231,7 @@ class Cache(object):
 
     #### ==== Scan Methods ==== ####
     @abc.abstractmethod
-    def tick(self, timestamp):
+    def tick(self, timestamp):  # pragma: no cover
 
       ''' Specifies abstract version of ``Cache.Strategy.tick``, which is called
           by the ``Cache`` internals every so often to trim or clean the cache.
@@ -265,7 +288,7 @@ class Caching(logic.Logic):
     ''' Manages a simple thread local-backed caching engine, suitable for
         caching basic items that don't relate to HTTP state. '''
 
-    def get(self, key, default=None):
+    def get(self, key, default=None, _skip=False):
 
       ''' Retrieve an item from the threadcache by key.
 
@@ -275,9 +298,16 @@ class Caching(logic.Logic):
           :param default: Default item to return in the case of a nonexistent
             key. Defaults to ``None``.
 
+          :param _skip: Internal flag that indicates we can skip checking
+            ``key``'s existence, because somehow we already know it exists.
+
+          :raises KeyError: In the case of a nonexistent ``key``, but a truthy
+            value for ``_skip``, as this exposes the raw access without a
+            check through ``__contains__``.
+
           :returns: The item cached at ``key``, if any, or ``default``. '''
 
-      if key in self.target:
+      if _skip or key in self.target:
 
         # retrieve
         value, timestamp = self.target[key]
@@ -310,6 +340,17 @@ class Caching(logic.Logic):
             provided ``keys`` iterable. '''
 
       return dict(((key, self.get(key, default)) for key in keys))
+
+    def items(self):
+
+      ''' Iterate over all available keys in the cache, one by one, yielding
+          them as ``(key, value)`` pairs.
+
+          :yields: Two-item tuples of ``(key, value)`` pairs, for each ``key``
+            accessible in the local ``Threadcache`` at ``self.target``. '''
+
+      for key in self.target:
+        yield key, self.get(key, _skip=True)
 
     def set(self, key, value):
 
@@ -375,7 +416,7 @@ class Caching(logic.Logic):
 
   #### ==== Internals ==== ####
   @property
-  def config(self):
+  def config(self):  # pragma: no cover
 
     ''' Property accessor for caching configuration.
 
@@ -383,17 +424,17 @@ class Caching(logic.Logic):
           ``Caching``. '''
 
     from canteen.util import config
-    return config.Config().config.get('Caching', {})
+    return config.Config().config.get('Caching', {})  # pragma: no cover
 
   @property
-  def debug(self):
+  def debug(self):  # pragma: no cover
 
     ''' Property accessor for debug mode.
 
         :returns: Boolean indicating whether ``debug`` mode should be active.
           Defaults to Python's internal ``__debug__`` state. '''
 
-    return self.config.get('debug', __debug__)
+    return self.config.get('debug', __debug__)  # pragma: no cover
 
   #### ==== Cache Management ==== ####
   @staticmethod
@@ -471,7 +512,7 @@ class Caching(logic.Logic):
 
     if name in _caches:
       return _caches[name].clear()
-    return 0, 0
+    return 0, 0  # pragma: no cover
 
   @staticmethod
   def flush():  # pragma: no cover
@@ -523,6 +564,20 @@ class Caching(logic.Logic):
           with input.  '''
 
     return dict(((key, cls.spawn().get(key, default)) for key in keys))
+
+  @classmethod
+  def items(cls, name=None):
+
+    ''' Iterate over all available keys in the named cache at ``name`` (or the
+        default local ``Threadcache`` if no ``name`` is provided), one by one,
+        yielding them as ``(key, value)`` pairs.
+
+        :yields: Two-item tuples of ``(key, value)`` pairs, for each ``key``
+          accessible in the default local ``Threadcache``. '''
+
+    for key, value in (
+      cls.spawn() if name is None else cls.spawn(name)).items():
+      yield key, value
 
   @classmethod
   def set(cls, key, value):

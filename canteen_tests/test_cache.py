@@ -101,6 +101,7 @@ class CacheEngineTests(test.FrameworkTest):
 
     assert hasattr(self.subject, 'get')
     assert hasattr(self.subject, 'get_multi')
+    assert hasattr(self.subject, 'items')
     assert hasattr(self.subject, 'set')
     assert hasattr(self.subject, 'set_multi')
     assert hasattr(self.subject, 'delete')
@@ -141,6 +142,23 @@ class CacheEngineTests(test.FrameworkTest):
 
       # test with custom default
       assert c.get('bleebs', default=5) == 5
+
+  def test_cache_items(self):
+
+    ''' Test against `Cache` interface method `items` '''
+
+    if not self.test_abstract():
+
+      # store an item
+      c = self._spawn_cache()
+      assert c.set('blabble', 5) == 5
+      assert c.set('bleebs', 10) == 10
+
+      struct = dict(c.items())
+      assert 'blabble' in struct
+      assert 'bleebs' in struct
+      assert struct['blabble'] == 5
+      assert struct['bleebs'] == 10
 
   def test_cache_set(self):
 

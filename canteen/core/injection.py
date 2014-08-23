@@ -23,9 +23,8 @@ from .meta import Proxy
 
 class Delegate(object):
 
-  ''' Delegates property access for a given context to
-      the system DI (dependency injection) pool. Items
-      that mix a ``Delegate`` subclass into their MRO
+  ''' Delegates property access for a given context to the system DI (dependency
+      injection) pool. Items that mix a ``Delegate`` subclass into their MRO
       work transparently with injection. '''
 
   __bridge__ = None  # holds bridge for current class to collapsed component set
@@ -33,9 +32,8 @@ class Delegate(object):
 
   class __metaclass__(type):
 
-    ''' Metaclass to prepare new subclasses, wrapped as
-        customized children of ``Delegate`` that contain
-        their owner class for DI context. '''
+    ''' Metaclass to prepare new subclasses, wrapped as customized children of
+        ``Delegate`` that contain their owner class for DI context. '''
 
     def __new__(cls, name_or_target, bases=None, properties=None):
 
@@ -59,9 +57,8 @@ class Delegate(object):
 
       def injection_responder(klass, key):
 
-        ''' Injected responder for attribute accesses
-            that hit the DI pool. Resolves a ``key``
-            for a given ``klass``, if possible.
+        ''' Injected responder for attribute accesses that hit the DI pool.
+            Resolves a ``key`` for a given ``klass``, if possible.
 
             :param klass:
             :param key:
@@ -69,7 +66,7 @@ class Delegate(object):
             :raises:
             :returns: '''
 
-        # @TODO(sgammon): make things not jank here (don't `collapse` every time)
+        # @TODO(sgammon): make things not jank here (don't always `collapse`)
         try:
           bridge = Proxy.Component.collapse(klass)
           if isinstance(bridge[key], tuple):
@@ -90,9 +87,8 @@ class Delegate(object):
 
     def __repr__(cls):  # pragma: nocover
 
-      ''' Generate a string representation of the local
-          ``Delegate``, including whatever class context
-          we're running in, if any.
+      ''' Generate a string representation of the local ``Delegate``, including
+          whatever class context we're running in, if any.
 
           :returns: '''
 
@@ -102,8 +98,8 @@ class Delegate(object):
   @classmethod
   def bind(cls, target):
 
-    ''' Factory a new ``Delegate`` subclass, bound to
-        the ``target`` context class.
+    ''' Factory a new ``Delegate`` subclass, bound to the ``target`` context
+        class.
 
         :param target:
         :returns: '''
@@ -114,21 +110,19 @@ class Delegate(object):
 
 class Compound(type):
 
-  ''' Concrete class used as a metafactory for class
-      structures that should enable attribute accesses
-      for response from the DI pool.
+  ''' Concrete class used as a metafactory for class structures that should
+      enable attribute accesses for response from the DI pool.
 
-      Use this class as a metaclass on items that should
-      transparently work with attribute injection. '''
+      Use this class as a metaclass on items that should transparently work with
+      attribute injection. '''
 
   __seen__ = set()
   __delegate__ = None
 
   def mro(cls):
 
-    ''' Prepares MRO (Method Resolution Order) with a
-        customized ``Delegate`` that provides a view
-        into the DI pool.
+    ''' Prepares MRO (Method Resolution Order) with a customized ``Delegate``
+        that provides a view into the DI pool.
 
         :returns: '''
 
@@ -154,9 +148,8 @@ class Compound(type):
 
 class Bridge(object):
 
-  ''' Tiny utility class that can be used as a static
-      ``Bridge`` into the DI pool. Suitable for use as
-      an independent object, mounted wherever is
+  ''' Tiny utility class that can be used as a static ``Bridge`` into the DI
+      pool. Suitable for use as an independent object, mounted wherever is
       convenient. '''
 
   __metaclass__ = Compound

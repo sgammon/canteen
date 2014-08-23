@@ -79,10 +79,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           _serializer = Cookies.get_mode(self.config.get('mode', 'json'))
 
           # unserialize the cookie
-          session = _serializer.unserialize(request.cookies[self.config.get('key', 'canteen')], self.api.secret)
+          session = _serializer.unserialize(*(
+            request.cookies[(
+              self.config.get('key', 'canteen'))], self.api.secret))
 
           if not session.new: return request.set_session(session, self)
-        return request.set_session(None, self)  # set an explicitly-empty session (none was found)
+
+        # set an explicitly-empty session (none was found)
+        return request.set_session(None, self)
 
       def commit(self, request, response, session):
 
@@ -120,7 +124,8 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           'path': self.config.get('path', '/'),
           'secure': self.config.get('secure', False),
           'domain': self.config.get('domain', request.host.split(':')[0]),
-          'httponly': self.config.get('http_only', self.config.get('httponly', False))
+          'httponly': self.config.get('http_only', (
+                        self.config.get('httponly', False)))
         })
 
         # write cookie into the response
@@ -174,7 +179,8 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       '''  '''
 
     # install our session bridge, forcing Flask to use JSON cookies
-    flask_sessions.SecureCookieSessionInterface.session_class = FlaskSessionBridge
+    flask_sessions.SecureCookieSessionInterface.session_class = (
+      FlaskSessionBridge)
 
 
   __all__ = (

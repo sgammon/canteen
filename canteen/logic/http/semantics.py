@@ -72,7 +72,9 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     '''  '''
 
-    __aliases__ = {}  # aliases to routes  # @TODO(sgammon): rename this, it clashes with DI
+    # @TODO(sgammon): rename this, it clashes with DI
+    __aliases__ = {}  # aliases to routes
+
     __map__ = None  # routing map cache
     __router__ = None  # route cache
 
@@ -105,7 +107,9 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
           if 'uuid' not in session_obj and 'id' not in session_obj:
             session_obj = None  # no ID or UUID == no session
           else:
-            session_obj = session.Session.load(session_obj['uuid' if 'uuid' in session_obj else 'id'], data=session_obj)
+            session_obj = session.Session.load((
+              session_obj['uuid' if 'uuid' in session_obj else 'id']),
+              data=session_obj)
 
         if self.__session__:
 
@@ -215,8 +219,10 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
       # sanity checks
       if (not url and not name) or (url and name):
         raise TypeError('Must provide either a URL or name to redirect to -'
-                        ' not both and at least one or the other. Got "%s" and "%s".' % (url, name))
-      return utils.redirect(url if url else cls.url_for(name, *args, **kwargs), code=302 if not permanent else 301)
+                        ' not both and at least one or the other.'
+                        ' Got "%s" and "%s".' % (url, name))
+      return utils.redirect(url if url else cls.url_for(name, *args, **kwargs),
+                            code=302 if not permanent else 301)
 
     @decorators.bind('response', wrap=classmethod)
     def response(cls, *args, **kwargs):

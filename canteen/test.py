@@ -40,10 +40,15 @@ if __debug__:
 
     '''  '''
 
-    __root__, __owner__, __metaclass__ = True, 'FrameworkTest', meta.Proxy.Registry
+    __root__, __owner__, __metaclass__ = (
+      True, 'FrameworkTest', meta.Proxy.Registry)
 
 
-  def run(output=None, suites=None, scope=(AppTest, FrameworkTest), format='text', verbosity=1, **kwargs):  # pragma: nocover
+  def run(output=None,
+          suites=None,
+          scope=(AppTest, FrameworkTest),
+          format='text',
+          verbosity=1, **kwargs):  # pragma: nocover
 
     '''  '''
 
@@ -89,7 +94,8 @@ if __debug__:
         continue
       return set(unittest.TestSuite(_master))
 
-    master_suite = unittest.TestSuite(reduce(merge_suite, filter(filter_suite, master_suite)))
+    master_suite = unittest.TestSuite(reduce(merge_suite, (
+      filter(filter_suite, master_suite))))
 
     # allow for XML format
     if format == 'xml':
@@ -102,7 +108,9 @@ if __debug__:
         sys.exit(1)
       else:
         return xmlrunner.XMLTestRunner(output=output).run(master_suite)
-    return unittest.TextTestRunner(stream=output or sys.stdout, verbosity=verbosity, **kwargs).run(master_suite)
+    runner = unittest.TextTestRunner(stream=output or sys.stdout,
+                                     verbosity=verbosity, **kwargs)
+    return runner.run(master_suite)
 
 
   def clirunner(arguments, root=None):  # pragma: nocover
@@ -118,7 +126,8 @@ if __debug__:
 
     if arguments:
       if len(arguments) > 2:
-        print("Can only call with a maximum of 2 arguments: FORMAT and OUTPUT, or just FORMAT.")
+        print("Can only call with a maximum of 2 arguments:"
+              " FORMAT and OUTPUT, or just FORMAT.")
         sys.exit(1)
       if len(arguments) == 2:
         format, output = tuple(arguments)
@@ -135,7 +144,8 @@ if __debug__:
         'output': output or (sys.stdout if format is 'text' else None),
         'suites': discovered,
         'format': format,
-        'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (0 if 'TEST_QUIET' in os.environ else 1)
+        'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (
+          0 if 'TEST_QUIET' in os.environ else 1)
       })
     except Exception as e:
       print(e)

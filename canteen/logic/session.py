@@ -28,6 +28,31 @@ from ..util import decorators
 from .. import model as models
 
 
+## Globals
+_BUILTIN_SESSION_PROPERTIES = frozenset((
+  'seen',
+  'data',
+  'csrf',
+  'established',
+  'seen',
+  'agent',
+  'client',
+  'tombstoned'))
+
+
+class ClientSession(models.Model):
+
+  '''  '''
+
+  seen = int  # when this session was last seen
+  data = dict  # attached session state data
+  csrf = basestring  # token for use in a CSRF
+  agent = basestring  # useragent string last seen from this session
+  client = basestring  # IP address last seen from this session
+  tombstoned = bool, {'default': False}  # flag for destroying session by force
+  established = int, {'required': True}  # timestamp for session establish
+
+
 class Session(object):
 
   '''  '''
@@ -35,40 +60,35 @@ class Session(object):
   __id__ = None  # session ID slot
   __session__ = None  # holds model instance for session
 
-  class UserSession(models.Model):
-
-    '''  '''
-
-    seen = int  # when this session was last seen
-    data = dict  # attached session state data
-    csrf = basestring  # token for use in a CSRF
-    agent = basestring  # useragent string last seen from this session
-    client = basestring  # IP address last seen from this session
-    tombstoned = bool, {'default': False}  # whether this session has been destroyed
-    established = int, {'required': True}  # timestamp for when this session was established
-
-  def __init__(self, id=None, model=UserSession, **kwargs):
+  def __init__(self, id=None,
+                     model=ClientSession,
+                     **kwargs):
 
     '''  '''
 
     if isinstance(model, type):
-      # set established timestamp if it's not there already (keep ``seen`` up to date too)
-      if 'established' not in kwargs: kwargs['established'] = kwargs['seen'] = int(time.time())
+      # set established timestamp if it's not there already
+      # (keep ``seen`` up to date too)
+      if 'established' not in kwargs:
+        kwargs['established'] = kwargs['seen'] = int(time.time())
 
       if 'data' not in kwargs: kwargs['data'] = {}
 
       for k, v in kwargs.iteritems():
-        if k not in frozenset(('seen', 'data', 'csrf', 'established', 'seen', 'agent', 'client', 'tombstoned')):
+        if k not in _BUILTIN_SESSION_PROPERTIES:
           kwargs['data'][k] = v
 
-      self.__session__ = model(key=Session.make_key(id, model), **kwargs)  # it's a class
+      # it's a class
+      self.__session__ = model(key=Session.make_key(id, model), **kwargs)
       self.__id__ = self.__session__.key.id
 
     elif not kwargs:
-      self.__session__, self.__id__ = model, id  # it's an instance, set the ID and session
+      # it's an instance, set the ID and session
+      self.__session__, self.__id__ = model, id
 
     else:
-      raise RuntimeError('Cannot specify a session model instance and also additional kwargs.')
+      raise RuntimeError('Cannot specify a session model'
+                         ' instance and also additional kwargs.')
 
   @decorators.classproperty
   def config(cls):
@@ -81,7 +101,8 @@ class Session(object):
   id = property(lambda self: self.__id__)
   data = property(lambda self: self.__session__.data)
   csrf = property(lambda self: self.__session__.csrf or (
-    setattr(self.__session__, 'csrf', self.generate_token()) or self.__session__.csrf))
+    setattr(self.__session__, 'csrf', self.generate_token()) or (
+      self.__session__.csrf)))
 
   ## == Get/Set == ##
   def set(self, key, value, exception=False):
@@ -91,7 +112,9 @@ class Session(object):
     try:
       return setattr(self.data, key, value) or self
     except KeyError:
-      if exception: raise exception('Could not write to session item "%s".' % key)
+      if exception:
+          raise exception('Could not write to'
+                          ' session item "%s".' % key)
 
   def get(self, key, default=None, exception=False):
 
@@ -99,11 +122,15 @@ class Session(object):
 
     if key in self.data: return self.data[key]
     if default: return default
-    if exception: raise exception('Could not resolve session data item "%s".' % key)
+    if exception: raise exception('Could not resolve session data'
+                                  ' item "%s".' % key)
 
   # item protocol
-  __getitem__ = lambda self, key: self.get(key, exception=KeyError)
-  __setitem__ = lambda self, key, value: self.set(key, value, exception=KeyError)
+  __getitem__ = lambda self, key: (
+    self.get(key, exception=KeyError))
+
+  __setitem__ = lambda self, key, value: (
+    self.set(key, value, exception=KeyError))
 
   def __contains__(self, key):
 
@@ -138,14 +165,17 @@ class Session(object):
 
     '''  '''
 
-    if 'REMOTE_ADDR' in environ: self.__session__.client = environ.get('REMOTE_ADDR')
-    if 'HTTP_USER_AGENT' in environ: self.__session__.agent = environ.get('HTTP_USER_AGENT')
+    if 'REMOTE_ADDR' in environ:
+      self.__session__.client = environ.get('REMOTE_ADDR')
+
+    if 'HTTP_USER_AGENT' in environ:
+      self.__session__.agent = environ.get('HTTP_USER_AGENT')
 
     if self.config.get('storage', {}).get('enable'):
       return self.__session__.put(adapter=adapter)
 
   @classmethod
-  def load(cls, id, model=UserSession, strict=False, data=None):
+  def load(cls, id, model=ClientSession, strict=False, data=None):
 
     '''  '''
 
@@ -163,15 +193,17 @@ class Session(object):
     '''  '''
 
     return Session.config.get('hash', hashlib.sha256)(
-      salt + reduce(operator.add, (random.choice(string.printable) for x in xrange(32)))
+      salt + reduce(operator.add, (
+        random.choice(string.printable) for x in xrange(32)))
     ).hexdigest()
 
   @staticmethod
-  def make_key(id=None, model=UserSession):
+  def make_key(id=None, model=ClientSession):
 
     '''  '''
 
-    return models.Key(model, id or Session.generate_token(Session.config.get('salt', '')))
+    return models.Key(model, id or (
+      Session.generate_token(Session.config.get('salt', ''))))
 
 
 class SessionEngine(object):
@@ -286,8 +318,8 @@ class Sessions(logic.Logic):
     '''  '''
 
     _CONTEXT, _context_cfg = (
-      (False, {}) if not context else (True, config.Config().get(context, {}).get('sessions', {}))
-    )
+      (False, {}) if not context else (
+        True, config.Config().get(context, {}).get('sessions', {})))
 
     # try looking in config if no engine is specified
     if not name: name = _context_cfg.get('engine', 'cookies')
@@ -325,10 +357,12 @@ class Sessions(logic.Logic):
 
       session, engine = request.session  # extract session + engine
 
-      if not session and self.config.get('always_establish', True):  # engine is loaded, but no session
+      # engine is loaded, but no session
+      if not session and self.config.get('always_establish', True):
         return request.set_session(Session(), engine)
 
-  @decorators.bind('load', wrap=hooks.HookResponder('request', 'message', context=('request', 'http')))
+  @decorators.bind('load', wrap=hooks.HookResponder(*(
+    'request', 'message'), context=('request', 'http')))
   def load(self, request, http):
 
     '''  '''
@@ -341,7 +375,9 @@ class Sessions(logic.Logic):
       if session_cfg.get('enable', True):
 
         # find us an engine, yo, and default to cookie-based sessions (safest)
-        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'), context='http')
+        engine = self.get_engine(name=session_cfg.get('engine', 'cookies'),
+                                 context='http')
+
         engine.load(request=request, http=http)
 
   @decorators.bind('commit', wrap=hooks.HookResponder('response', context=(
@@ -354,9 +390,12 @@ class Sessions(logic.Logic):
       if request.session:  # are sessions enabled?
 
         session, engine = request.session  # extract engine and session
-        engine.commit(request=request, response=response, session=session)  # defer to engine to commit
 
-  @decorators.bind('save', wrap=hooks.HookResponder('complete', context=('response', 'request', 'http', 'environ')))
+        # defer to engine to commit
+        engine.commit(request=request, response=response, session=session)
+
+  @decorators.bind('save', wrap=hooks.HookResponder('complete', context=(
+                                    'response', 'request', 'http', 'environ')))
   def save(self, response, request, http, environ):
 
     '''  '''
@@ -366,7 +405,9 @@ class Sessions(logic.Logic):
       session, engine = request.session  # extract engine and session
 
       # @TODO(sgammon): support custom adapters here
-      session.save(environ, adapter=None)  # save the session via backend, along with request context
+
+      # save the session via backend, along with request context
+      session.save(environ, adapter=None)
 
 
 __all__ = (

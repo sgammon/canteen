@@ -42,7 +42,8 @@ try:  # pragma: no cover
         pass  # @TODO(sgammon): register methods
 
 
-    uWSGI.set_precedence(True)  # if we make it here, we're running *inside* uWSGI
+    # if we make it here, we're running *inside* uWSGI
+    uWSGI.set_precedence(True)
 
 except ImportError:
   pass

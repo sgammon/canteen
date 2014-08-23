@@ -84,7 +84,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         except ImportError:
           pass
       self.cache, self.module = (
-        Caching.spawn('tpl_%s' % module if isinstance(module, basestring) else module.__name__),
+        Caching.spawn('tpl_%s' % module if (
+          isinstance(module, basestring)) else module.__name__),
         module)
 
     def load(self, environment, filename, globals=None):
@@ -129,12 +130,14 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
     def get_module(self, environment, template):
 
-      ''' Converts a template path to a package path and attempts import, or else raises Jinja2's TemplateNotFound. '''
+      ''' Converts a template path to a package path and attempts
+          import, or else raises Jinja2's TemplateNotFound. '''
 
       import jinja2
 
       # Convert the path to a module name.
-      prefix, obj = (self.module.__name__ + '.' + template.replace('/', '.').replace('-', '_')).rsplit('.', 1)
+      prefix, obj = (self.module.__name__ + '.' + (
+        template.replace('/', '.').replace('-', '_')).rsplit('.', 1))
       prefix, obj = str(prefix), str(obj)
 
       try:
@@ -196,7 +199,8 @@ class Templates(logic.Logic):
 
       '''  '''
 
-      syntax_extension = (haml.HamlishExtension, haml.HamlishTagExtension)  # we're using haml :)
+      # we're using haml :)
+      syntax_extension = (haml.HamlishExtension, haml.HamlishTagExtension)
 
       def _hamlish_syntax(self, handler, environment_factory, j2config, config):
 
@@ -225,7 +229,8 @@ class Templates(logic.Logic):
           environment.hamlish_mode, environment.hamlish_debug = 'indented', True
 
         # apply config overrides
-        if 'TemplateAPI' in config.config and 'haml' in config.config['TemplateAPI']:
+        if 'TemplateAPI' in config.config and 'haml' in (
+          config.config['TemplateAPI']):
 
           for (config_item, target_attr) in (
             ('mode', 'hamlish_mode'),
@@ -233,7 +238,10 @@ class Templates(logic.Logic):
             ('div_shortcut', 'hamlish_enable_div_shortcut')):
 
             if config_item in config.config['TemplateAPI']['haml']:
-              setattr(environment, target_attr, config.config['TemplateAPI']['haml'][config_item])
+              setattr(*(
+                environment,
+                target_attr,
+                config.config['TemplateAPI']['haml'][config_item]))
 
         return environment
 
@@ -251,16 +259,21 @@ class Templates(logic.Logic):
       if not path:
         # default path to cwd, and cwd + templates/, and cwd + templates/source
         cwd = os.getcwd()
-        path = (os.path.join(cwd), os.path.join(cwd, 'templates'), os.path.join(cwd, 'templates', 'source'))
+        path = (
+          os.path.join(cwd),
+          os.path.join(cwd, 'templates'),
+          os.path.join(cwd, 'templates', 'source'))
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
 
-        if (output.get('force_compiled', False)) or (isinstance(path, dict) and 'compiled' in path and (not __debug__)):
+        if (output.get('force_compiled', False)) or (
+          isinstance(path, dict) and 'compiled' in path and (not __debug__)):
           jinja2_cfg['loader'] = ModuleLoader(path['compiled'])
 
         else:
-          jinja2_cfg['loader'] = FileLoader(path['source'] if isinstance(path, dict) else path)
+          jinja2_cfg['loader'] = FileLoader((
+            path['source'] if isinstance(path, dict) else path))
 
         if 'loader' not in jinja2_cfg:
           raise RuntimeError('No configured template source path.')
@@ -346,17 +359,23 @@ class Templates(logic.Logic):
 
       # Python Builtins (besides the Jinja2 defaults, which are _awesome_)
       'len': len, 'max': max, 'maximum': max, 'min': min, 'minimum': min,
-      'avg': average, 'average': average, 'json': json.dumps, 'tojson': json.dumps
+
+      # support for basic averages
+      'avg': average, 'average': average,
+
+      # support for json
+      'json': json.dumps, 'tojson': json.dumps
 
     }  # @TODO(sgammon): markdown/RST support?
 
   @decorators.bind('template.render')
-  def render(self, handler, config, template, context, _direct=False):
+  def render(self, handler, config, template, ctx, _direct=False):
 
     '''  '''
 
     # render template & return content iterato)
-    content = self.environment(handler, config).get_template(template).render(**context)
+    content = (
+      self.environment(handler, config).get_template(template).render(**ctx))
 
     # if _direct is requested, sanitize and roll-up buffer immediately
     if _direct: return self.sanitize(content, _iter=False)

@@ -107,7 +107,7 @@ with runtime.Library('protorpc') as (library, protorpc):
           an RPC with, based on the HTTP ``Content-Type`` header.
 
           :returns: :py:class:`protorpc.remote.Protocols` object containing all
-                    registered :py:class:`Protocol` objects. '''
+            registered :py:class:`Protocol` objects. '''
 
       # construct a protocol container
       container = remote.Protocols()
@@ -136,10 +136,10 @@ with runtime.Library('protorpc') as (library, protorpc):
           ``kwargs`` are taken as configuration to add to the protocol target.
 
           :param name: Name to register this protocol under. ``str`` or
-          ``unicode``.
+            ``unicode``.
 
           :param types: Content types to use this mapper for. Iterable of
-          ``str`` or ``unicode`` ``Content-Type`` values to match on.
+            ``str`` or ``unicode`` ``Content-Type`` values to match on.
 
           :returns: Closured wrapper to register the protocol and return it. '''
 
@@ -153,7 +153,7 @@ with runtime.Library('protorpc') as (library, protorpc):
             and configuration.
 
             :param klass: Target class to register and return. Subclass of
-            :py:class:`canteen.base.protocol.Protocol`.
+              :py:class:`canteen.base.protocol.Protocol`.
 
             :returns: Target ``klass``, after registration. '''
 
@@ -215,13 +215,13 @@ with runtime.Library('protorpc') as (library, protorpc):
           from being constructed.
 
           :param message: Object to encode with ``Protocol``. Passed-in from
-          ProtoRPC as ``message.Message``.
+            ProtoRPC as ``message.Message``.
 
           :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: ``None``, but child class implementations are expected
-                    to return an encoded ``str``/``unicode`` representation
-                    of ``message``. '''
+          :returns: ``None``, but child class implementations are expected to
+            return an encoded ``str``/``unicode`` representation of
+            ``message``. '''
 
       raise NotImplementedError('Method `Protocol.encode_message`'
                                 ' is abstract.')  # pragma: no cover
@@ -232,20 +232,20 @@ with runtime.Library('protorpc') as (library, protorpc):
       ''' Decode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
 
-          Failure to specify this method will prevent an implementing class
-          from being constructed.
+          Failure to specify this method will prevent an implementing class from
+          being constructed.
 
           :param message_type: Type to expand from ``encoded_message``. Subclass
-          of :py:class:`messages.Message`.
+            of :py:class:`messages.Message`.
 
           :param encoded_message: Encoded message to be decoded. ``str``,
-          ``unicode`` or iterable string buffer.
+            ``unicode`` or iterable string buffer.
 
           :raises NotImplementedError: Always, as this method is abstract.
 
-          :returns: ``None``, but child class implementations are expected
-                    to return an inflated ``message_type`` based on the
-                    provided ``encoded_message``. '''
+          :returns: ``None``, but child class implementations are expected to
+            return an inflated ``message_type`` based on the provided
+            ``encoded_message``. '''
 
       raise NotImplementedError('Method `Protocol.decode_message`'
                                 ' is abstract.')  # pragma: no cover

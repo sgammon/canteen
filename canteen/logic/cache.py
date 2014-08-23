@@ -30,6 +30,7 @@ from ..util import decorators
 ## Globals
 _caches = {}
 _default = (threading.local(), None)
+_BUILTIN_TYPES = (int, float, str, list, dict, tuple, unicode, type(abc))
 
 
 class Cache(object):
@@ -343,7 +344,7 @@ class Caching(logic.Logic):
 
       '''  '''
 
-      if not isinstance(value, (int, float, str, list, dict, tuple, unicode, type(abc))):
+      if not isinstance(value, _BUILTIN_TYPES):
         value = weakref.ref(value)
       self.target[key] = (value, time.time())
       return value
@@ -396,7 +397,10 @@ class Caching(logic.Logic):
 
   #### ==== Cache Management ==== ####
   @staticmethod
-  def spawn(name=None, target=None, engine=Threadcache, strategy=PersistentCache):
+  def spawn(name=None,
+            target=None,
+            engine=Threadcache,
+            strategy=PersistentCache):
 
     '''  '''
 
@@ -406,10 +410,13 @@ class Caching(logic.Logic):
     _localtarget, cache = _default
     if not name:
       if not cache:
-        _default = _caches['__default__'] = (_localtarget, engine(target=_localtarget.__dict__, strategy=strategy()))
+        _default = _caches['__default__'] = (
+          _localtarget, engine(target=_localtarget.__dict__,
+                               strategy=strategy()))
       return _default[1]  # return engine
 
-    _caches[name] = engine(target=target or threading.local().__dict__, strategy=strategy())
+    _caches[name] = engine(target=target or threading.local().__dict__,
+                           strategy=strategy())
     return _caches[name]
 
   @staticmethod

@@ -32,7 +32,7 @@ _support = struct.WritableObjectProxy()
 _server_profiles = {}  # holds globally-configured server profiles
 _default_profile = None  # holds the default redis instance mapping
 _client_connections = {}  # holds instantiated redis connection clients
-_profiles_by_model = {}  # holds specific model => redis instance mappings, if any
+_profiles_by_model = {}  # holds specific model => redis instance mappings
 _SERIES_BASETYPES = (  # basetypes that should be stored as a sorted set
   datetime.datetime, datetime.date, datetime.time, float, int, long)
 

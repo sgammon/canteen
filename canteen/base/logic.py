@@ -64,9 +64,9 @@ from ..util import decorators
 @decorators.singleton
 class Logic(object):
 
-  ''' Base class for Canteen ``Logic`` components. Specifies a class tree on
-      the ``Proxy.Component`` side (meaning that it *provides* DI resources,
-      instead of a ``Proxy.Compound``, which *consumes* them).
+  ''' Base class for Canteen ``Logic`` components. Specifies a class tree on the
+      ``Proxy.Component`` side (meaning that it *provides* DI resources, instead
+      of a ``Proxy.Compound``, which *consumes* them).
 
       ``Logic`` classes must be bound using the ``decorators.bind`` tool, which
       takes a ``str`` name and binds a ``Logic`` class (or child) to that name

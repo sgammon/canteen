@@ -31,13 +31,13 @@ is_component = lambda x: issubclass(x.__class__, Proxy.Component)
 
 class MetaFactory(type):
 
-  ''' Meta class factory, used to prepare core metaclasses for
-      use as functionality sentinels that compound functionality
-      all the way up the tree as they are defined.
+  ''' Meta class factory, used to prepare core metaclasses for use as
+      functionality sentinels that compound functionality all the way up the
+      tree as they are defined.
 
-      This class is meta-abstract, meaning it must be used as a
-      parent or metaclass to a more concrete implementation and
-      cannot be instantiated or used directly. '''
+      This class is meta-abstract, meaning it must be used as a parent or
+      metaclass to a more concrete implementation and cannot be instantiated or
+      used directly. '''
 
   __owner__, __metachain__, __root__ = "BaseMeta", [], True
 
@@ -74,8 +74,8 @@ class MetaFactory(type):
 
   def mro(cls):
 
-    ''' Assemble MRO (Method Resolution Order) to enable
-        proper class composure patterns for ``MetaFactory``.
+    ''' Assemble MRO (Method Resolution Order) to enable proper class composure
+        patterns for ``MetaFactory``.
 
         :returns: '''
 
@@ -95,35 +95,32 @@ class MetaFactory(type):
 
 class Base(type):
 
-  ''' Acts as a concrete anchor to core metaclasses. Can be
-      used in an ``isinstance`` check to identify classes
-      used in the meta-construction and initialization of
-      downstream types and objects. '''
+  ''' Acts as a concrete anchor to core metaclasses. Can be used in an
+      ``isinstance`` check to identify classes used in the meta-construction and
+      initialization of downstream types and objects. '''
 
   __owner__, __metaclass__, __root__ = "Base", MetaFactory, True
 
 
 class Proxy(object):
 
-  ''' Container class for core metaclasses. Used to package
-      references to structures that radically change Python's
-      class system, such that one must explicitly use a
-      ``Proxy.something`` qualified path as a metaclass. '''
+  ''' Container class for core metaclasses. Used to package references to
+      structures that radically change Python's class system, such that one must
+      explicitly use a ``Proxy.something`` qualified path as a metaclass. '''
 
 
   class Factory(Base):
 
-    ''' Metaclass that enforces a pattern whereby concrete
-        classes are passed through a factory function for
-        construction. '''
+    ''' Metaclass that enforces a pattern whereby concrete classes are passed
+        through a factory function for construction. '''
 
     __hooks__ = []
 
     def initialize(cls, name, bases, properties):
 
-      ''' Construct a new ``Factory`` concrete class. Dispatched
-          when ``Factory`` or further-downstream core structures
-          are used as metaclasses.
+      ''' Construct a new ``Factory`` concrete class. Dispatched when
+          ``Factory`` or further-downstream core structures are used as
+          metaclasses.
 
           :param name:
           :param bases:
@@ -133,8 +130,8 @@ class Proxy(object):
 
       def metanew(_cls, _name, _bases, _properties):
 
-        ''' Closure that overrides ``__new__`` to inject custom
-            class construction behavior.
+        ''' Closure that overrides ``__new__`` to inject custom class
+            construction behavior.
 
             :param _cls:
             :param _name:
@@ -159,17 +156,15 @@ class Proxy(object):
 
   class Registry(Factory):
 
-    ''' Metaclass that enforces a pattern whereby classes
-        are registered in a central datastructure according
-        to their ``__bases__`` directly before or after
-        class construction. '''
+    ''' Metaclass that enforces a pattern whereby classes are registered in a
+        central datastructure according to their ``__bases__`` directly before
+        or after class construction. '''
 
     __chain__ = {}
 
     def iter_children(cls):
 
-      ''' Iterate over a parent class' registered child
-          classes, one at a time.
+      ''' Iterate over a parent class' registered child classes, one at a time.
 
           :returns: Yields child classes, one at a time. '''
 
@@ -179,8 +174,7 @@ class Proxy(object):
 
     def children(cls):
 
-      ''' Retrieve a list of all this parent class'
-          registered children.
+      ''' Retrieve a list of all this parent class' registered children.
 
           :returns: ``list`` of this ``cls``'s children. '''
 
@@ -190,8 +184,8 @@ class Proxy(object):
     @staticmethod
     def register(meta, target):
 
-      ''' Register a new constructed subclass at
-          ``target``, utilizing ``meta``'s chain.
+      ''' Register a new constructed subclass at ``target``, utilizing
+          ``meta``'s chain.
 
           :param meta:
           :param target:
@@ -217,10 +211,9 @@ class Proxy(object):
 
   class Component(Registry):
 
-    ''' Decorate a class tree as capable of being injected
-        as DI ``components``, which are bound to simple
-        string names and made available application-wide
-        at ``self``. '''
+    ''' Decorate a class tree as capable of being injected as DI ``components``,
+        which are bound to simple string names and made available
+        application-wide at ``self``. '''
 
     __target__ = None
     __binding__ = None
@@ -230,8 +223,8 @@ class Proxy(object):
     @decorators.classproperty
     def singleton_map(cls):
 
-      ''' Retrieve the application-wide map of singleton classes,
-          bound to their names.
+      ''' Retrieve the application-wide map of singleton classes, bound to their
+          names.
 
           :returns: '''
 
@@ -251,9 +244,8 @@ class Proxy(object):
     @staticmethod
     def collapse(cls, spec=None):
 
-      ''' Collapse available ``component`` items into a mapping
-          of names to objects which can respond to attribute
-          requests for those paths.
+      ''' Collapse available ``component`` items into a mapping of names to
+          objects which can respond to attribute requests for those paths.
 
           :param spec:
 
@@ -279,9 +271,9 @@ class Proxy(object):
 
               def do_pluck(klass, obj, pool):
 
-                ''' First-level closure that prepares a ``pluck``
-                    function to properly grab an ``obj`` from the
-                    DI ``pool``, in the context of ``klass``.
+                ''' First-level closure that prepares a ``pluck`` function to
+                    properly grab an ``obj`` from the DI ``pool``, in the
+                    context of ``klass``.
 
                     :param klass:
                     :param obj:
@@ -291,10 +283,9 @@ class Proxy(object):
 
                 def pluck(property_name):
 
-                  ''' Second-level closure that plucks a property
-                      (at ``property_name``) from the DI pool
-                      encapsulated in the outer closure, in the
-                      context of ``klass``.
+                  ''' Second-level closure that plucks a property (at
+                      ``property_name``) from the DI pool encapsulated in the
+                      outer closure, in the context of ``klass``.
 
                       :param property_name:
 
@@ -356,9 +347,8 @@ class Proxy(object):
     @staticmethod
     def inject(cls):
 
-      ''' Parse/consider bindings attached to the target ``cls``,
-          providing the final concrete class and set of injectable
-          items.
+      ''' Parse/consider bindings attached to the target ``cls``, providing the
+          final concrete class and set of injectable items.
 
           :returns: '''
 
@@ -395,9 +385,9 @@ class Proxy(object):
     @classmethod
     def prepare(cls, target):
 
-      ''' Prepare ``target`` (usually ``cls``) for injection,
-          possibly resolving a global singleton object to be
-          returned upon matching attribute requests.
+      ''' Prepare ``target`` (usually ``cls``) for injection, possibly resolving
+          a global singleton object to be returned upon matching attribute
+          requests.
 
           :param target:
 

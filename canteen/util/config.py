@@ -63,7 +63,8 @@ class Config(object):
                              str(self.app['version']['release'])))))
 
   ### === Public Methods === ###
-  load = lambda self, path: self.merge(importlib.import_module(path).config.blocks)
+  load = lambda self, path: (
+    self.merge(importlib.import_module(path).config.blocks))
   __get__ = lambda self, instance, owner: self.wrap or self.blocks
 
   def get(self, key, default=None):

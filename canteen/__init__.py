@@ -33,4 +33,6 @@ from .dispatch import *
 from .exceptions import *
 
 
-__all__ = [export for export in globals() if (export not in __builtin__.__dict__ and (not export.startswith('__')))]  # export all the things!
+__all__ = [export for export in globals() if (
+  export not in __builtin__.__dict__ and (
+    not export.startswith('__')))]  # export all the things!

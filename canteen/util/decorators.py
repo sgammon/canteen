@@ -56,7 +56,8 @@ def singleton(target):
   if isinstance(target, type):
     setattr(target, '__singleton__', True)  # indicate this is a singleton class
     return target
-  raise RuntimeError('Only classes may be marked/decorated as singletons. Got: "%s".' % target)
+  raise RuntimeError('Only classes may be marked/decorated'
+                     ' as singletons. Got: "%s".' % target)
 
 
 ## `` ``
@@ -67,7 +68,7 @@ class bind(object):
   __alias__ = None  # injection alias (i.e. `source.<alias> == <target>`)
   __target__ = None  # target for injection - i.e. what should be injected
   __config__ = None  # optional *args and **kwargs to wrap ``config`` (above)
-  __namespace__ = True  # do we namespace this property under it's superbind? (methods only)
+  __namespace__ = True  # do we namespace this property under it's superbind?
 
   def __init__(self, alias=None, namespace=True, *args, **kwargs):
 
@@ -95,7 +96,8 @@ class bind(object):
     self.__alias__ = self.__alias__ or target.__name__
 
     # install aliases
-    target.__binding__, target.__target__, self.__target__ = self, self.__alias__, target
+    target.__binding__, target.__target__, self.__target__ = (
+      self, self.__alias__, target)
 
     # are we decorating a class?
     if isinstance(target, type):
@@ -130,10 +132,12 @@ class bind(object):
               v.__register__(target)
 
         # attach bindings to target class
-        target.__aliases__, target.__bindings__ = _aliases, frozenset(_bindings) if _bindings else None
+        target.__aliases__, target.__bindings__ = (
+          _aliases, frozenset(_bindings) if _bindings else None)
 
         # bind locally, and internally
-        return config(target, *self.__config__[0], **self.__config__[1]) if self.__config__ else target
+        return config(target, *self.__config__[0], **self.__config__[1]) if (
+          self.__config__) else target
 
       # only registry-enabled class trees can use ``bind``
       raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
@@ -142,11 +146,13 @@ class bind(object):
 
     # allow wrapping of hook responders
     from ..core import hooks
-    if self.__config__ and self.__config__[1] and isinstance(self.__config__[1]['wrap'], hooks.HookResponder):
+    if self.__config__ and self.__config__[1] and (
+      isinstance(self.__config__[1]['wrap'], hooks.HookResponder)):
       self.__config__[1]['wrap'].__binding__ = self
 
     # are we decorating a method?
-    return self.__config__[1]['wrap'](target) if (self.__config__ and 'wrap' in self.__config__[1]) else target
+    return self.__config__[1]['wrap'](target) if (
+      self.__config__ and 'wrap' in self.__config__[1]) else target
 
 
 __all__ = (

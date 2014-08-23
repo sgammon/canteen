@@ -40,10 +40,10 @@ from . import handler
 
 class Page(handler.Handler):
 
-  ''' Extendable class exposed to developers to prepare a class that responds
-      to particular HTTP requests. Great way to return static content or render
+  ''' Extendable class exposed to developers to prepare a class that responds to
+      particular HTTP requests. Great way to return static content or render
       templates, as ``Page``s come preconfigured for use with :py:mod:`Jinja2`
-      and Canteen's core APIs (session, static asset and caching tools). '''
+      and Canteen's builtin logic (session, static asset and caching tools). '''
 
   __owner__ = "Page"
 

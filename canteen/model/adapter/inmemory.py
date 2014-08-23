@@ -76,8 +76,8 @@ class InMemoryAdapter(GraphModelAdapter):
           'put': 0,  # track # of entity put() operations
           'delete': 0  # track # of entity delete() operations
         },
-        'kinds': {},  # holds current count and ID increment pointer for each kind
-        'global': {  # holds global metadata, like entity count across kind classes
+        'kinds': {},  # holds current count and ID increment
+        'global': {  # holds global metadata, like entity count
           'entity_count': 0,  # holds global count of all entities
           'node_count': 0,  # holds count of known nodes
           'edge_count': 0  # holds count of known edges
@@ -144,11 +144,17 @@ class InMemoryAdapter(GraphModelAdapter):
           'entity_count': 0  # keep count of seen entities for each kind
         }
 
-      # update count
+      # update counts
       _metadata['ops']['put'] = _metadata['ops'].get('put', 0) + 1
-      _metadata['global']['entity_count'] = _metadata['global'].get('entity_count', 0) + 1
-      kinded_entity_count = _metadata['kinds'][entity.key.kind].get('entity_count', 0)
-      _metadata['kinds'][entity.key.kind]['entity_count'] = kinded_entity_count + 1
+
+      _metadata['global']['entity_count'] = (
+        _metadata['global'].get('entity_count', 0) + 1)
+
+      kinded_entity_count = (
+        _metadata['kinds'][entity.key.kind].get('entity_count', 0))
+
+      _metadata['kinds'][entity.key.kind]['entity_count'] = (
+        kinded_entity_count + 1)
 
       # save to datastore
       _datastore[encoded] = entity.to_dict()
@@ -162,8 +168,12 @@ class InMemoryAdapter(GraphModelAdapter):
 
         # directed edges
         if model.__spec__.directed:
-          _graph['edges']['directed']['out'][entity['source']].add(entity['target'])
-          _graph['edges']['directed']['in'][entity['target']].add(entity['source'])
+          left, right = (
+            _graph['edges']['directed']['out'][entity['source']],
+            _graph['edges']['directed']['in'][entity['target']])
+
+          left.add(entity['target'])
+          right.add(entity['source'])
 
         # undirected edges
         else:
@@ -202,9 +212,14 @@ class InMemoryAdapter(GraphModelAdapter):
       else:
         # update meta
         _metadata[cls._key_prefix].remove(encoded)
-        _metadata['ops']['delete'] = _metadata['ops'].get('delete', 0) + 1
-        _metadata['global']['entity_count'] = _metadata['global'].get('entity_count', 1) - 1
-        _metadata['kinds'][kind]['entity_count'] = _metadata['kinds'][kind].get('entity_count', 1) - 1
+        _metadata['ops']['delete'] = (
+          _metadata['ops'].get('delete', 0) + 1)
+
+        _metadata['global']['entity_count'] = (
+          _metadata['global'].get('entity_count', 1) - 1)
+
+        _metadata['kinds'][kind]['entity_count'] = (
+          _metadata['kinds'][kind].get('entity_count', 1) - 1)
 
       return True
     return False
@@ -440,7 +455,8 @@ class InMemoryAdapter(GraphModelAdapter):
                 _metadata[index][value].remove(sorted_entry)
 
             else:
-              _metadata[index][value].remove(encoded)  # remove from set at item in mapping
+              # remove from set at item in mapping
+              _metadata[index][value].remove(encoded)
 
             # if there's no keys left in the index, trim it
             if len(_metadata[index][value]) == 0:  # pragma: no cover
@@ -540,13 +556,16 @@ class InMemoryAdapter(GraphModelAdapter):
               evaluate = lambda (value, _): (value < high_bound)
 
             else:  # invalid filter
-              raise RuntimeError('Invalid sorted filter operation: "%s".' % operator)
+              raise RuntimeError('Invalid sorted filter'
+                                 ' operation: "%s".' % operator)
 
             if not _init:  # no frame yet, initialize
               _init = True
-              _data_frame = set((value for _, value in filter(evaluate, index)))
+              _data_frame = (
+                set((value for _, value in filter(evaluate, index))))
             else:  # otherwise, filter
-              _data_frame &= set((value for _, value in filter(evaluate, index)))
+              _data_frame &= (
+                set((value for _, value in filter(evaluate, index))))
 
           # unsorted indexes
           else:
@@ -568,7 +587,9 @@ class InMemoryAdapter(GraphModelAdapter):
     result_entities = []
 
     ## inflate results (full models)
-    for key, entity in ((model.Key.from_urlsafe(k, _persisted=True), _datastore[k]) for k in _data_frame):
+    for key, entity in ((
+      model.Key.from_urlsafe(k, _persisted=True), _datastore[k]) for k in (
+      _data_frame)):
 
       _seen_results = 0
       if not entity: continue
@@ -626,7 +647,8 @@ class InMemoryAdapter(GraphModelAdapter):
 
           # aww, we have to subgroup and subsort
           if len(sorts) > 1:
-            _sort_frame.append((value, _sort_values[value]))  # add sorted groups of values
+            # add sorted groups of values
+            _sort_frame.append((value, _sort_values[value]))
 
         return _sort_frame
 
@@ -638,31 +660,26 @@ class InMemoryAdapter(GraphModelAdapter):
         # sort atop the result of the last sort
         _sort_base = []
         for sort in sorts:
-          _sort_base = do_sort(sort, (_sort_base and result_entities) or _sort_base)
+          _sort_base = do_sort(*(
+            sort, (_sort_base and result_entities) or _sort_base))
         return _sort_base
 
     return result_entities
 
-  def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
+  def edges(cls, key1, key2=None, type=None, **kwargs):
 
-    ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for ``key1``)
-        if no peer key is provided), optionally only of ``Edge`` type ``type``. '''
+    ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
+        ``key1``) if no peer key is provided), optionally only of ``Edge``
+        type ``type``. '''
 
-    raise NotImplementedError('`edges` is abstract.')
+    raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
 
-  def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
-
-    ''' Connect two objects (espressed as ``key1`` and ``key2``) as ``Vertexes`` by
-        an ``Edge``. Accepts an ``Edge`` object to use for the connection. '''
-
-    raise NotImplementedError('`connect` is abstract.')
-
-  def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
+  def neighbors(cls, key, type=None, **kwargs):
 
     ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
         optionally filtered by ``Edge`` type @``type``. '''
 
-    raise NotImplementedError('`neighbors` is abstract.')
+    raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover
 
 
 __all__ = ('InMemoryAdapter',)

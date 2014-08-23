@@ -55,28 +55,32 @@ class InvalidExplicitAdapter(AdapterException):
 
   '''  '''
 
-  message = "Requested model adapter \"%s\" could not be found or is not supported in this environment."
+  message = ("Requested model adapter \"%s\" could not be found"
+             " or is not supported in this environment.")
 
 
 class InvalidKey(TypeError):
 
   '''  '''
 
-  message = "Cannot set model key to invalid type \"%s\" (for value \"%s\"). Expected `basestring`, `tuple` or `%s`."
+  message = ("Cannot set model key to invalid type \"%s\" (for value \"%s\")."
+             " Expected `basestring`, `tuple` or `%s`.")
 
 
 class UndefinedKey(InvalidKey):
 
   '''  '''
 
-  message = "Could not operate on undefined key (value: \"%s\", kwargs: \"%s\")."
+  message = ("Could not operate on undefined key"
+             " (value: \"%s\", kwargs: \"%s\").")
 
 
 class MultipleKeyValues(TypeError):
 
   '''  '''
 
-  message = "Cannot merge multiple key values/formats in `%s._set_key`. (got: value(%s), formats(%s))."
+  message = ("Cannot merge multiple key values/formats in `%s._set_key`."
+             " (got: value(%s), formats(%s)).")
 
 
 class MultipleKeyFormats(TypeError):
@@ -125,7 +129,8 @@ class KeySchemaMismatch(InvalidKey):
 
   '''  '''
 
-  message = "Key type \"%s\" takes a maximum of %s positional arguments to populate the format \"%s\"."
+  message = ("Key type \"%s\" takes a maximum of %s positional arguments"
+             " to populate the format \"%s\".")
 
 
 class ValidationError(ValueError):
@@ -153,28 +158,32 @@ class PropertyRequired(PropertyPolicyViolation):
 
   '''  '''
 
-  message = "Property \"%s\" of Model class \"%s\" is marked as `required`, but was left unset."
+  message = ("Property \"%s\" of Model class \"%s\" is marked as `required`,"
+             " but was left unset.")
 
 
 class PropertyRepeated(PropertyPolicyViolation):
 
   '''  '''
 
-  message = "Property \"%s\" of Model class \"%s\" is marked as iterable, and cannot accept non-iterable values."
+  message = ("Property \"%s\" of Model class \"%s\" is marked as iterable,"
+             " and cannot accept non-iterable values.")
 
 
 class PropertyNotRepeated(PropertyPolicyViolation):
 
   '''  '''
 
-  message = "Property \"%s\" of Model class \"%s\" is not marked as repeated, and cannot accept iterable values."
+  message = ("Property \"%s\" of Model class \"%s\" is not marked as repeated,"
+             " and cannot accept iterable values.")
 
 
 class InvalidPropertyValue(PropertyBasetypeViolation):
 
   '''  '''
 
-  message = "Property \"%s\" of Model class \"%s\" cannot accept value of type \"%s\" (was expecting type \"%s\")."
+  message = ("Property \"%s\" of Model class \"%s\" cannot accept value of type"
+             " \"%s\" (was expecting type \"%s\").")
 
 
 __all__ = (

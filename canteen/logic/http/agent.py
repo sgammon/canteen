@@ -53,7 +53,9 @@ class AgentInfo(object):
       ', '.join(
         ('='.join((
           i,
-          str(getattr(self, i) if (hasattr(self, i)) else None))) for i in self.__slots__ if not i.startswith('__'))
+          str(getattr(self, i) if (
+            hasattr(self, i)) else None))) for i in (
+              self.__slots__) if not i.startswith('__'))
       )
     )
 
@@ -103,7 +105,8 @@ class AgentOS(AgentInfo):
         'windows': ('Windows', Vendor.MICROSOFT, AgentVersion(0)),
         'ipad': ('iOS', Vendor.APPLE, AgentVersion(0)),
         'iphone': ('iOS', Vendor.APPLE, AgentVersion(0))
-    }.get(user_agent.platform.lower().strip(), ('unknown', Vendor.OTHER, AgentVersion(0))))
+    }.get(user_agent.platform.lower().strip(), (
+      'unknown', Vendor.OTHER, AgentVersion(0))))
 
 
 class AgentCapabilities(AgentInfo):
@@ -122,7 +125,8 @@ class AgentCapabilities(AgentInfo):
     '''  '''
 
     for datapoint in self.__slots__:
-      setattr(self, datapoint, kwargs[datapoint] if datapoint in kwargs else None)
+      setattr(self, datapoint, kwargs[datapoint] if datapoint in (
+        kwargs) else None)
 
   @classmethod
   def scan(cls, request, user_agent, detected):
@@ -130,7 +134,8 @@ class AgentCapabilities(AgentInfo):
     '''  '''
 
     detected = {}  # detected capabilities
-    accept_string = request.headers['Accept'] if 'Accept' in request.headers else ''
+    accept_string = request.headers['Accept'] if 'Accept' in (
+      request.headers) else ''
 
     for datapoint, conditional in ((
 
@@ -182,7 +187,7 @@ class AgentFingerprint(AgentInfo):
     'yahoo',  # is this Yahoo's crawler?
 
     # == Environment == #
-    'mobile',  # can we detect that this is a mobile device? (always truthy for tablets too)
+    'mobile',  # can we detect that this is a mobile device?
     'tablet',  # can we detect that this is a tablet?
     'desktop',  # or do we fallback to desktop?
     'crawler',  # is this a known crawler?
@@ -206,14 +211,16 @@ class AgentFingerprint(AgentInfo):
     '''  '''
 
     for datapoint in self.__slots__:
-      setattr(self, datapoint, kwargs[datapoint] if datapoint in kwargs else None)
+      setattr(self, datapoint, kwargs[datapoint] if datapoint in (
+        kwargs) else None)
 
   @property
   def os(self):
 
     '''  '''
 
-    if not hasattr(self, '__os__') or (hasattr(self, '__os__') and not self.__os__):
+    if not hasattr(self, '__os__') or (
+      hasattr(self, '__os__') and not self.__os__):
       self.__os__ = AgentOS.scan(self)
     return self.__os__
 
@@ -222,7 +229,8 @@ class AgentFingerprint(AgentInfo):
 
     '''  '''
 
-    if not hasattr(self, '__supports__') or (hasattr(self, '__supports__') and not self.__supports__):
+    if not hasattr(self, '__supports__') or (
+      hasattr(self, '__supports__') and not self.__supports__):
       self.__supports__ = AgentCapabilities.scan(self)
     return self.__supports__
 
@@ -240,9 +248,11 @@ class AgentFingerprint(AgentInfo):
     detected['string'] = request.headers.get('user-agent')
 
     # copy over accept details
-    detected['charsets'], detected['encodings'], detected['languages'], detected['mimetypes'] = (
-      request.accept_charsets, request.accept_encodings, request.accept_languages, request.accept_mimetypes
-    )
+    detected['charsets'], detected['encodings'] = (
+      request.accept_charsets, request.accept_encodings)
+
+    detected['languages'], detected['mimetypes'] = (
+      request.accept_languages, request.accept_mimetypes)
 
     # detect version first
     version = detected['version'] = ua.version.split('.')
@@ -258,9 +268,9 @@ class AgentFingerprint(AgentInfo):
         break
 
     # if we detected *anything* as an int, add it as our version
-    version = detected['version'] = AgentVersion(*tuple(version_spec)) if version_spec else AgentVersion(0)
+    version = detected['version'] = AgentVersion(*tuple(
+      version_spec)) if version_spec else AgentVersion(0)
     platform = ua.platform.lower().strip()
-
 
     # all others
     for datapoint, condition in ((
@@ -283,12 +293,14 @@ class AgentFingerprint(AgentInfo):
       ('presto', ua.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
       ('webkit', ua.browser in ('safari', 'chrome', 'opera')),
       ('spidermonkey', ua.browser in ('firefox', 'seamonkey')),
-      ('gecko', 'Gecko' in ua.string and ('WebKit' not in ua.string and 'Chrome' not in ua.string)),
+      ('gecko', 'Gecko' in ua.string and ('WebKit' not in ua.string and (
+                                          'Chrome' not in ua.string))),
 
       ## Environments
       ('tablet', 'Tabl' in ua.string or 'iPad' in ua.string),
       ('crawler', ua.browser in ('google', 'yahoo', 'aol', 'ask')),
-      ('mobile', 'Mobi' in ua.string or 'IEMobile' in ua.string or platform in ('ios', 'iphone', 'ipad'))
+      ('mobile', 'Mobi' in ua.string or 'IEMobile' in ua.string or (
+                platform in ('ios', 'iphone', 'ipad')))
 
       )):
       detected[datapoint] = condition
@@ -307,7 +319,8 @@ class AgentFingerprint(AgentInfo):
       if v: detected['vendor'] = k
 
     # desktop mode
-    detected['desktop'] = not any((detected.get('mobile'), detected.get('tablet')))
+    detected['desktop'] = not any((
+      detected.get('mobile'), detected.get('tablet')))
 
     # OS detection
     detected['__os__'] = AgentOS.scan(request, ua, detected)
@@ -316,9 +329,9 @@ class AgentFingerprint(AgentInfo):
     detected['__supports__'] = AgentCapabilities.scan(request, ua, detected)
 
     # judge modern/ancient
-    detected['modern'] = (detected['chrome'] or detected['safari'] or detected['firefox'] or detected['opera']) and (
-      detected['__os__'].name in ('Mac OS X', 'Windows', 'Linux')
-    )
+    detected['modern'] = (detected['chrome'] or detected['safari'] or (
+      detected['firefox'] or detected['opera'])) and (
+      detected['__os__'].name in ('Mac OS X', 'Windows', 'Linux'))
 
     # calculate quality preferences
     detected['quality'] = {}

@@ -41,6 +41,7 @@ _DEFAULT_KEY_SCHEMA = ('id', 'kind', 'parent')  # default key schema
 _MULTITENANT_KEY_SCHEMA = ('id', 'kind', 'parent', 'namespace', 'app')
 _BASE_MODEL_CLS = frozenset(('Model', 'AbstractModel', 'Vertex', 'Edge'))
 _BASE_GRAPH_CLS = frozenset(('Vertex', 'Edge'))
+is_adapter = lambda type: issubclass(type.__class__, abstract.ModelAdapter)
 _PROPERTY_SLOTS = (
   'name',  # property string name (used as attribute/item key)
   '_options',  # arbitrary userland property options
@@ -192,7 +193,7 @@ class MetaFactory(type):
           if _a is _spec_item or _a.__name__ == _spec_item:
             return _a.acquire(name, bases, properties)
 
-      elif issubclass(_spec_item.__class__, abstract.ModelAdapter):
+      elif is_adapter(_spec_item):  # pragma: no cover
         # it's a valid model adapter instance already
         return _spec_item  # pragma: no cover
 
@@ -206,7 +207,7 @@ class MetaFactory(type):
 
   ## = Abstract Methods = ##
   @abc.abstractmethod
-  def initialize(cls, name, bases, properties):  # pragma: no cover
+  def initialize(cls, name, bases, properties):
 
     ''' Initialize a subclass. Must be overridden by child metaclasses.
 
@@ -217,7 +218,7 @@ class MetaFactory(type):
         :raises NotImplementedError: Always, if called directly, as this
           method is abstract. '''
 
-    raise NotImplementedError()  # `MetaFactory.initialize` is abstract
+    raise NotImplementedError('`initialize` is abstract.')  # pragma: no cover
 
 
 ## == Abstract Classes == ##
@@ -280,7 +281,7 @@ class AbstractKey(object):
         ('__persisted__', False)]  # default to not persisted
 
       if _base is not None:  # allow adapter definition to defer upwards
-        key_class.append(('__adapter__', _adapter))
+        key_class.append(('__adapter__', _adapter))  # pragma: no cover
 
       # resolve schema and add key format items, initted to None
       _schema = [
@@ -338,7 +339,7 @@ class AbstractKey(object):
     if cls.__name__ == 'AbstractKey':
       raise exceptions.AbstractConstructionFailure('AbstractKey')
 
-    return super(cls, cls).__new__(*args, **kwargs)
+    return super(cls, cls).__new__(*args, **kwargs)  # pragma: no cover
 
   def __eq__(self, other):
 
@@ -367,7 +368,8 @@ class AbstractKey(object):
               # last resort: check each data property
               return all((i for i in map(lambda x: (
                 getattr(other, x) == getattr(self, x)), self.__schema__)))
-    return False  # didn't pass one of our tests
+    # didn't pass one of our tests
+    return False  # pragma: no cover
 
   def __repr__(self):
 
@@ -410,7 +412,8 @@ class AbstractKey(object):
     if self.__persisted__ and name != 'owner':
       raise exceptions.PersistedKey(name)
     if name == 'parent' and isinstance(value, Model):
-      value = value.key
+      # special case: if setting parent and it's a model, use the key instead
+      value = value.key  # pragma: no cover
     setattr(self, '__%s__' % name, value)
     return self
 
@@ -721,15 +724,12 @@ class AbstractModel(object):
       if hasattr(cls, '__lookup__') and cls.__name__ not in _BASE_MODEL_CLS:
         return '%s(%s)' % (cls.__name__, ', '.join((i for i in cls.__lookup__)))
 
-      elif (cls.__name__ in _BASE_GRAPH_CLS and cls.__owner__ == 'Model') or (
-        cls.__name__ == 'Model' or cls.__name__ == 'AbstractModel'):
+      elif (cls.__name__ in _BASE_GRAPH_CLS and (
+        cls.__owner__ in _BASE_GRAPH_CLS)) or (cls.__name__ == 'Model' or (
+            cls.__name__ == 'AbstractModel')):
         return cls.__name__
 
-      elif any((hasattr(b, '__graph__') for b in cls.__bases__)):
-        _vertex = any((hasattr(b, '__vertex__') for b in cls.__bases__))
-        return ("Vertex<%s>" if _vertex else "Edge<%s>") % cls.__name__
-
-      return 'Model<%s>' % cls.__name__
+      return 'Model<%s>' % cls.__name__  # pragma: no cover
 
     __str__ = __unicode__ = __repr__
 

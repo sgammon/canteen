@@ -32,21 +32,20 @@ _conditionals = []
 
 class AdaptedKey(KeyMixin):
 
-  ''' Provides bridged methods between `model.Key`
-      and the Adapter API. '''
+  ''' Provides bridged methods between `model.Key` and the Adapter API. '''
 
   ## = Public Methods = ##
   def get(self):
 
-    ''' Retrieve a previously-constructed key from
-        available persistence mechanisms. '''
+    ''' Retrieve a previously-constructed key from available persistence
+        mechanisms. '''
 
     return self.__adapter__._get(self)
 
   def delete(self):
 
-    ''' Delete a previously-constructed key from
-        available persistence mechanisms. '''
+    ''' Delete a previously-constructed key from available persistence
+        mechanisms. '''
 
     if self.__owner__:
       # if possible, delegate to owner model
@@ -55,8 +54,8 @@ class AdaptedKey(KeyMixin):
 
   def flatten(self, join=False):
 
-    ''' Flatten this Key into a basic structure
-        suitable for transport or storage.
+    ''' Flatten this Key into a basic structure suitable for transport or
+        storage.
 
         :param join:
         :returns: '''
@@ -72,8 +71,7 @@ class AdaptedKey(KeyMixin):
 
   def urlsafe(self, joined=None):
 
-    ''' Generate an encoded version of this Key,
-        suitable for use in URLs.
+    ''' Generate an encoded version of this Key, suitable for use in URLs.
 
         :param joined:
         :returns: '''
@@ -126,15 +124,14 @@ class AdaptedKey(KeyMixin):
 
 class AdaptedModel(ModelMixin):
 
-  ''' Provides bridged methods between `model.Model` and
-      the Adapter API. '''
+  ''' Provides bridged methods between `model.Model` and the Adapter API. '''
 
   ## = Public Class Methods = ##
   @classmethod
   def get(cls, key=None, name=None, **kwargs):
 
-    ''' Retrieve a persisted version of this model via the current
-        model adapter.
+    ''' Retrieve a persisted version of this model via the current model
+        adapter.
 
         :param key:
         :param name:
@@ -145,7 +142,8 @@ class AdaptedModel(ModelMixin):
 
     if not key and not name:
       raise ValueError('Must pass either a Key or'
-                       ' key name into `%s.get`.' % cls.kind())
+                       ' key name into'
+                       ' `%s.get`.' % cls.kind())  # pragma: no cover
     if name:
       # if we're passed a name, construct a key with the local kind
       return cls.__adapter__._get(cls.__keyclass__(cls.kind(), name), **kwargs)
@@ -159,8 +157,8 @@ class AdaptedModel(ModelMixin):
   @classmethod
   def query(cls, *args, **kwargs):
 
-    ''' Start building a new `model.Query` object, if the underlying
-        adapter implements `IndexedModelAdapter`.
+    ''' Start building a new `model.Query` object, if the underlying adapter
+        implements `IndexedModelAdapter`.
 
         :param args:
         :param kwargs:
@@ -181,7 +179,8 @@ class AdaptedModel(ModelMixin):
           sorts.append(arg)
         else:
           raise RuntimeError('Cannot sort or filter based on'
-                             ' arbitrary objects. Got: "%s".' % arg)
+                             ' arbitrary objects.'
+                             ' Got: "%s".' % arg)  # pragma: no cover
 
       return query.Query(cls,
                          filters=filters,
@@ -199,8 +198,7 @@ class AdaptedModel(ModelMixin):
   ## = Public Methods = ##
   def put(self, adapter=None, **kwargs):
 
-    ''' Persist this entity via the current
-        model adapter.
+    ''' Persist this entity via the current model adapter.
 
         :param adapter:
         :param kwargs:
@@ -212,8 +210,7 @@ class AdaptedModel(ModelMixin):
 
   def delete(self, adapter=None, **kwargs):
 
-    ''' Discard any primary or index-based data
-        linked to this Key.
+    ''' Discard any primary or index-based data linked to this Key.
 
         :param adapter:
         :param kwargs:
@@ -226,8 +223,7 @@ class AdaptedModel(ModelMixin):
 
 class AdaptedVertex(VertexMixin):
 
-  ''' Provides graph-oriented methods for
-      ``Vertex`` objects. '''
+  ''' Provides graph-oriented methods for ``Vertex`` objects. '''
 
   __graph__ = __vertex__ = True  # mark as graph model and vertex
 
@@ -246,8 +242,7 @@ class AdaptedVertex(VertexMixin):
 
   def neighbors(self, *args, **kwargs):  # pragma: no cover
 
-    ''' Retrieve neighbors (peered edges) for the
-        current ``Vertex``.
+    ''' Retrieve neighbors (peered edges) for the current ``Vertex``.
 
         :param args:
         :param kwargs:
@@ -268,13 +263,11 @@ class AdaptedEdge(EdgeMixin):
 
 class DictMixin(KeyMixin, ModelMixin):
 
-  ''' Provides `to_dict`-type methods for first-class
-      Model API classes. '''
+  ''' Provides `to_dict`-type methods for first-class Model API classes. '''
 
   def update(self, mapping={}, **kwargs):
 
-    ''' Update properties on this model via a merged dict
-        of mapping + kwargs.
+    ''' Update properties on this model via a merged dict of mapping + kwargs.
 
         :param mapping:
         :param kwargs:
@@ -288,8 +281,8 @@ class DictMixin(KeyMixin, ModelMixin):
               filter=None, map=None, _all=False,
               filter_fn=filter, map_fn=map):
 
-    ''' Export this Entity as a dictionary, excluding/including/
-        filtering/mapping as we go.
+    ''' Export this Entity as a dictionary, excluding/including/ filtering/
+        mapping as we go.
 
         :param exclude:
         :param include:
@@ -353,8 +346,8 @@ class DictMixin(KeyMixin, ModelMixin):
   @classmethod
   def to_dict_schema(cls):
 
-    ''' Convert a model or entity's schema to a dictionary, where
-        keys=>values map to properties=>descriptors.
+    ''' Convert a model or entity's schema to a dictionary, where keys=>values
+        map to properties=>descriptors.
 
         :returns: '''
 
@@ -366,13 +359,13 @@ class DictMixin(KeyMixin, ModelMixin):
 
 class JSONMixin(KeyMixin, ModelMixin):
 
-  ''' Provides JSON serialization/deserialization support to
-      `model.Model` and `model.Key`. '''
+  ''' Provides JSON serialization/deserialization support to `model.Model` and
+      `model.Key`. '''
 
   def to_json(self, *args, **kwargs):
 
-    ''' Convert an entity to a JSON structure, where keys=>values
-        map to properties=>values.
+    ''' Convert an entity to a JSON structure, where keys=>values map to
+        properties=>values.
 
         :param args:
         :param kwargs:
@@ -383,8 +376,8 @@ class JSONMixin(KeyMixin, ModelMixin):
   @classmethod
   def from_json(cls, encoded):
 
-    ''' Inflate a JSON string into an entity. Expects a dictionary
-        of properties=>values.
+    ''' Inflate a JSON string into an entity. Expects a dictionary of
+        properties=>values.
 
         :param encoded:
         :returns: '''
@@ -394,9 +387,8 @@ class JSONMixin(KeyMixin, ModelMixin):
   @classmethod
   def to_json_schema(cls, *args, **kwargs):  # pragma: no cover
 
-    ''' Convert a model or entity's schema to a dictionary, where
-        keys=>values map to JSON Schema representing
-        properties=>descriptors.
+    ''' Convert a model or entity's schema to a dictionary, where keys=>values
+        map to JSON Schema representing properties=>descriptors.
 
         :param args:
         :param kwargs:
@@ -418,13 +410,13 @@ else:
 
   class MsgpackMixin(KeyMixin, ModelMixin):
 
-    ''' Provides Msgpack serialization/deserialization support
-        to `model.Model` and `model.Key`. '''
+    ''' Provides Msgpack serialization/deserialization support to `model.Model`
+        and `model.Key`. '''
 
     def to_msgpack(self, *args, **kwargs):
 
-      ''' Convert an entity to a Msgpack structure, where
-          keys=>values map to properties=>values.
+      ''' Convert an entity to a Msgpack structure, where keys=>values map to
+          properties=>values.
 
           :param args:
           :param kwargs:
@@ -436,8 +428,8 @@ else:
     @classmethod
     def from_msgpack(cls, encoded):
 
-      ''' Inflate a msgpack payload into an entity. Expects a
-          dictionary of properties=>values.
+      ''' Inflate a msgpack payload into an entity. Expects a dictionary of
+          properties=>values.
 
           :param encoded:
           :returns: '''
@@ -447,9 +439,8 @@ else:
     @classmethod
     def to_msgpack_schema(cls, *args, **kwargs):  # pragma: no cover
 
-      ''' Convert a model or entity's schema to a dictionary,
-          where keys=>values map to internal symbols
-          representing properties=>descriptors.
+      ''' Convert a model or entity's schema to a dictionary, where keys=>values
+          map to internal symbols representing properties=>descriptors.
 
           :param args:
           :param kwargs:

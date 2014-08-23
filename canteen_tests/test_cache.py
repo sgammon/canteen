@@ -15,6 +15,9 @@
 
 '''
 
+# stdlib
+import weakref
+
 # testing
 from canteen import test
 from canteen.logic import cache
@@ -43,6 +46,15 @@ class PersistentCacheTests(test.FrameworkTest):
     ''' Test that `Caching.spawn` with default arguments gives default cache '''
 
     assert cache.Caching.spawn() is cache.Caching.spawn()
+
+  def test_hard_flush(self):
+
+    ''' Test that `Caching.flush` empties all local caches '''
+
+    assert cache.Caching.set('hi', 5) == 5
+
+    cache.Caching.flush()
+    assert cache.Caching.get('hi') is None
 
   def test_default_cache_clear_named(self):
 
@@ -80,8 +92,8 @@ class CacheEngineTests(test.FrameworkTest):
     if self.subject is cache.Caching:
       return cache.Caching  # testing against default storage
     elif self.subject is cache.Cache.Engine:
-      return cache.Caching.spawn(name or 'testing', {}, self.subject)
-    return cache.Caching.spawn()
+      return cache.Caching.spawn()
+    return cache.Caching.spawn(name or 'testing', {}, self.subject)
 
   def test_abstract(self):
 
@@ -258,6 +270,25 @@ class ThreadcacheTests(CacheEngineTests):
   ''' Tests ``cache.Caching.Threadcache``. '''
 
   subject = cache.Caching.Threadcache
+
+  def test_value_weakref(self):
+
+    ''' Test that complex values are cached by weak reference '''
+
+    class Something(object): pass
+    x = Something()
+    x.hi = 5
+
+    y = self._spawn_cache()
+    y.set('something', x)
+
+    # make sure things are written as weakrefs
+    assert 'something' in y.target
+    assert isinstance(y.target['something'], tuple)
+    assert isinstance(y.target['something'][0], weakref.ref)
+
+    # make sure weakrefs are unwrapped on the way out
+    assert not isinstance(y.get('something'), weakref.ref)
 
 
 class DefaultThreadcacheTests(CacheEngineTests):

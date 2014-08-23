@@ -120,3 +120,12 @@ class ModelAdapterTests(FrameworkTest):
     # test attribute + explicit injector
     self.assertTrue(hasattr(TestExplicit, '__adapter__'))
     self.assertIsInstance(TestExplicit.__adapter__, adapter.RedisAdapter)
+
+  def test_mixin_repr(self):
+
+    ''' Test that a model `Mixin` generates a proper string representation '''
+
+    from canteen.model.adapter import core
+
+    assert 'Mixin' in repr(core.AdaptedModel)
+    assert 'AdaptedModel' in repr(core.AdaptedModel)

@@ -172,8 +172,8 @@ class InMemoryAdapter(GraphModelAdapter):
             _graph['edges']['directed']['out'][entity['source']],
             _graph['edges']['directed']['in'][entity['target']])
 
-          left.add(entity['target'])
-          right.add(entity['source'])
+          left.add(entity['target'])  # pragma: no cover
+          right.add(entity['source'])  # pragma: no cover
 
         # undirected edges
         else:
@@ -547,13 +547,13 @@ class InMemoryAdapter(GraphModelAdapter):
               query.GREATER_THAN, query.GREATER_THAN_EQUAL_TO)) else None)
 
             if low_bound and not high_bound:
-              evaluate = lambda (value, _): (low_bound < value)
+              evaluate = lambda bundle: (low_bound < bundle[0])
 
             elif low_bound and high_bound:
-              evaluate = lambda (value, _): (low_bound < value < high_bound)
+              evaluate = lambda bundle: (low_bound < bundle[0] < high_bound)
 
             elif high_bound:  # high-bound only
-              evaluate = lambda (value, _): (value < high_bound)
+              evaluate = lambda bundle: (bundle[0] < high_bound)
 
             else:  # invalid filter
               raise RuntimeError('Invalid sorted filter'

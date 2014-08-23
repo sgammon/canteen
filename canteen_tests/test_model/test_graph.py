@@ -65,12 +65,53 @@ class VertexModelTests(FrameworkTest):
 
     assert Person.get(self.test_vertex_put(), adapter=self.subject)
 
+  def test_vertex_repr(self):
+
+    ''' Test string representation of a `Vertex` '''
+
+    p = Person.get(self.test_vertex_put(), adapter=self.subject)
+    assert 'Person' in repr(p)
+    assert 'Person' in repr(Person)
+    assert 'Vertex' in repr(model.Vertex)
+
 
 class EdgeModelTests(FrameworkTest):
 
   ''' Tests `model.Edge`. '''
 
   subject = inmemory.InMemoryAdapter()
+
+  def test_spawn_directed(self):
+
+    ''' Test spawning directed `Edge` classes '''
+
+    class Friends(Person > Person):
+      ''' friend relationship '''
+
+    assert issubclass(Friends, model.Edge)
+    assert not Friends.__spec__.directed
+
+    class Friends(Person < Person):
+      ''' friend relationship '''
+
+    assert issubclass(Friends, model.Edge)
+    assert not Friends.__spec__.directed
+
+  def test_spawn_undirected(self):
+
+    ''' Test spawning undirected `Edge` classes '''
+
+    class Gift(Person >> Person):
+      ''' friend relationship '''
+
+    assert issubclass(Gift, model.Edge)
+    assert Gift.__spec__.directed
+
+    class Gift(Person << Person):
+      ''' friend relationship '''
+
+    assert issubclass(Gift, model.Edge)
+    assert Gift.__spec__.directed
 
   def test_construct_undirected(self):
 

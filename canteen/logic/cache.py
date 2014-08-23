@@ -68,7 +68,7 @@ class Cache(object):
 
     #### ==== Read Methods ==== ####
     @abc.abstractmethod
-    def get(self, key):  # pragma: no cover
+    def get(self, key):
 
       ''' Specifies abstract version of ``Cache.get``, which is used to retrieve
           cached items.
@@ -84,7 +84,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def get_multi(self, keys):  # pragma: no cover
+    def get_multi(self, keys):
 
       ''' Specifies abstract version of ``Cache.get_multi`, which is used to
           retrieve multiple cache items ine one call.
@@ -101,7 +101,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def items(self, timestamp):  # pragma: no cover
+    def items(self, timestamp):
 
       ''' Specifies abstract version of ``Cache.items``, which is used to
           iterate over items in the cache, optionally current to ``timestamp``.
@@ -126,7 +126,7 @@ class Cache(object):
 
     #### ==== Write Methods ==== ####
     @abc.abstractmethod
-    def set(self, key, value):  # pragma: no cover
+    def set(self, key, value):
 
       ''' Specifies abstract version of ``Cache.set``, which is used to store
           individual items in the ``Cache``.
@@ -145,7 +145,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def set_multi(self, map):  # pragma: no cover
+    def set_multi(self, map):
 
       ''' Specifies abstract version of ``Cache.set_multi``, which is used to
           write multiple items to the ``Cache`` in one call.
@@ -163,7 +163,7 @@ class Cache(object):
 
     #### ==== Delete Methods ==== ####
     @abc.abstractmethod
-    def delete(self, key):  # pragma: no cover
+    def delete(self, key):
 
       ''' Specifies abstract version of ``Cache.delete``, which is used to
           delete an individual item from the ``Cache``.
@@ -180,7 +180,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def delete_multi(self, keys):  # pragma: no cover
+    def delete_multi(self, keys):
 
       ''' Specifies abstract version of ``Cache.delete_multi``, which is used to
           delete multiple items from the ``Cache`` in one call.
@@ -197,7 +197,7 @@ class Cache(object):
                                 ' is abstract.')  # pragma: no cover
 
     @abc.abstractmethod
-    def clear(self):  # pragma: no cover
+    def clear(self):
 
       ''' Specifies abstract version of ``Cache.clear``, which is used to nuke
           the cache (clearing it of all items) in one call.
@@ -214,7 +214,7 @@ class Cache(object):
 
     #### ==== Expiration Methods ==== ####
     @abc.abstractmethod
-    def should_expire(self, key):  # pragma: no cover
+    def should_expire(self, key):
 
       ''' Specifies abstract version of ``Cache.Strategy.should_expire``, which
           is called by the ``Cache`` internals on an implementing cache strategy
@@ -231,7 +231,7 @@ class Cache(object):
 
     #### ==== Scan Methods ==== ####
     @abc.abstractmethod
-    def tick(self, timestamp):  # pragma: no cover
+    def tick(self, timestamp):
 
       ''' Specifies abstract version of ``Cache.Strategy.tick``, which is called
           by the ``Cache`` internals every so often to trim or clean the cache.
@@ -365,8 +365,10 @@ class Caching(logic.Logic):
 
           :returns: Value stored in the cache. '''
 
-      if not isinstance(value, _BUILTIN_TYPES):
-        value = weakref.ref(value)
+      value = (
+        weakref.ref(value) if not isinstance(value, _BUILTIN_TYPES) else (
+          value))
+
       self.target[key] = (value, time.time())
       return value
 
@@ -416,14 +418,14 @@ class Caching(logic.Logic):
 
   #### ==== Internals ==== ####
   @property
-  def config(self):  # pragma: no cover
+  def config(self):
 
     ''' Property accessor for caching configuration.
 
         :returns: Any application or framework configuration at the path
           ``Caching``. '''
 
-    from canteen.util import config
+    from canteen.util import config  # pragma: no cover
     return config.Config().config.get('Caching', {})  # pragma: no cover
 
   @property
@@ -528,7 +530,6 @@ class Caching(logic.Logic):
     global _default
 
     _caches, _default = {}, (threading.local(), None)
-    return _caches, _default
 
   @classmethod
   def get(cls, key, default=None):

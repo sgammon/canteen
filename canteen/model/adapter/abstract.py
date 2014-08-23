@@ -45,17 +45,17 @@ CompoundKey = CompoundModel = CompoundVertex = CompoundEdge = None
 
 try:
   import zlib; _compressor = zlib
-except ImportError:
+except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
 try:
   import lz4; _compressor = lz4
-except ImportError:
+except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
 try:
   import snappy; _compressor = snappy
-except ImportError:
+except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
 
@@ -887,7 +887,8 @@ class Mixin(object):
         if Mixin._compound.get(cls):
 
           ## extend class dict if we already have one
-          Mixin._compound.__dict__.update(dict(cls.__dict__.items()))
+          Mixin._compound.__dict__.update(*(
+            dict(cls.__dict__.items())))  # pragma: no cover
 
       return klass
 
@@ -929,8 +930,7 @@ class Mixin(object):
         dict([
           ('__origin__', cls),
           ('__slots__', tuple()),
-        ] + [(k, v) for k, v in cls.methods])
-      ))
+        ] + [(k, v) for k, v in cls.methods])))
 
       if cls.__compound__.__name__ == 'CompoundKey':
         CompoundKey = cls.__compound__

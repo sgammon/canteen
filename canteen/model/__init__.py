@@ -710,7 +710,8 @@ class AbstractModel(object):
       if not target_mro or not isinstance(target_mro, list):
         # not a base class
         raise RuntimeError('Unable to calculate MRO for unidentified'
-                           ' MetaFactory-descendent Model class: %s.' % cls)
+                           ' MetaFactory-descendent'
+                           ' Model class: %s.' % cls)  # pragma: no cover
 
       return tuple([cls] + target_mro + [object])
 

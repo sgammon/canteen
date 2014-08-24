@@ -96,7 +96,7 @@ build: .Python dependencies
 	@$(BINPATH)python setup.py build
 	$(call okay,"Framework built successfully.")
 
-package: develop test
+package: test
 	$(call say,"Building release packages...")
 	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
 	$(call okay,"Framework release packages built.")
@@ -107,11 +107,11 @@ develop: build
 	@$(BINPATH)pip install -q --upgrade -r dev_requirements.txt
 
 	$(call say,"Building framework for development...")
-	@$(BINPATH)python setup.py develop
+	-@$(BINPATH)python setup.py develop
 else
-develop: build package
+develop: build
 	$(call say,"Building framework for development...")
-	$(BINPATH)python setup.py develop"
+	-@$(BINPATH)python setup.py develop
 endif
 
 ifeq ($(DEPS),1)

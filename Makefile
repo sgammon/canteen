@@ -10,19 +10,73 @@
 #
 
 
+SHELL := /bin/bash
+
 ## Vars
 DEPS?=1
 TESTS?=1
+SHELL?=bash
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 BUILDROOT?=./
-BINPATH?=
+TEST_FLAGS?=
+BINPATH?=$(BUILDROOT)bin/
 TEST_RESULTS?=$(BUILDROOT).develop/tests/xunit
 COVERAGE_RESULTS?=$(BUILDROOT).develop/coverage/xunit
 
-## Flags
-TEST_FLAGS ?= --verbose \
-							--with-coverage \
+
+## Colors + Texts
+STOP=\x1b[;0m
+RED=\x1b[31;01m
+GREEN=\x1b[32;01m
+CYAN=\x1b[36;01m
+YELLOW=\x1b[33;01m
+MAGENTA=\x1b[35;01m
+
+OK=$(GREEN)[OK]$(STOP)
+ERROR=$(RED)[ERROR]$(STOP)
+WARN=$(YELLOW)[WARN]$(STOP)
+
+
+## Functions
+define say
+	@printf "$(CYAN)"
+	@echo $1
+	@printf "$(STOP)"
+endef
+
+define okay
+	@printf "$(GREEN)"
+	@echo $1 $2
+	@printf "$(STOP)"
+endef
+
+define warn
+	@printf "$(YELLOW)"
+	@echo $1 $2
+	@printf "$(STOP)"
+endef
+
+define error
+	@printf "$(RED)"
+	@echo $1 $2
+	@printf "$(STOP)"
+endef
+
+
+all: .Python develop test package ready
+
+ready:
+	@echo
+	$(call okay,"~~ canteen ready ~~")
+	@echo
+
+
+ifeq ($(TESTS),1)
+test:
+	$(call say,"Running testsuite...")
+	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
+	@-$(BINPATH)nosetests --with-coverage \
 							--cover-package=canteen \
 							--cover-package=canteen_tests \
 							--cover-html \
@@ -30,81 +84,79 @@ TEST_FLAGS ?= --verbose \
 							--with-xunit \
 							--cover-html-dir=.develop/coverage/html \
 							--cover-xml-file=.develop/coverage/clover.xml \
-							--xunit-file=.develop/tests/xunit.xml
-
-all: develop
-
-ifeq ($(TESTS),1)
-test:
-	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
-	@-$(BINPATH)nosetests $(TEST_FLAGS) canteen_tests
+							--xunit-file=.develop/tests/xunit.xml $(TEST_FLAGS) canteen_tests
+	$(call okay,"All tests passed!")
 else
 test:
-	@echo "Skipping tests."
+	$(call warn,"Skipping tests.")
 endif
 
 build: .Python dependencies
+	$(call say,"Building framework...")
 	@$(BINPATH)python setup.py build
+	$(call okay,"Framework built successfully.")
 
 package: develop test
+	$(call say,"Building release packages...")
 	@$(BINPATH)python setup.py $(DISTRIBUTIONS)
-
-release: build test package
-	@$(BINPATH)python setup.py $(DISTRIBUTIONS) upload
+	$(call okay,"Framework release packages built.")
 
 ifeq ($(DEPS),1)
 develop: build
-	@echo "Installing development tools..."
-	@$(BINPATH)pip install --upgrade -r dev_requirements.txt
+	$(call say,"Installing dev dependencies...")
+	@$(BINPATH)pip install -q --upgrade -r dev_requirements.txt
 
-	@echo "Building..."
+	$(call say,"Building framework for development...")
 	@$(BINPATH)python setup.py develop
 else
 develop: build package
-	@echo "Building..."
-	@$(BINPATH)python setup.py develop
+	$(call say,"Building framework for development...")
+	$(BINPATH)python setup.py develop"
 endif
 
 ifeq ($(DEPS),1)
 dependencies:
-	# install pip dependencies
-	@$(BINPATH)python -c "import colorlog" > /dev/null || $(BINPATH)pip install colorlog
-	@$(BINPATH)pip install --upgrade -r requirements.txt
+	$(call say,"Installing runtime dependencies (this may take a moment)...")
+	@$(BINPATH)python -c "import colorlog" > /dev/null 2> /dev/null || $(BINPATH)pip -q install colorlog
+	@$(BINPATH)pip install -q --upgrade -r requirements.txt
+	$(call okay,"Runtime dependencies ready.")
 else
 dependencies:
-	@echo "Skipping dependencies..."
+	$(call warn,"Skipping dependencies...")
 endif
 
 clean:
-	@echo "Cleaning buildspace..."
+	$(call say,"Cleaning buildspace...")
 	@rm -fr build/
 
-	@echo "Cleaning egginfo..."
+	$(call say,"Cleaning egginfo...")
 	@rm -fr canteen.egg-info
 
-	@echo "Cleaning object files..."
+	$(call say,"Cleaning object files...")
 	@find $(BUILDROOT) -name "*.pyc" -delete
 	@find $(BUILDROOT) -name "*.pyo" -delete
 
 distclean: clean
-	@echo "Cleaning env..."
+	$(call say,"Cleaning environment...")
 	@rm -fr .Python lib include
 
-	@echo "Resetting codebase..."
+	$(call say,"Resetting codebase...")
 	@git reset --hard
 
-	@echo "Cleaning codebase..."
+	$(call say,"Cleaning codebase...")
 	@git clean -xdf
+
+	$(call okay,"~~ codebase cleaned. ~~")
 
 ifeq ($(VIRTUALENV),1)
 .Python:
-	# install pip/virtualenv if we have to
 	@which pip > /dev/null || sudo easy_install pip
 	@which virtualenv > /dev/null || pip install virtualenv
 
-	@echo "Making virtualenv..."
+	$(call say,"Preparing virtual environment...")
 	@virtualenv $(BUILDROOT) > /dev/null
+	$(call okay,"Virtual environment ready.")
 else
 .Python:
-	@echo "Skipping env..."
+	$(call warn,"Skipping virtual environment...")
 endif

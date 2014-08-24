@@ -37,8 +37,7 @@ _core_mixin_classes = (
     'KeyMixin', 'ModelMixin',
     'CompoundKey', 'CompoundModel',
     'VertexMixin', 'EdgeMixin',
-    'CompoundVertex', 'CompoundEdge'
-)
+    'CompoundVertex', 'CompoundEdge')
 
 ## Computed Classes
 CompoundKey = CompoundModel = CompoundVertex = CompoundEdge = None

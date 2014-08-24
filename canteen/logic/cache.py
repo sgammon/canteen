@@ -633,8 +633,3 @@ class Caching(logic.Logic):
     _cache = cls.spawn()
     for key in keys:
       _cache.delete(key)
-
-
-__all__ = (
-  'Cache',
-  'Caching')

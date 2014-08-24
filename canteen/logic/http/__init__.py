@@ -23,11 +23,10 @@ from .semantics import HTTPSemantics, url
 
 
 # exports
-__all__ = (
-  'url',
-  'ETags',
-  'Cookies',
-  'Caching',
-  'Redirects',
-  'UserAgent',
-  'HTTPSemantics')
+__all__ = ('url',
+           'ETags',
+           'Cookies',
+           'Caching',
+           'Redirects',
+           'UserAgent',
+           'HTTPSemantics')

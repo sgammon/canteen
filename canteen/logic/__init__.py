@@ -22,10 +22,8 @@ from .template import *
 from .realtime import *
 
 
-__all__ = (
-  'url',
-  'http',
-  'cache',
-  'realtime',
-  'template'
-)
+__all__ = ('url',
+           'http',
+           'cache',
+           'realtime',
+           'template')

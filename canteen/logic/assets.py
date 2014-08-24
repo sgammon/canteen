@@ -270,6 +270,3 @@ class Assets(logic.Logic):
   @decorators.bind()  # Other
   def static_url(self, *fragments, **arguments): return (
     self.asset_url('static', fragments, arguments))
-
-
-__all__ = ('Assets',)

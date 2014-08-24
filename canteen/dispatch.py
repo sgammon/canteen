@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: dispatch
-  ~~~~~~~~~~~~~~~~~
+  dispatch
+  ~~~~~~~~
 
   WSGI dispatch entrypoint. INCEPTION.
 
@@ -86,9 +86,3 @@ def run(app=None,
         serve requests forever and ever. '''
 
   return spawn(app, dev, config).serve(interface, port)
-
-
-__all__ = (
-  'spawn',
-  'run'
-)

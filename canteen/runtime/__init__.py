@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: runtime
-  ~~~~~~~~~~~~~~~~
+  runtime
+  ~~~~~~~
 
   holds code that bridges :py:mod:`canteen` into various WSGI runtimes,
   like :py:mod:`gevent` and :py:mod:`wsgiref`.
@@ -24,10 +24,8 @@ from . import tornado
 from . import werkzeug
 
 
-__all__ = (
-  'uwsgi',
-  'gevent',
-  'wsgiref',
-  'tornado',
-  'werkzeug'
-)
+__all__ = ('uwsgi',
+           'gevent',
+           'wsgiref',
+           'tornado',
+           'werkzeug')

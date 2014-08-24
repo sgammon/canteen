@@ -181,9 +181,3 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     # install our session bridge, forcing Flask to use JSON cookies
     flask_sessions.SecureCookieSessionInterface.session_class = (
       FlaskSessionBridge)
-
-
-  __all__ = (
-    'Cookies',
-    'JSONCookie'
-  )

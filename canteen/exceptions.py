@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: exceptions
-  ~~~~~~~~~~~~~~~~~~~
+  exceptions
+  ~~~~~~~~~~
 
   contains exceptions exported by :py:mod:`canteen`.
 
@@ -19,6 +19,3 @@
 class Error(Exception):
 
   ''' Top-level error for all of :py:mod:`canteen`. '''
-
-
-__all__ = ('Error',)

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: datastructure utils
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  datastructures
+  ~~~~~~~~~~~~~~
 
   lightweight datastructures for use inside and outside
   :py:class:`canteen`.
@@ -33,11 +33,15 @@ class Sentinel(object):
 
   def __init__(self, name, falsy=False):
 
-    ''' Construct a new sentinel.
+    ''' Construct a new ``Sentinel``, which is essentially just a symbolic
+        object at a simple string name. Two ``Sentinel``s with the same name
+        evaluate to be *equal* to each other.
 
-        :param name:
-        :param falsy:
-        :returns: '''
+        :param name: Simple string name for the new ``Sentinel``-to-be.
+
+        :param falsy: Whether the resulting ``Sentinel`` object should evaluate
+          as *falsy* (if it is to stand-in for ``None`` or ``False``, for
+          instance). '''
 
     self.name, self.hash, self._falsy = (
       name, int((''.join(str(ord(c)) for c in name))), falsy)
@@ -450,16 +454,3 @@ class BidirectionalEnum(object):
         block for block in (
           '='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
       "BiDirectional>"])))
-
-
-__all__ = (
-  'Sentinel',
-  '_EMPTY',
-  '_TOMBSTONE',
-  'UtilStruct',
-  'ObjectProxy',
-  'WritableObjectProxy',
-  'CallbackProxy',
-  'ObjectDictBridge',
-  'BidirectionalEnum'
-)

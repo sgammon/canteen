@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: decorator utils
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  decorator utils
+  ~~~~~~~~~~~~~~~
 
   useful (and sometimes critical) decorators, for use inside and
   outside :py:mod:`canteen`.
@@ -18,11 +18,7 @@
 
 from __future__ import print_function
 
-# stdlib
-import datetime
 
-
-## ``classproperty`` - use like ``@property``, but at the class-level.
 class classproperty(property):
 
   ''' Custom decorator for class-level property getters.
@@ -51,19 +47,29 @@ class classproperty(property):
 
 def singleton(target):
 
-  '''  '''
+  ''' Mark a ``target`` class as a singleton, for use with the dependency
+      injection system. Classes so-marked will be factoried on first-access and
+      subsequently returned for all matching dependency requests.
+
+      :param target: Target class to treat as a singleton.
+
+      :raises RuntimeError: If something other than a class is marked for
+        singleton mode.
+
+      :returns: Decorated ``target`` class, after it has been marked. '''
 
   if isinstance(target, type):
     setattr(target, '__singleton__', True)  # indicate this is a singleton class
     return target
   raise RuntimeError('Only classes may be marked/decorated'
-                     ' as singletons. Got: "%s".' % target)
+                     ' as singletons. Got: "%s".' % target)  # pragma: no cover
 
 
-## `` ``
 class bind(object):
 
-  '''  '''
+  ''' Encapsulated binding config for an injectable meta-implementor of
+      ``meta.Proxy.Component``. Allows specification of simple string names to
+      be matched during dependency injection. '''
 
   __alias__ = None  # injection alias (i.e. `source.<alias> == <target>`)
   __target__ = None  # target for injection - i.e. what should be injected
@@ -72,23 +78,47 @@ class bind(object):
 
   def __init__(self, alias=None, namespace=True, *args, **kwargs):
 
-    '''  '''
+    ''' Initialize this binding.
+
+        :param alias: String alias for the target object to be bound. Defaults
+          to ``None``, in which case the target function or class' ``__name__``
+          will be used.
+
+        :param namespace: ``bool`` flag to activate namespacing. Used on methods
+          to explicitly bind them, but namespace them under the class binding
+          they are mounted from.
+
+        :param *args:  '''
 
     self.__alias__, self.__config__, self.__namespace__ = (
       alias,
       (args, kwargs) if (args or kwargs) else None,
-      namespace  # wrap `decorators.config` (optional)
-    )
+      namespace)  # wrap `decorators.config` (optional)
 
-  def __repr__(self):
+  def __repr__(self):  # pragma: no cover
 
-    '''  '''
+    ''' Generate a pleasant string representation for this binding.
+
+        :returns: String representation for this binding, in the format
+          ``<binding 'name'>``. '''
 
     return "<binding '%s'>" % self.__alias__ or self.__target__.__name__
 
   def __call__(self, target):
 
-    '''  '''
+    ''' Dispatch this binding (the second half of a closured decorator flow) by
+        scanning the target for subbindings (if applicable) and preparing (and
+        subsequently attaching) an object to describe configuration.
+
+        :param target: Target object (usually a ``function`` or ``class``) to
+          *decorate* by scanning for sub-bindings and attaching a object
+          describing any injectable resources.
+
+        :raises TypeError: If a ``target`` is passed that is not a valid
+          meta-implementor of ``Proxy.Registry`` or ``Proxy.Component``.
+
+        :returns: Decorated ``target``, after scanning for bindings and
+          attaching any appropriate configuration objects. '''
 
     from ..core import meta  # no deps in util. ever. :)
 
@@ -136,13 +166,12 @@ class bind(object):
           _aliases, frozenset(_bindings) if _bindings else None)
 
         # bind locally, and internally
-        return config(target, *self.__config__[0], **self.__config__[1]) if (
-          self.__config__) else target
+        return target  # args no longer supported @TODO(sgammon): look at this
 
       # only registry-enabled class trees can use ``bind``
       raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
                       ' (anything meta-deriving from `Registry` or `Component`'
-                      ' can be bound to injection names.')
+                      ' can be bound to injection names.')  # pragma: no cover
 
     # allow wrapping of hook responders
     from ..core import hooks
@@ -153,10 +182,3 @@ class bind(object):
     # are we decorating a method?
     return self.__config__[1]['wrap'](target) if (
       self.__config__ and 'wrap' in self.__config__[1]) else target
-
-
-__all__ = (
-  'classproperty',
-  'bind',
-  'singleton'
-)

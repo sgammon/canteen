@@ -23,8 +23,7 @@ from .handler import *
 from .protocol import *
 
 
-__all__ = (
-  'page', 'Page',
-  'logic', 'Logic',
-  'handler', 'Handler',
-  'protocol', 'Protocol')
+__all__ = ('page', 'Page',
+           'logic', 'Logic',
+           'handler', 'Handler',
+           'protocol', 'Protocol')

@@ -240,9 +240,3 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     HEAD = decorators.bind('HEAD')(lambda self: self.error(405))
     OPTIONS = decorators.bind('OPTIONS')(lambda self: self.error(405))
     TRACE = decorators.bind('TRACE')(lambda self: self.error(405))
-
-
-    __all__ = (
-      'url',
-      'HTTPSemantics'
-    )

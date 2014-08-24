@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: runscript
-  ~~~~~~~~~~~~~~~~~~
+  runscript
+  ~~~~~~~~~
 
   accepts calls to ``canteen`` as a module. can be run with
   ``python -m canteen`` or ``python -m canteen/``, the latter

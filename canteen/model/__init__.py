@@ -1593,39 +1593,33 @@ class Edge(Model):
 
 
 # Module Globals
-__abstract__ = (
-  abstract,
-  MetaFactory,
-  AbstractKey,
-  AbstractModel
-)
+__abstract__ = (abstract,
+                MetaFactory,
+                AbstractKey,
+                AbstractModel)
 
-__concrete__ = (
-  concrete,
-  Property,
-  KeyMixin,
-  ModelMixin,
-  Key,
-  Model,
-  Vertex,
-  Edge
-)
+__concrete__ = (concrete,
+                Property,
+                KeyMixin,
+                ModelMixin,
+                Key,
+                Model,
+                Vertex,
+                Edge)
 
 # All modules
-__all__ = (
-  'concrete',
-  'abstract',
-  'MetaFactory',
-  'AbstractKey',
-  'AbstractModel',
-  'query',
-  'Property',
-  'KeyMixin',
-  'ModelMixin',
-  'Key',
-  'Model',
-  'Vertex',
-  'Edge',
-  'adapter',
-  'exceptions'
-)
+__all__ = ('concrete',
+           'abstract',
+           'MetaFactory',
+           'AbstractKey',
+           'AbstractModel',
+           'query',
+           'Property',
+           'KeyMixin',
+           'ModelMixin',
+           'Key',
+           'Model',
+           'Vertex',
+           'Edge',
+           'adapter',
+           'exceptions')

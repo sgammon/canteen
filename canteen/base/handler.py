@@ -328,6 +328,3 @@ class Handler(object):
       self.destroy(self.__response__)
 
     return self.__response__ if not direct else self
-
-
-__all__ = ('Handler',)

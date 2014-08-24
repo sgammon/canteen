@@ -23,9 +23,7 @@ from .runtime import *
 from .injection import *
 
 
-__all__ = (
-  'meta',
-  'hooks',
-  'runtime',
-  'injection'
-)
+__all__ = ('meta',
+           'hooks',
+           'runtime',
+           'injection')

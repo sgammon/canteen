@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: werkzeug runtime
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  werkzeug runtime
+  ~~~~~~~~~~~~~~~~
 
   runs :py:mod:`canteen`-based apps on pocoo's excellent WSGI
   library, :py:mod:`werkzeug`.
@@ -99,6 +99,3 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         'ssl_context': None,
         'static_files': paths
       })
-
-
-  __all__ = ('Werkzeug',)

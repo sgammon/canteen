@@ -408,10 +408,3 @@ class Sessions(logic.Logic):
 
       # save the session via backend, along with request context
       session.save(environ, adapter=None)
-
-
-__all__ = (
-  'Session',
-  'SessionEngine',
-  'Sessions'
-)

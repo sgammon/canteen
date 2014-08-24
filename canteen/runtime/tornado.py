@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: tornado runtime
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  tornado runtime
+  ~~~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`tornado`.
 

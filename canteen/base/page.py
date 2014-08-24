@@ -46,6 +46,3 @@ class Page(handler.Handler):
       and Canteen's builtin logic (session, static asset and caching tools). '''
 
   __owner__ = "Page"
-
-
-__all__ = ('Page',)

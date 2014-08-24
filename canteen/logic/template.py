@@ -160,14 +160,6 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
     pass
 
 
-  # add loaders to exported items
-  _conditionals += [
-    'FileLoader',
-    'ModuleLoader',
-    'ExtensionLoader'
-  ]
-
-
 @decorators.bind('template', namespace=False)
 class Templates(logic.Logic):
 
@@ -383,8 +375,3 @@ class Templates(logic.Logic):
 
     # otherwise, buffer/chain iterators to produce a streaming response
     return self.sanitize(content, _iter=True)
-
-
-__all__ = tuple([
-  'Templates'
-] + _conditionals)

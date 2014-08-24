@@ -446,10 +446,3 @@ class Proxy(object):
 
       # return from cache
       return Proxy.Component.__injector_cache__[(cls, spec)]
-
-
-__all__ = (
-  'MetaFactory',
-  'Base',
-  'Proxy'
-)

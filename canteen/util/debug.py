@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: debug utils
-  ~~~~~~~~~~~~~~~~~~~~
+  debug utils
+  ~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -31,6 +31,3 @@ def Logger(name):  # pragma: no cover
   logger = logging.getLogger(name)
   logger.setLevel(10)
   return logger
-
-
-__all__ = ('Logger',)

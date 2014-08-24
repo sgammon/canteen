@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: util
-  ~~~~~~~~~~~~~
+  util
+  ~~~~
 
   low-level utilities and miscellaneous tools that don't really
   belong anywhere special.
@@ -72,13 +72,11 @@ def walk(root=None, debug=__debug__):  # pragma: no cover
               map(walker, pkgutil.walk_packages(root or '.')))
 
 
-__all__ = (
-  'walk',
-  'say',
-  'cli',
-  'config',
-  'debug',
-  'decorators',
-  'struct',
-  'bind'
-)
+__all__ = ('walk',
+           'say',
+           'cli',
+           'config',
+           'debug',
+           'decorators',
+           'struct',
+           'bind')

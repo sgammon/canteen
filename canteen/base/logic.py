@@ -73,6 +73,3 @@ class Logic(object):
       on all ``Compound`` classes and objects. '''
 
   __owner__, __metaclass__ = "Logic", meta.Proxy.Component
-
-
-__all__ = ('Logic',)

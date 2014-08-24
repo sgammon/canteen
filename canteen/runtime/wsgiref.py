@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: stdlib runtime
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  stdlib runtime
+  ~~~~~~~~~~~~~~
 
   runs :py:mod:`canteen`-based apps on python's stdlib library,
   :py:mod:`wsgiref`.
@@ -37,6 +37,3 @@ with runtime.Library('wsgiref') as (library, wsgiref):
       '''  '''
 
       return simple_server.make_server(interface, port, self.dispatch)
-
-
-  __all__ = ('StandardWSGI',)

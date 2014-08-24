@@ -251,6 +251,3 @@ with runtime.Library('protorpc') as (library, protorpc):
 
     CONTENT_TYPE = content_type
     ALTERNATIVE_CONTENT_TYPES = alternative_content_types
-
-
-  __all__ = ('Protocol',)

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: gevent runtime
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  gevent runtime
+  ~~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`gevent`.
 

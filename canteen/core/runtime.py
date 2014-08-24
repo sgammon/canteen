@@ -571,9 +571,3 @@ class Library(object):
       if self.strict: return False
 
     return True
-
-
-__all__ = (
-  'Runtime',
-  'Library'
-)

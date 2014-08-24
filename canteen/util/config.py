@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: config utils
-  ~~~~~~~~~~~~~~~~~~~~~
+  config utils
+  ~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -71,11 +71,8 @@ class Config(object):
 
     '''  '''
 
-    if self.blocks:
+    if self.blocks:  # pragma: no cover
       if 'config' in self.blocks:
         return self.blocks['config'].get(key, {'debug': True})
       return self.blocks.get(key, default)
     return default
-
-
-__all__ = ('Config',)

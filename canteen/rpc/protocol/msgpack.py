@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: msgpack protocol
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  msgpack RPC protocol
+  ~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

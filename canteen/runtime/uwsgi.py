@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: uwsgi runtime
-  ~~~~~~~~~~~~~~~~~~~~~~
+  uwsgi runtime
+  ~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`uwsgi`.
 
@@ -47,5 +47,3 @@ try:  # pragma: no cover
 
 except ImportError:
   pass
-
-__all__ = tuple()

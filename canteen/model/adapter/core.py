@@ -26,10 +26,6 @@ from .abstract import VertexMixin
 from .abstract import IndexedModelAdapter
 
 
-## Globals
-_conditionals = []
-
-
 class AdaptedKey(KeyMixin):
 
   ''' Provides bridged methods between `model.Key` and the Adapter API. '''
@@ -449,15 +445,3 @@ else:
           :returns: '''
 
       raise NotImplementedError()  # @TODO: msgpack schema support?
-
-
-  # add to module exports
-  _conditionals.append('MsgpackMixin')
-
-
-__all__ = tuple([
-  'AdaptedKey',
-  'AdaptedModel',
-  'DictMixin',
-  'JSONMixin'
-] + _conditionals)

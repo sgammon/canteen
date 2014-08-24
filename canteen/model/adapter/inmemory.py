@@ -680,6 +680,3 @@ class InMemoryAdapter(GraphModelAdapter):
         optionally filtered by ``Edge`` type @``type``. '''
 
     raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover
-
-
-__all__ = ('InMemoryAdapter',)

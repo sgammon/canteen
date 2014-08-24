@@ -174,9 +174,3 @@ class Bridge(object):
       convenient. '''
 
   __metaclass__ = Compound
-
-
-__all__ = (
-  'Delegate',
-  'Compound',
-  'Bridge')

@@ -36,7 +36,7 @@ class CLIToolsTests(FrameworkTest):
 
         ''' execution flow '''
 
-    # if we get here, no error
+    return Sample
 
   def test_construct_subtool(self):
 
@@ -54,11 +54,33 @@ class CLIToolsTests(FrameworkTest):
 
           ''' sample '''
 
-    # if we get here, no error
+    return Sample
 
   def test_construct_arguments(self):
 
-    ''' Test construction of a CLI tool with arguments '''
+    ''' Test construction of a CLI tool without arguments without short options '''
+
+    class Sample(cli.Tool):
+
+      ''' sample CLI tool '''
+
+      arguments = (
+        ('--debug', {'action': 'store_true'}),
+      )
+
+      class Subsample(cli.Tool):
+
+        ''' sub-sample CLI tool '''
+
+        def execute(arguments):
+
+          ''' sample '''
+
+    return Sample
+
+  def test_construct_arguments_with_short(self):
+
+    ''' Test construction of a CLI tool with arguments with short options '''
 
     class Sample(cli.Tool):
 
@@ -76,4 +98,22 @@ class CLIToolsTests(FrameworkTest):
 
           ''' sample '''
 
-    # if we get here, no error
+    return Sample
+
+  def test_initialize_clitool(self):
+
+    ''' Test initializing a CLI tool in various contexts without safe mode '''
+
+    self.test_construct()(autorun=False, safe=False)
+    self.test_construct_subtool()(autorun=False, safe=False)
+    self.test_construct_arguments()(autorun=False, safe=False)
+    self.test_construct_arguments_with_short()(autorun=False, safe=False)
+
+  def test_initialize_clitool_safe(self):
+
+    ''' Test initializing a CLI tool in various contexts with safe mode '''
+
+    self.test_construct()(autorun=False, safe=True)
+    self.test_construct_subtool()(autorun=False, safe=True)
+    self.test_construct_arguments()(autorun=False, safe=True)
+    self.test_construct_arguments_with_short()(autorun=False, safe=True)

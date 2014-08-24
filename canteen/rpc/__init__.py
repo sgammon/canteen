@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: RPC
-  ~~~~~~~~~~~~
+  RPC
+  ~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -807,14 +807,12 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       return target
 
 
-  __all__ = (
-    'Service',
-    'remote',
-    'ServiceHandler',
-    'service_mappings',
-    'messages',
-    'Key',
-    'Echo',
-    'VariantField',
-    'protocol'
-  )
+  __all__ = ('Service',
+             'remote',
+             'ServiceHandler',
+             'service_mappings',
+             'messages',
+             'Key',
+             'Echo',
+             'VariantField',
+             'protocol')

@@ -2,8 +2,8 @@
 
 '''
 
-  canteen: tests
-  ~~~~~~~~~~~~~~
+  tests
+  ~~~~~
 
   utilities for providing unittest functionality.
 
@@ -276,11 +276,3 @@ if __debug__:
       sys.exit(1)
     else:
       sys.exit(0)
-
-
-  __all__ = (
-    'AppTest',
-    'FrameworkTest',
-    'run',
-    'clirunner'
-  )

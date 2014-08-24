@@ -23,7 +23,7 @@ from canteen.test import FrameworkTest
 from canteen.model.adapter import inmemory
 
 
-class Person(model.Vertex):
+class TestPerson(model.Vertex):
 
   ''' sample person (also a vertex) '''
 
@@ -31,7 +31,7 @@ class Person(model.Vertex):
   lastname = basestring
 
 
-class Teammates(Person > Person):
+class TestTeammates(TestPerson > TestPerson):
 
   ''' sample teammate-ship (edge that connects two people) '''
 
@@ -48,8 +48,8 @@ class VertexModelTests(FrameworkTest):
 
     ''' Test constructing a `Vertex` model '''
 
-    return Person(
-        key=model.VertexKey(Person, 'sup'),
+    return TestPerson(
+        key=model.VertexKey(TestPerson, 'sup'),
         firstname='John',
         lastname='Doe')
 
@@ -63,15 +63,15 @@ class VertexModelTests(FrameworkTest):
 
     ''' Test retrieving a `Vertex` by its key '''
 
-    assert Person.get(self.test_vertex_put(), adapter=self.subject)
+    assert TestPerson.get(self.test_vertex_put(), adapter=self.subject)
 
   def test_vertex_repr(self):
 
     ''' Test string representation of a `Vertex` '''
 
-    p = Person.get(self.test_vertex_put(), adapter=self.subject)
+    p = TestPerson.get(self.test_vertex_put(), adapter=self.subject)
     assert 'Person' in repr(p)
-    assert 'Person' in repr(Person)
+    assert 'Person' in repr(TestPerson)
     assert 'Vertex' in repr(model.Vertex)
 
 
@@ -85,29 +85,29 @@ class EdgeModelTests(FrameworkTest):
 
     ''' Test spawning directed `Edge` classes '''
 
-    class Friends(Person > Person):
+    class TestFriends(TestPerson > TestPerson):
       ''' friend relationship '''
 
-    assert issubclass(Friends, model.Edge)
-    assert not Friends.__spec__.directed
+    assert issubclass(TestFriends, model.Edge)
+    assert not TestFriends.__spec__.directed
 
-    class Friends(Person < Person):
+    class TestFriends(TestPerson < TestPerson):
       ''' friend relationship '''
 
-    assert issubclass(Friends, model.Edge)
-    assert not Friends.__spec__.directed
+    assert issubclass(TestFriends, model.Edge)
+    assert not TestFriends.__spec__.directed
 
   def test_spawn_undirected(self):
 
     ''' Test spawning undirected `Edge` classes '''
 
-    class Gift(Person >> Person):
+    class Gift(TestPerson >> TestPerson):
       ''' friend relationship '''
 
     assert issubclass(Gift, model.Edge)
     assert Gift.__spec__.directed
 
-    class Gift(Person << Person):
+    class Gift(TestPerson << TestPerson):
       ''' friend relationship '''
 
     assert issubclass(Gift, model.Edge)
@@ -118,12 +118,12 @@ class EdgeModelTests(FrameworkTest):
     ''' Test constructing an undirected `Edge` model '''
 
     # sam + alex
-    sam, alex = Person(firstname='Sam'), Person(firstname='Alex')
+    sam, alex = TestPerson(firstname='Sam'), TestPerson(firstname='Alex')
 
     # low-level edge construct
-    sam_to_alex = Teammates(sam, alex,
-                            key=model.EdgeKey(Teammates, 'sup'),
-                            year_met=2003)
+    sam_to_alex = TestTeammates(sam, alex,
+                                key=model.EdgeKey(TestTeammates, 'sup'),
+                                year_met=2003)
 
     return sam_to_alex
 
@@ -132,12 +132,12 @@ class EdgeModelTests(FrameworkTest):
     ''' Test constructing a directed `Edge` model '''
 
     # ian + david
-    ian, david = Person(firstname='Sam'), Person(firstname='Alex')
+    ian, david = TestPerson(firstname='Sam'), TestPerson(firstname='Alex')
 
     # low-level edge construct
-    ian_to_david = Teammates(ian, david,
-                              key=model.EdgeKey(Teammates, 'sup'),
-                              year_met=2003)
+    ian_to_david = TestTeammates(ian, david,
+                                 key=model.EdgeKey(TestTeammates, 'sup'),
+                                 year_met=2003)
 
     return ian_to_david
 
@@ -157,10 +157,10 @@ class EdgeModelTests(FrameworkTest):
 
     ''' Test retrieving an undirected `Edge` by its key '''
 
-    assert Teammates.get(self.test_undirected_edge_put(), adapter=self.subject)
+    assert TestTeammates.get(self.test_undirected_edge_put(), adapter=self.subject)
 
   def test_directed_edge_get(self):
 
     ''' Test retrieving a directed `Edge` by its key '''
 
-    assert Teammates.get(self.test_directed_edge_put(), adapter=self.subject)
+    assert TestTeammates.get(self.test_directed_edge_put(), adapter=self.subject)

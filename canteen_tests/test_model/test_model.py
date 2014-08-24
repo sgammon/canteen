@@ -63,7 +63,7 @@ class Car(model.Model):
   color = basestring, {'choices': ('blue', 'green', 'red', 'silver', 'white', 'black')}
 
 
-class Person(model.Vertex):
+class TestPerson(model.Vertex):
 
   ''' A human being. '''
 
@@ -73,7 +73,7 @@ class Person(model.Vertex):
   cars = Car, {'repeated': True}
 
 
-class Friendship(Person > Person):
+class Friendship(TestPerson > TestPerson):
 
   ''' A friendship between people. '''
 
@@ -93,13 +93,13 @@ class ModelTests(FrameworkTest):
     car = Car(make='BMW', model='M3', year=2013, color='white')
 
     # construct our person record
-    person = Person()
+    person = TestPerson()
     person.firstname = 'John'
     person.cars = [car]
 
     # perform tests
     self.assertIsInstance(car, Car)
-    self.assertIsInstance(person, Person)
+    self.assertIsInstance(person, TestPerson)
     self.assertEqual(person.firstname, 'John')
     self.assertIsInstance(person.cars, list)
     self.assertEqual(len(person.cars), 1)
@@ -112,7 +112,7 @@ class ModelTests(FrameworkTest):
     self.assertEqual(person.lastname, None)
 
     # test __repr__
-    cls = str(Person)
+    cls = str(TestPerson)
     obj = str(person)
 
     # test class representations
@@ -145,7 +145,7 @@ class ModelTests(FrameworkTest):
     ''' Test proper inheritance structure for `Model` '''
 
     self.assertTrue(issubclass(Car, model.Model))
-    self.assertTrue(issubclass(Person, model.Model))
+    self.assertTrue(issubclass(TestPerson, model.Model))
     self.assertTrue(issubclass(model.Model, model.AbstractModel))
 
   def test_model_schema(self):
@@ -153,35 +153,35 @@ class ModelTests(FrameworkTest):
     ''' Test that there's a proper schema spec on `Model` '''
 
     # check lookup
-    self.assertTrue(hasattr(Person, '__lookup__'))
-    self.assertIsInstance(Person.__lookup__, frozenset)
+    self.assertTrue(hasattr(TestPerson, '__lookup__'))
+    self.assertIsInstance(TestPerson.__lookup__, frozenset)
 
     # check property descriptors
-    self.assertTrue(hasattr(Person, 'firstname'))
-    self.assertTrue(hasattr(Person, 'lastname'))
-    self.assertTrue(hasattr(Person, 'cars'))
+    self.assertTrue(hasattr(TestPerson, 'firstname'))
+    self.assertTrue(hasattr(TestPerson, 'lastname'))
+    self.assertTrue(hasattr(TestPerson, 'cars'))
 
     # check kind
-    self.assertTrue(hasattr(Person, 'kind'))
-    self.assertIsInstance(Person.kind(), basestring)
+    self.assertTrue(hasattr(TestPerson, 'kind'))
+    self.assertIsInstance(TestPerson.kind(), basestring)
 
     # check set/get
-    self.assertTrue(hasattr(Person, '_get_value'))
-    self.assertTrue(hasattr(Person, '_set_value'))
-    self.assertTrue(inspect.ismethod(Person._get_value))
-    self.assertTrue(inspect.ismethod(Person._set_value))
+    self.assertTrue(hasattr(TestPerson, '_get_value'))
+    self.assertTrue(hasattr(TestPerson, '_set_value'))
+    self.assertTrue(inspect.ismethod(TestPerson._get_value))
+    self.assertTrue(inspect.ismethod(TestPerson._set_value))
 
     # check key
-    self.assertTrue(hasattr(Person, 'key'))
-    self.assertTrue((not hasattr(Person, '__key__')))  # should not have key until instantiation
-    self.assertTrue(hasattr(Person(), '__key__'))
+    self.assertTrue(hasattr(TestPerson, 'key'))
+    self.assertTrue((not hasattr(TestPerson, '__key__')))  # should not have key until instantiation
+    self.assertTrue(hasattr(TestPerson(), '__key__'))
 
   def test_model_set_attribute(self):
 
     ''' Test setting an unknown and known attribute on `Model` '''
 
     # try construction assignment
-    john = Person(firstname='John')
+    john = TestPerson(firstname='John')
     self.assertEqual(john.firstname, 'John')
 
     # re-assign
@@ -197,27 +197,27 @@ class ModelTests(FrameworkTest):
     ''' Test that adapter is attached correctly to `Model` '''
 
     # make sure it's on the classlevel
-    self.assertTrue(hasattr(Person, '__adapter__'))
-    self.assertIsInstance(Person.__adapter__, adapter.ModelAdapter)
+    self.assertTrue(hasattr(TestPerson, '__adapter__'))
+    self.assertIsInstance(TestPerson.__adapter__, adapter.ModelAdapter)
 
   def test_model_stringify(self):
 
     ''' Test the string representation of a `Model` object '''
 
-    self.assertIsInstance(Person().__repr__(), basestring)
+    self.assertIsInstance(TestPerson().__repr__(), basestring)
 
   def test_model_kind(self):
 
     ''' Test that `Model.kind` is properly set '''
 
     # test class-level kind
-    self.assertIsInstance(Person.kind(), basestring)
-    self.assertEqual(Person.kind(), "Person")
+    self.assertIsInstance(TestPerson.kind(), basestring)
+    self.assertEqual(TestPerson.kind(), "TestPerson")
 
     # test object-level kind
-    john = Person()
+    john = TestPerson()
     self.assertIsInstance(john.kind(), basestring)
-    self.assertEqual(john.kind(), "Person")
+    self.assertEqual(john.kind(), "TestPerson")
 
   def test_abstract_model(self):
 
@@ -235,7 +235,7 @@ class ModelTests(FrameworkTest):
     ''' Test that `Model` works concretely '''
 
     ## test simple construction
-    self.assertIsInstance(Person(), Person)
+    self.assertIsInstance(TestPerson(), TestPerson)
 
     ## SampleModel
     # Test parent model class.
@@ -271,7 +271,7 @@ class ModelTests(FrameworkTest):
     ''' Test flattening a `Model` into a raw dictionary '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     raw_dict = getattr(p, method)()
 
     if method == 'to_dict':
@@ -290,7 +290,7 @@ class ModelTests(FrameworkTest):
     ''' Test updating a `Model` from a `dict` '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     update = {
       'firstname': 'Sup',
       'lastname': 'Bleebs'
@@ -305,7 +305,7 @@ class ModelTests(FrameworkTest):
 
     ''' Test flattening a `Model` class into a schema dictionary '''
 
-    schema = Person.to_dict_schema()
+    schema = TestPerson.to_dict_schema()
     assert 'firstname' in schema
     assert isinstance(schema['firstname'], model.Property)
     assert schema['firstname']._basetype == basestring
@@ -315,7 +315,7 @@ class ModelTests(FrameworkTest):
     ''' Test using `Model.to_dict` with the `all` flag '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     all_dict = getattr(p, method)(_all=True)
 
     if method == 'to_dict':
@@ -331,7 +331,7 @@ class ModelTests(FrameworkTest):
     ''' Test using `Model.to_dict` with a filter function '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     filtered_dict = getattr(p, method)(filter=lambda x: len(x[0]) > 7)  # should filter out 'active'
 
     if method == 'to_dict':
@@ -349,7 +349,7 @@ class ModelTests(FrameworkTest):
     ''' Test using `Model.to_dict` with an inclusion list '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     included_dict = getattr(p, method)(include=('firstname', 'lastname'))
 
     if method == 'to_dict':
@@ -368,7 +368,7 @@ class ModelTests(FrameworkTest):
     ''' Test using `Model.to_dict` with an exclusion list '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     excluded_dict = getattr(p, method)(exclude=('active',))
 
     if method == 'to_dict':
@@ -386,7 +386,7 @@ class ModelTests(FrameworkTest):
     ''' Test using `Model.to_dict` with a map function '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     mapped_dict = getattr(p, method)(map=lambda x: tuple([x[0] + '-cool', x[1]]))
 
     if method == 'to_dict':
@@ -402,7 +402,7 @@ class ModelTests(FrameworkTest):
     ''' Test serializing a `Model` into a JSON struct '''
 
     # sample person
-    p = Person(firstname='John', lastname='Doe')
+    p = TestPerson(firstname='John', lastname='Doe')
 
     # prepare mini testsuite
     def test_json_flow(original, js=None):
@@ -453,7 +453,7 @@ class ModelTests(FrameworkTest):
     json_string = json.dumps(obj)
 
     # load into object
-    p = Person.from_json(json_string)
+    p = TestPerson.from_json(json_string)
     assert p.firstname == 'John'
     assert p.lastname == 'Doe'
 
@@ -467,7 +467,7 @@ class ModelTests(FrameworkTest):
       ''' Test serializing a `Model` into a msgpack struct '''
 
       # sample person
-      p = Person(firstname='John', lastname='Doe')
+      p = TestPerson(firstname='John', lastname='Doe')
 
       # prepare mini testsuite
       def test_msgpack_flow(original, mp=None):
@@ -518,7 +518,7 @@ class ModelTests(FrameworkTest):
       mpack = self.msgpack.dumps(obj)
 
       # load into object
-      p = Person.from_msgpack(mpack)
+      p = TestPerson.from_msgpack(mpack)
       assert p.firstname == 'John'
       assert p.lastname == 'Doe'
 
@@ -527,8 +527,8 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s behavior in `explicit` mode '''
 
     # sample people
-    s = Person(firstname='Sam')
-    p = Person(firstname='John')
+    s = TestPerson(firstname='Sam')
+    p = TestPerson(firstname='John')
 
     # go into explicit mode
     self.assertEqual(p.__explicit__, False)
@@ -558,7 +558,7 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s behavior when used as an iterator '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test implicit generator
     items = {}
@@ -574,7 +574,7 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s behavior when used as an iterator in `explicit` mode '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test explicit generator
     items = {}
@@ -592,7 +592,7 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s behavior when used with `len()` '''
 
     # sample person
-    p = Person()
+    p = TestPerson()
     self.assertEqual(len(p), 0)
 
     # set 1st property
@@ -608,7 +608,7 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s falsyness with no properties '''
 
     # sample peron
-    p = Person()
+    p = TestPerson()
     self.assertTrue((not p))  # empty model should be falsy
 
     p.firstname = 'John'
@@ -619,7 +619,7 @@ class ModelTests(FrameworkTest):
     ''' Test getting an invalid `Model` property '''
 
     # sample person
-    p = Person()
+    p = TestPerson()
 
     # should be sealed off by `__slots__`
     with self.assertRaises(AttributeError):
@@ -627,7 +627,7 @@ class ModelTests(FrameworkTest):
 
     # should be sealed off by metaclass-level `__slots__`
     with self.assertRaises(AttributeError):
-      (Person.blabble)
+      (TestPerson.blabble)
 
     # should be sealed off by good coding practices (lolz)
     with self.assertRaises(AttributeError):
@@ -638,7 +638,7 @@ class ModelTests(FrameworkTest):
     ''' Test getting *all* properties via `_get_value` '''
 
     # sample person
-    p = Person(firstname='John', lastname='Doe')
+    p = TestPerson(firstname='John', lastname='Doe')
     properties = p._get_value(None)
 
     # should be a list of tuples
@@ -655,7 +655,7 @@ class ModelTests(FrameworkTest):
     ''' Test a `Model`'s compliance with Python's Item API '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test __getitem__
     self.assertEqual(p.firstname, 'John')
@@ -678,10 +678,10 @@ class ModelTests(FrameworkTest):
     ''' Test the protected method `_set_value`, which is used by Model API internals '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # try writing a new key
-    x = p._set_value('key', model.VertexKey(Person, "john"))
+    x = p._set_value('key', model.VertexKey(TestPerson, "john"))
     self.assertEqual(x, p)
 
     # try writing to invalid property
@@ -690,21 +690,21 @@ class ModelTests(FrameworkTest):
 
     # quick test via descriptor API, which should also raise `AttributeError`
     with self.assertRaises(AttributeError):
-      Person.__dict__['firstname'].__set__(None, 'invalid')
+      TestPerson.__dict__['firstname'].__set__(None, 'invalid')
 
   def test_model_setkey(self):
 
     ''' Test the protected method `_set_key`, which is used by Model API internals '''
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # try writing an invalid key
     with self.assertRaises(TypeError):
       p._set_key(5.5)
 
     # try writing via kwargs
-    k = model.VertexKey(Person, "john")
+    k = model.VertexKey(TestPerson, "john")
 
     # try constructing via urlsafe
     p._set_key(urlsafe=k.urlsafe())
@@ -901,12 +901,12 @@ class ModelTests(FrameworkTest):
 
     ''' Test proper MRO for ``Vertex`` models '''
 
-    assert hasattr(Person, 'edges')
-    assert hasattr(Person(), 'edges')
-    assert hasattr(Person, 'neighbors')
-    assert hasattr(Person(), 'neighbors')
-    assert issubclass(Person, model.Vertex)
-    assert isinstance(Person(), model.Vertex)
+    assert hasattr(TestPerson, 'edges')
+    assert hasattr(TestPerson(), 'edges')
+    assert hasattr(TestPerson, 'neighbors')
+    assert hasattr(TestPerson(), 'neighbors')
+    assert issubclass(TestPerson, model.Vertex)
+    assert isinstance(TestPerson(), model.Vertex)
 
   def test_edge_class_mro(self):
 

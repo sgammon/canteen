@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   assets logic
   ~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
@@ -35,7 +35,7 @@ _default_asset_path = os.path.join(os.getcwd(), 'assets')
 @decorators.bind('assets')
 class Assets(logic.Logic):
 
-  '''  '''
+  """  """
 
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
@@ -56,18 +56,18 @@ class Assets(logic.Logic):
   @hooks.HookResponder('initialize', context=('runtime',))
   def bind_urls(self, runtime):
 
-    '''  '''
+    """  """
 
     from canteen import url, handler
 
     ## asset handler
     def make_responder(asset_type, path_prefix=None):
 
-      '''  '''
+      """  """
 
       class AssetResponder(handler.Handler):
 
-        '''  '''
+        """  """
 
         content_types = {
           'css': 'text/css',
@@ -89,7 +89,7 @@ class Assets(logic.Logic):
 
         def GET(self, asset):
 
-          '''  '''
+          """  """
 
           fullpath = (
             os.path.join(path_prefix, asset) if path_prefix else (
@@ -131,9 +131,10 @@ class Assets(logic.Logic):
                                         headers=[('ETag', fingerprint)],
                                         content_type=content_type)
 
+        # noinspection PyBroadException
         def open_and_serve(self, filepath):
 
-          '''  '''
+          """  """
 
           if os.path.exists(filepath):
             try:
@@ -184,7 +185,7 @@ class Assets(logic.Logic):
   ### === Resolvers === ###
   def find_filepath(self, asset_type):
 
-    '''  '''
+    """  """
 
     if isinstance(self.path, dict):
       if asset_type in self.path:
@@ -193,7 +194,7 @@ class Assets(logic.Logic):
 
   def find_path(self, asset_type):
 
-    '''  '''
+    """  """
 
     if isinstance(self.__prefixes__, dict):
       # allow type-specific asset prefixes
@@ -206,7 +207,7 @@ class Assets(logic.Logic):
   ### === URL Builders === ###
   def asset_url(self, type, fragments, arguments):
 
-    '''  '''
+    """  """
 
     assert (fragments or arguments)  # must pass at least fragments or arguments
 

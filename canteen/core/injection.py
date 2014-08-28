@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   core injection
   ~~~~~~~~~~~~~~
@@ -15,7 +15,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # canteen meta
 from .meta import Proxy
@@ -23,21 +23,21 @@ from .meta import Proxy
 
 class Delegate(object):
 
-  ''' Delegates property access for a given context to the system DI (dependency
+  """ Delegates property access for a given context to the system DI (dependency
       injection) pool. Items that mix a ``Delegate`` subclass into their MRO
-      work transparently with injection. '''
+      work transparently with injection. """
 
   __bridge__ = None  # holds bridge for current class to collapsed component set
   __target__ = None  # holds injection target for this delegate
 
   class __metaclass__(type):
 
-    ''' Metaclass to prepare new subclasses, wrapped as customized children of
-        ``Delegate`` that contain their owner class for DI context. '''
+    """ Metaclass to prepare new subclasses, wrapped as customized children of
+        ``Delegate`` that contain their owner class for DI context. """
 
     def __new__(cls, name_or_target, bases=None, properties=None):
 
-      ''' Construct a new ``Delegate`` subclass.
+      """ Construct a new ``Delegate`` subclass.
 
           :param name_or_target: Either the ``str`` name of a subtype extending
             ``Delegate`` directly or a name to wrap into an ephemeral
@@ -51,7 +51,7 @@ class Delegate(object):
 
           :returns: Factoried ``Delegate`` subtype, wrapped with an injection
             responder closure suitable for use in MRO-based dependency
-            resolution. '''
+            resolution. """
 
       # if it only comes through with a target, it's a subdelegate
       if bases or properties:
@@ -64,7 +64,7 @@ class Delegate(object):
 
       def injection_responder(klass, key):
 
-        ''' Injected responder for attribute accesses that hit the DI pool.
+        """ Injected responder for attribute accesses that hit the DI pool.
             Resolves a ``key`` for a given ``klass``, if possible.
 
             :param klass: Origin class for which we should generate a DI pool
@@ -81,7 +81,7 @@ class Delegate(object):
 
             :returns: Any result that the dependency pool can provide, from all
               known dependency resources available to ``klass``, available at
-              ``key``. '''
+              ``key``. """
 
         # @TODO(sgammon): make things not jank here (don't always `collapse`)
         try:
@@ -104,10 +104,10 @@ class Delegate(object):
 
     def __repr__(cls):  # pragma: nocover
 
-      ''' Generate a string representation of the local ``Delegate``, including
+      """ Generate a string representation of the local ``Delegate``, including
           whatever class context we're running in, if any.
 
-          :returns: String representation of a bound or root delegate. '''
+          :returns: String representation of a bound or root delegate. """
 
       return "<delegate root>" if not (
         cls.__target__) else "<delegate '%s'>" % cls.__target__.__name__
@@ -115,13 +115,13 @@ class Delegate(object):
   @classmethod
   def bind(cls, target):
 
-    ''' Factory a new ``Delegate`` subclass, bound to the ``target`` context
+    """ Factory a new ``Delegate`` subclass, bound to the ``target`` context
         class.
 
         :param target: Subject class to bind and spawn a ``Delegate`` subtype
           for.
 
-        :returns: Bound ``Delegate`` subtype, suitable for MRO mixing. '''
+        :returns: Bound ``Delegate`` subtype, suitable for MRO mixing. """
 
     # wrap in Delegate class context as well
     return cls.__metaclass__.__new__(cls, target)
@@ -129,23 +129,23 @@ class Delegate(object):
 
 class Compound(type):
 
-  ''' Concrete class used as a metafactory for class structures that should
+  """ Concrete class used as a metafactory for class structures that should
       enable attribute accesses for response from the DI pool.
 
       Use this class as a metaclass on items that should transparently work with
-      attribute injection. '''
+      attribute injection. """
 
   __seen__ = set()
   __delegate__ = None
 
   def mro(cls):
 
-    ''' Prepares MRO (Method Resolution Order) with a customized ``Delegate``
+    """ Prepares MRO (Method Resolution Order) with a customized ``Delegate``
         that provides a view into the DI pool.
 
         :returns: Prepared MRO for a dependency-injected metatype, known as a
           ``Compound`` because it is essentially the product of itself and a
-          collapsed set of ``Component`` injectables. '''
+          collapsed set of ``Component`` injectables. """
 
     for base in cls.__bases__:
       # check if we've seen any of these bases
@@ -169,8 +169,8 @@ class Compound(type):
 
 class Bridge(object):
 
-  ''' Tiny utility class that can be used as a static ``Bridge`` into the DI
+  """ Tiny utility class that can be used as a static ``Bridge`` into the DI
       pool. Suitable for use as an independent object, mounted wherever is
-      convenient. '''
+      convenient. """
 
   __metaclass__ = Compound

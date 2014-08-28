@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   decorator utils
   ~~~~~~~~~~~~~~~
@@ -14,21 +14,21 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 from __future__ import print_function
 
 
 class classproperty(property):
 
-  ''' Custom decorator for class-level property getters.
+  """ Custom decorator for class-level property getters.
       Usable like ``@property`` and chainable with
       ``@memoize``, as long as ``@memoize`` is used as
-      the inner decorator. '''
+      the inner decorator. """
 
   def __get__(self, instance, owner):
 
-    ''' Return the property value at the class level.
+    """ Return the property value at the class level.
 
         :param instance: Current encapsulating object
         dispatching via the descriptor protocol,
@@ -40,14 +40,14 @@ class classproperty(property):
         level.
 
         :returns: Result of a ``classmethod``-wrapped,
-        ``property``-decorated method. '''
+        ``property``-decorated method. """
 
     return classmethod(self.fget).__get__(None, owner)()
 
 
 def singleton(target):
 
-  ''' Mark a ``target`` class as a singleton, for use with the dependency
+  """ Mark a ``target`` class as a singleton, for use with the dependency
       injection system. Classes so-marked will be factoried on first-access and
       subsequently returned for all matching dependency requests.
 
@@ -56,7 +56,7 @@ def singleton(target):
       :raises RuntimeError: If something other than a class is marked for
         singleton mode.
 
-      :returns: Decorated ``target`` class, after it has been marked. '''
+      :returns: Decorated ``target`` class, after it has been marked. """
 
   if isinstance(target, type):
     setattr(target, '__singleton__', True)  # indicate this is a singleton class
@@ -67,9 +67,9 @@ def singleton(target):
 
 class bind(object):
 
-  ''' Encapsulated binding config for an injectable meta-implementor of
+  """ Encapsulated binding config for an injectable meta-implementor of
       ``meta.Proxy.Component``. Allows specification of simple string names to
-      be matched during dependency injection. '''
+      be matched during dependency injection. """
 
   __alias__ = None  # injection alias (i.e. `source.<alias> == <target>`)
   __target__ = None  # target for injection - i.e. what should be injected
@@ -78,7 +78,7 @@ class bind(object):
 
   def __init__(self, alias=None, namespace=True, *args, **kwargs):
 
-    ''' Initialize this binding.
+    """ Initialize this binding.
 
         :param alias: String alias for the target object to be bound. Defaults
           to ``None``, in which case the target function or class' ``__name__``
@@ -88,7 +88,7 @@ class bind(object):
           to explicitly bind them, but namespace them under the class binding
           they are mounted from.
 
-        :param *args:  '''
+        :param *args:  """
 
     self.__alias__, self.__config__, self.__namespace__ = (
       alias,
@@ -97,16 +97,16 @@ class bind(object):
 
   def __repr__(self):  # pragma: no cover
 
-    ''' Generate a pleasant string representation for this binding.
+    """ Generate a pleasant string representation for this binding.
 
         :returns: String representation for this binding, in the format
-          ``<binding 'name'>``. '''
+          ``<binding 'name'>``. """
 
     return "<binding '%s'>" % self.__alias__ or self.__target__.__name__
 
   def __call__(self, target):
 
-    ''' Dispatch this binding (the second half of a closured decorator flow) by
+    """ Dispatch this binding (the second half of a closured decorator flow) by
         scanning the target for subbindings (if applicable) and preparing (and
         subsequently attaching) an object to describe configuration.
 
@@ -118,7 +118,7 @@ class bind(object):
           meta-implementor of ``Proxy.Registry`` or ``Proxy.Component``.
 
         :returns: Decorated ``target``, after scanning for bindings and
-          attaching any appropriate configuration objects. '''
+          attaching any appropriate configuration objects. """
 
     from ..core import meta  # no deps in util. ever. :)
 

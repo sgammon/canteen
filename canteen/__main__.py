@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   runscript
   ~~~~~~~~~
@@ -15,7 +15,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # utils
 from util import walk

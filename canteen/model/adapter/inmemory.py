@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   in-memory model adapter
   ~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import time
@@ -48,7 +48,7 @@ _to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 class InMemoryAdapter(GraphModelAdapter):
 
-  ''' Adapt model classes to RAM. '''
+  """ Adapt model classes to RAM. """
 
   # key encoding
   _key_encoder = base64.b64encode
@@ -62,7 +62,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def acquire(cls, name, bases, properties):
 
-    ''' Perform first initialization. '''
+    """ Perform first initialization. """
 
     global _init
     global _graph
@@ -104,7 +104,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def get(cls, key, **kwargs):
 
-    ''' Retrieve an entity by Key from Python RAM. '''
+    """ Retrieve an entity by Key from Python RAM. """
 
     global _metadata
 
@@ -116,7 +116,7 @@ class InMemoryAdapter(GraphModelAdapter):
     entity = _datastore.get(encoded)
     if entity is None: return  # not found
 
-    _metadata['ops']['get'] = _metadata['ops']['get'] + 1
+    _metadata['ops']['get'] += 1
 
     # construct + inflate entity
     return entity
@@ -124,7 +124,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def put(cls, key, entity, model, **kwargs):
 
-    ''' Persist an entity to storage in Python RAM. '''
+    """ Persist an entity to storage in Python RAM. """
 
     from canteen import model as api
 
@@ -186,7 +186,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def delete(cls, key, **kwargs):
 
-    ''' Delete an entity by Key from memory. '''
+    """ Delete an entity by Key from memory. """
 
     global _metadata
     global _datastore
@@ -227,7 +227,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, **kwargs):
 
-    ''' Allocate new Key IDs up to `count`. '''
+    """ Allocate new Key IDs up to `count`. """
 
     global _metadata
 
@@ -251,7 +251,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def write_indexes(cls, writes, execute=True, **kwargs):
 
-    ''' Write a set of generated indexes via `generate_indexes`. '''
+    """ Write a set of generated indexes via `generate_indexes`. """
 
     global _metadata
     _write = {} if not execute else _metadata
@@ -311,10 +311,10 @@ class InMemoryAdapter(GraphModelAdapter):
 
         # init index hash
         if index not in _write:
-          _write[index] = {dimension: set((value,))}
+          _write[index] = {dimension: {value}}
 
         elif dimension not in _write[index]:
-          _write[index][dimension] = set((value,))
+          _write[index][dimension] = {value}
 
         else:
           # everything is there, map the value
@@ -390,7 +390,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def clean_indexes(cls, writes, **kwargs):
 
-    ''' Clean indexes for a key. '''
+    """ Clean indexes for a key. """
 
     global _metadata
 
@@ -479,7 +479,7 @@ class InMemoryAdapter(GraphModelAdapter):
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    ''' Execute a query across one (or multiple) indexed properties. '''
+    """ Execute a query across one (or multiple) indexed properties. """
 
     from canteen import model
     from canteen.model import query
@@ -610,7 +610,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
       def do_sort(sort, results):
 
-        '''  '''
+        """  """
 
         _sort_i = set()
         _sort_frame = []
@@ -668,15 +668,15 @@ class InMemoryAdapter(GraphModelAdapter):
 
   def edges(cls, key1, key2=None, type=None, **kwargs):
 
-    ''' Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
+    """ Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
         ``key1``) if no peer key is provided), optionally only of ``Edge``
-        type ``type``. '''
+        type ``type``. """
 
     raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
 
   def neighbors(cls, key, type=None, **kwargs):
 
-    ''' Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
-        optionally filtered by ``Edge`` type @``type``. '''
+    """ Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
+        optionally filtered by ``Edge`` type @``type``. """
 
     raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   datastructures
   ~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import abc
@@ -25,7 +25,7 @@ from . import decorators
 
 class Sentinel(object):
 
-  ''' Create a named sentinel object. '''
+  """ Create a named sentinel object. """
 
   name = None
   hash = None
@@ -33,7 +33,7 @@ class Sentinel(object):
 
   def __init__(self, name, falsy=False):
 
-    ''' Construct a new ``Sentinel``, which is essentially just a symbolic
+    """ Construct a new ``Sentinel``, which is essentially just a symbolic
         object at a simple string name. Two ``Sentinel``s with the same name
         evaluate to be *equal* to each other.
 
@@ -41,7 +41,7 @@ class Sentinel(object):
 
         :param falsy: Whether the resulting ``Sentinel`` object should evaluate
           as *falsy* (if it is to stand-in for ``None`` or ``False``, for
-          instance). '''
+          instance). """
 
     self.name, self.hash, self._falsy = (
       name, int((''.join(str(ord(c)) for c in name))), falsy)
@@ -64,7 +64,7 @@ class Sentinel(object):
 
 
 # Sentinels
-_EMPTY, _TOMBSTONE = (
+EMPTY, _TOMBSTONE = (
   Sentinel("EMPTY", True),
   Sentinel("TOMBSTONE", True)
 )
@@ -72,14 +72,14 @@ _EMPTY, _TOMBSTONE = (
 
 class UtilStruct(object):
 
-  ''' Abstract class for a utility object. '''
+  """ Abstract class for a utility object. """
 
   __metaclass__ = abc.ABCMeta
 
   ## Init -- Accept structure fill
   def __new__(cls, *args, **kwargs):
 
-    ''' Class constructor that enforces abstractness
+    """ Class constructor that enforces abstractness
         at the root of the class tree.
 
         :param *args:
@@ -88,7 +88,7 @@ class UtilStruct(object):
         :raises NotImplementedError: If the root class
         :py:class:`UtilStruct` is constructed directly
         Otherwise, returns a new instance of the
-        requested class. '''
+        requested class. """
 
     if cls.__name__ is 'UtilStruct':
       raise NotImplementedError('Cannot construct `UtilStruct` directly as'
@@ -98,7 +98,7 @@ class UtilStruct(object):
   @abc.abstractmethod
   def fillStructure(self, struct, case_sensitive=False, **kwargs):
 
-    ''' Abstract method that fills a local object with data, usually
+    """ Abstract method that fills a local object with data, usually
         from initialization.
 
         :param struct:
@@ -106,7 +106,7 @@ class UtilStruct(object):
         :param kwargs:
 
         :raises:
-        :returns: '''
+        :returns: """
 
     raise NotImplementedError('`UtilStruct.fillStructure` is abstract and must'
                               ' be implemented by a subclass.')
@@ -114,14 +114,14 @@ class UtilStruct(object):
 
 class ObjectProxy(UtilStruct):
 
-  ''' Same handy object as above, but stores the entries in an
-      _entries attribute rather than the class dict.  '''
+  """ Same handy object as above, but stores the entries in an
+      _entries attribute rather than the class dict.  """
 
   _entries = _case_sensitive = None
 
   def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
-    ''' If handed a dictionary (or something) in init, send it to
+    """ If handed a dictionary (or something) in init, send it to
         fillStructure (and do the same for kwargs).
 
         :param struct:
@@ -130,7 +130,7 @@ class ObjectProxy(UtilStruct):
 
         :raises TypeError:
 
-        :returns: '''
+        :returns: """
 
     self._entries, self._case_sensitive = {}, case_sensitive
     if struct:
@@ -139,7 +139,7 @@ class ObjectProxy(UtilStruct):
 
   def fillStructure(self, fill, case_sensitive=False, **kwargs):
 
-    ''' If handed a dictionary, will fill self with
+    """ If handed a dictionary, will fill self with
         those entries. Usually called from ``__init__``.
 
         :param fill: Structure to fill self with.
@@ -150,7 +150,7 @@ class ObjectProxy(UtilStruct):
         :param kwargs: Keyword arguments to be applied
         to ``struct`` as override.
 
-        :returns: ``self``. '''
+        :returns: ``self``. """
 
     self.case_sensitive = case_sensitive
     if fill:
@@ -161,11 +161,11 @@ class ObjectProxy(UtilStruct):
 
   def __getitem__(self, name):
 
-    ''' 'x = struct[name]' override.
+    """ 'x = struct[name]' override.
 
         :param name:
         :raises KeyError:
-        :returns: '''
+        :returns: """
 
     filtered = self.i_filter(name)
     if filtered not in self._entries:
@@ -175,11 +175,11 @@ class ObjectProxy(UtilStruct):
 
   def __getattr__(self, name):
 
-    ''' 'x = struct.name' override.
+    """ 'x = struct.name' override.
 
         :param name:
         :raises AttributeError
-        :returns: '''
+        :returns: """
 
     filtered = self.i_filter(name)
     if filtered not in self._entries:
@@ -208,26 +208,26 @@ class ObjectProxy(UtilStruct):
 
 class WritableObjectProxy(ObjectProxy):
 
-  ''' Same handy object as `ObjectProxy`, but
-      allows appending things at runtime. '''
+  """ Same handy object as `ObjectProxy`, but
+      allows appending things at runtime. """
 
   def __setitem__(self, name, value):
 
-    ''' 'struct[name] = x' override.
+    """ 'struct[name] = x' override.
 
         :param name:
         :param value:
-        :returns: '''
+        :returns: """
 
     self._entries[name] = value
 
   def __setattr__(self, name, value):
 
-    ''' 'struct.name = x' override.
+    """ 'struct.name = x' override.
 
         :param name:
         :param value:
-        :returns: '''
+        :returns: """
 
     if name in ('_entries', '_case_sensitive', '__slots__'):
       return object.__setattr__(self, name, value)
@@ -235,11 +235,11 @@ class WritableObjectProxy(ObjectProxy):
 
   def __delattr__(self, name):
 
-    ''' 'del struct.name' override.
+    """ 'del struct.name' override.
 
         :param name:
         :raises AttributeError:
-        :returns: '''
+        :returns: """
 
     if self.i_filter(name) not in self._entries:
       raise AttributeError("Could not find the entry '%s'"
@@ -248,11 +248,11 @@ class WritableObjectProxy(ObjectProxy):
 
   def __delitem__(self, name):
 
-    ''' 'del struct[name]' override.
+    """ 'del struct[name]' override.
 
         :param name:
         :raises KeyError:
-        :returns: '''
+        :returns: """
 
     if self.i_filter(name) not in self._entries:
       raise KeyError("Could not find the entry '%s'"
@@ -262,23 +262,24 @@ class WritableObjectProxy(ObjectProxy):
 
 class CallbackProxy(ObjectProxy):
 
-  ''' Handy little object that takes a dict and makes
+  """ Handy little object that takes a dict and makes
       it accessible via var[item], but returns the
-      result of an invoked ``callback(item)``. '''
+      result of an invoked ``callback(item)``. """
 
   _entries = None  # cached entries
   callback = None  # callback func
 
-  def __init__(self, callback, struct={}, **kwargs):
+  def __init__(self, callback, struct=None, **kwargs):
 
-    ''' Map the callback and fillStructure if we
+    """ Map the callback and fillStructure if we
         get one via `struct`.
 
         :param callback:
         :param struct:
         :param kwargs:
-        :returns: '''
+        :returns: """
 
+    struct = struct or {}
     self.callback = callback
 
     self._entries = struct
@@ -286,11 +287,11 @@ class CallbackProxy(ObjectProxy):
 
   def __getitem__(self, name):
 
-    ''' 'x = struct[name]' override.
+    """ 'x = struct[name]' override.
 
         :param name:
         :raises KeyError:
-        :returns: '''
+        :returns: """
 
     if self._entries and name not in self._entries:
       raise KeyError("Could not retrieve item '%s'"
@@ -299,11 +300,11 @@ class CallbackProxy(ObjectProxy):
 
   def __getattr__(self, name):
 
-    ''' 'x = struct.name' override.
+    """ 'x = struct.name' override.
 
         :param name:
         :raises AttributeError:
-        :returns: '''
+        :returns: """
 
     if self._entries and name not in self._entries:
       raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
@@ -315,18 +316,18 @@ class CallbackProxy(ObjectProxy):
 
 class ObjectDictBridge(UtilStruct):
 
-  ''' Treat an object like a dict, or an object! Assign an object
+  """ Treat an object like a dict, or an object! Assign an object
       with `ObjectDictBridge(<object>)`. Then access properties
-      with `bridge[item]` or `bridge.item`. '''
+      with `bridge[item]` or `bridge.item`. """
 
   target = None  # target object
 
   def __init__(self, target_object):
 
-    ''' constructor.
+    """ constructor.
 
         :param target_object:
-        :returns: '''
+        :returns: """
 
     super(ObjectDictBridge, self).__setattr__('target', target_object)
 
@@ -350,22 +351,22 @@ class ObjectDictBridge(UtilStruct):
 @decorators.singleton
 class BidirectionalEnum(object):
 
-  ''' Small and simple datastructure for mapping
-      static flags to smaller values. '''
+  """ Small and simple datastructure for mapping
+      static flags to smaller values. """
 
   class __metaclass__(abc.ABCMeta):
 
-    ''' Metaclass for property-gather-enabled classes. '''
+    """ Metaclass for property-gather-enabled classes. """
 
     def __new__(cls, name, chain, _map):
 
-      ''' Read mapped properties, store on the
+      """ Read mapped properties, store on the
           object, along with a reverse mapping.
 
           :param name:
           :param chain:
           :param _map:
-          :returns: '''
+          :returns: """
 
       # Init calculated data attributes
       _map['_pmap'] = {}
@@ -374,24 +375,24 @@ class BidirectionalEnum(object):
       # Define __contains__ proxy
       def _contains(proxied_o, flag_or_value):
 
-        ''' Bidirectionally-compatible __contains__
+        """ Bidirectionally-compatible __contains__
             replacement.
 
             :param proxied_o:
             :param flag_or_value:
-            :returns: '''
+            :returns: """
 
         return flag_or_value in proxied_o._plookup
 
       # Define __getitem__ proxy
       def _getitem(proxied_o, fragment):
 
-        ''' Attempt to resolve the fragment by a
+        """ Attempt to resolve the fragment by a
             forward, then reverse resolution chain.
 
             :param proxied_o:
             :param fragment:
-            :returns: '''
+            :returns: """
 
         if proxied_o.__contains__(fragment):
           return proxied_o._pmap.get(fragment)
@@ -399,22 +400,22 @@ class BidirectionalEnum(object):
       # Define __setitem__ proxy
       def _setitem(proxied_o, n, v):
 
-        ''' Block setitem calls, because this is a
+        """ Block setitem calls, because this is a
             complicated object that is supposed
             to be a modelling tool only.
 
             :param proxied_o:
             :param n:
             :param v:
-            :raises NotImplementedError: '''
+            :raises NotImplementedError: """
 
         raise NotImplementedError('Not implemented')
 
       def _iter(proxied_cls):
 
-        ''' Iterate over all enumerated values.
+        """ Iterate over all enumerated values.
 
-            :returns: '''
+            :returns: """
 
         for k, v in proxied_cls._plookup:
           yield k, v

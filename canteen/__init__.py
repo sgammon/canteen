@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   canteen
   ~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 debug, __version__ = __debug__, (1, 0)
 

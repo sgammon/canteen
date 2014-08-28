@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   template logic
   ~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
@@ -37,11 +37,11 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
   class ChoiceLoader(jinja2.ChoiceLoader):
 
-    '''  '''
+    """  """
 
     def get_source(self, environment, template):
 
-      '''  '''
+      """  """
 
       for loader in self.loaders:
         try:
@@ -52,7 +52,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
     def load(self, environment, filename, globals=None):
 
-      '''  '''
+      """  """
 
       for loader in self.loaders:
         try:
@@ -66,7 +66,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
   class ModuleLoader(jinja2.ModuleLoader):
 
-    '''  '''
+    """  """
 
     cache = None  # cache of modules loaded
     module = None  # main module
@@ -74,7 +74,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
     def __init__(self, module='templates'):
 
-      '''  '''
+      """  """
 
       from canteen.logic.cache import Caching
 
@@ -90,7 +90,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
     def load(self, environment, filename, globals=None):
 
-      '''  '''
+      """  """
 
       globals = globals or {}
 
@@ -130,8 +130,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
     def get_module(self, environment, template):
 
-      ''' Converts a template path to a package path and attempts
-          import, or else raises Jinja2's TemplateNotFound. '''
+      """ Converts a template path to a package path and attempts
+          import, or else raises Jinja2's TemplateNotFound. """
 
       import jinja2
 
@@ -148,14 +148,14 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
   class FileLoader(jinja2.FileSystemLoader):
 
-    '''  '''
+    """  """
 
     has_source_access = True
 
 
   class ExtensionLoader(ModuleLoader):
 
-    '''  '''
+    """  """
 
     pass
 
@@ -163,7 +163,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 @decorators.bind('template', namespace=False)
 class Templates(logic.Logic):
 
-  '''  '''
+  """  """
 
   with runtime.Library('jinja2') as (library, jinja2):
 
@@ -176,10 +176,10 @@ class Templates(logic.Logic):
       'optimized': True, 'autoescape': True
     })
 
-    # default syntax support method
-    def _default_syntax(self, handler, environment_factory, j2config, config):
+    @staticmethod  # default syntax support method
+    def _default_syntax(handler, environment_factory, j2config, config):
 
-      '''  '''
+      """  """
 
       # factory environment
       return environment_factory(**j2config)
@@ -196,7 +196,7 @@ class Templates(logic.Logic):
 
       def _hamlish_syntax(self, handler, environment_factory, j2config, config):
 
-        '''  '''
+        """  """
 
         # make environment first
         if 'extensions' not in j2config or not j2config.get('extensions'):
@@ -241,7 +241,7 @@ class Templates(logic.Logic):
 
     def environment(self, handler, config):
 
-      '''  '''
+      """  """
 
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})
@@ -290,7 +290,7 @@ class Templates(logic.Logic):
   @staticmethod
   def sanitize(content, _iter=True):
 
-    '''  '''
+    """  """
 
     # content should be a list of content blocks
     content = [content] if not (
@@ -298,7 +298,7 @@ class Templates(logic.Logic):
 
     def sanitize():
 
-      '''  '''
+      """  """
 
       # iteratively sanitize the response
       for block in content: yield block.strip()
@@ -309,7 +309,7 @@ class Templates(logic.Logic):
   @decorators.bind('template.base_headers', wrap=property)
   def base_headers(self):
 
-    '''  '''
+    """  """
 
     return filter(lambda x: x and x[1], [
       ('Cache-Control', 'no-cache; no-store')
@@ -318,7 +318,7 @@ class Templates(logic.Logic):
   @decorators.bind('template.base_context', wrap=property)
   def base_context(self):
 
-    '''  '''
+    """  """
 
     from canteen.util import config
 
@@ -346,7 +346,7 @@ class Templates(logic.Logic):
   @decorators.bind('template.base_filters', wrap=property)
   def base_filters(self):
 
-    '''  '''
+    """  """
 
     return {
 
@@ -364,7 +364,7 @@ class Templates(logic.Logic):
   @decorators.bind('template.render')
   def render(self, handler, config, template, ctx, _direct=False):
 
-    '''  '''
+    """  """
 
     # render template & return content iterato)
     content = (
@@ -374,4 +374,4 @@ class Templates(logic.Logic):
     if _direct: return self.sanitize(content, _iter=False)
 
     # otherwise, buffer/chain iterators to produce a streaming response
-    return self.sanitize(content, _iter=True)
+    return self.sanitize(content)

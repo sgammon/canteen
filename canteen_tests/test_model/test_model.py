@@ -545,8 +545,8 @@ class ModelTests(FrameworkTest):
 
     # test explicit values
     self.assertEqual(explicit_firstname, 'John')
-    self.assertEqual(explicit_active, datastructures._EMPTY)  # default values are not returned in `explicit` mode
-    self.assertEqual(explicit_lastname, datastructures._EMPTY)  # unset properties are returned as _EMPTY in `explicit` mode
+    self.assertEqual(explicit_active, datastructures.EMPTY)  # default values are not returned in `explicit` mode
+    self.assertEqual(explicit_lastname, datastructures.EMPTY)  # unset properties are returned as EMPTY in `explicit` mode
 
     # test implicit values
     self.assertEqual(p.firstname, 'John')
@@ -584,8 +584,8 @@ class ModelTests(FrameworkTest):
 
     self.assertEqual(len(items), len(p.__lookup__))  # should have _all_ properties
     self.assertEqual(items['firstname'], 'John')
-    self.assertEqual(items['active'], datastructures._EMPTY)  # defaults are returned as sentinels in `explicit` mode
-    self.assertEqual(items['lastname'], datastructures._EMPTY)  # unset properties are returned as sentinels in `explicit` mode
+    self.assertEqual(items['active'], datastructures.EMPTY)  # defaults are returned as sentinels in `explicit` mode
+    self.assertEqual(items['lastname'], datastructures.EMPTY)  # unset properties are returned as sentinels in `explicit` mode
 
   def test_len(self):
 
@@ -646,7 +646,7 @@ class ModelTests(FrameworkTest):
     self.assertIsInstance(properties, list)
     self.assertIsInstance(properties[0], tuple)
 
-    # should retrieve even unset properties (but they should be set to `None`, not the _EMPTY sentinel of course)
+    # should retrieve even unset properties (but they should be set to `None`, not the EMPTY sentinel of course)
     for k, v in properties:
       self.assertEqual(v, getattr(p, k))
 

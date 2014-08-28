@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP cookie logic
   ~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import json, time
@@ -36,18 +36,18 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   @decorators.bind('http.cookies')
   class Cookies(logic.Logic):
 
-    '''  '''
+    """  """
 
     __modes__ = {}  # modes for dealing with cookies
 
     @classmethod
     def add_mode(cls, name):
 
-      '''  '''
+      """  """
 
       def _mode_adder(mode_klass):
 
-        '''  '''
+        """  """
 
         cls.__modes__[name] = mode_klass
         cls.__default__ = cls.__modes__[name]
@@ -58,7 +58,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @classmethod
     def get_mode(cls, name):
 
-      '''  '''
+      """  """
 
       return cls.__modes__[name] if name in cls.__modes__ else cls.__default__
 
@@ -66,11 +66,11 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @SessionEngine.configure('cookies')
     class CookieSessions(SessionEngine):
 
-      '''  '''
+      """  """
 
       def load(self, request, http):
 
-        '''  '''
+        """  """
 
         # if there is a session cookie, load it...
         if self.config.get('key', 'canteen') in request.cookies:
@@ -90,7 +90,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       def commit(self, request, response, session):
 
-        '''  '''
+        """  """
 
         # resolve serializer
         _serializer, _key = (
@@ -135,29 +135,29 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   @Cookies.add_mode('json')
   class JSONCookie(securecookie.SecureCookie):
 
-    '''  '''
+    """  """
 
     class CookieSerializer(json.JSONEncoder):
 
-      '''  '''
+      """  """
 
       @classmethod
       def dumps(cls, structure):
 
-        '''  '''
+        """  """
 
         return cls().encode(structure)
 
       @classmethod
       def loads(cls, serialized):
 
-        '''  '''
+        """  """
 
         return json.loads(serialized)
 
       def default(self, obj):
 
-        '''  '''
+        """  """
 
         if isinstance(obj, Exception):
           if hasattr(obj, 'message'):
@@ -175,8 +175,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
     class FlaskSessionBridge(JSONCookie, flask_sessions.SessionMixin):
-
-      '''  '''
+        """  """
 
     # install our session bridge, forcing Flask to use JSON cookies
     flask_sessions.SecureCookieSessionInterface.session_class = (

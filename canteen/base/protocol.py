@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   protocol base
   ~~~~~~~~~~~~~
@@ -27,28 +27,7 @@
     @Protocol.register('jsonrpc', ('application/json', 'text/json'))
     class JSONRPC(Protocol):
 
-      """ I implement JSONRPC """
-
-      def encode_message(self, message):
-
-        """ Use builtin model JSON to serialize """
-
-        return message.to_json()
-
-      def decode_message(self, message_type, encoded_message):
-
-        """ Blindly decode like a boss """
-
-        return message_type(**json.loads(encoded_message))
-
-
-  :author: Sam Gammon <sg@samgammon.com>
-  :copyright: (c) Sam Gammon, 2014
-  :license: This software makes use of the MIT Open Source License.
-            A copy of this license is included as ``LICENSE.md`` in
-            the root of the project.
-
-'''
+      """
 
 # stdlib
 import abc
@@ -70,14 +49,14 @@ with runtime.Library('protorpc') as (library, protorpc):
 
   class Protocol(object):
 
-    ''' Base ``Protocol`` class for adding serialization dialects to the RPC
+    """ Base ``Protocol`` class for adding serialization dialects to the RPC
         engine. Implementing subclasses is easy - just specify an encoder and
         decoder function at ``encode_message`` and ``decode_message``.
 
         Once a ``Protocol`` class is written, it can be registered with the RPC
         subsystem by decorating it with ``Protocol.register``, along with a
         short string name (for instance, ``jsonrpc``) and a set of content types
-        to respond to. '''
+        to respond to. """
 
     __label__ = None  # string (human) name for the protocol
     __config__ = None  # local configuration info
@@ -89,12 +68,12 @@ with runtime.Library('protorpc') as (library, protorpc):
     @decorators.classproperty
     def all(cls):
 
-      ''' Class-level generator accessor to iterate through all registered
+      """ Class-level generator accessor to iterate through all registered
           ``Protocol`` implementations. Used at construction time to find
           protocol classes to bundle into a :py:mod:`protorpc` ``Protocols``
           object.
 
-          :returns: Yields ``Protocol`` implementations one at a time. '''
+          :returns: Yields ``Protocol`` implementations one at a time. """
 
       for protocol in cls.__protocols__.itervalues():
         yield protocol
@@ -102,12 +81,12 @@ with runtime.Library('protorpc') as (library, protorpc):
     @decorators.classproperty
     def mapping(cls):
 
-      ''' Class-level accessor for creating a :py:mod:`protorpc` ``Protocols``
+      """ Class-level accessor for creating a :py:mod:`protorpc` ``Protocols``
           container, which resolves the proper ``Protocol`` object to dispatch
           an RPC with, based on the HTTP ``Content-Type`` header.
 
           :returns: :py:class:`protorpc.remote.Protocols` object containing all
-            registered :py:class:`Protocol` objects. '''
+            registered :py:class:`Protocol` objects. """
 
       # construct a protocol container
       container = remote.Protocols()
@@ -130,7 +109,7 @@ with runtime.Library('protorpc') as (library, protorpc):
     @classmethod
     def register(cls, name, types, **config):
 
-      ''' Register a ``Protocol`` implementation by name and a set of content
+      """ Register a ``Protocol`` implementation by name and a set of content
           types. Usually used as a decorator.
 
           ``kwargs`` are taken as configuration to add to the protocol target.
@@ -141,21 +120,21 @@ with runtime.Library('protorpc') as (library, protorpc):
           :param types: Content types to use this mapper for. Iterable of
             ``str`` or ``unicode`` ``Content-Type`` values to match on.
 
-          :returns: Closured wrapper to register the protocol and return it. '''
+          :returns: Closured wrapper to register the protocol and return it. """
 
       assert isinstance(name, basestring), "protocol name must be a string"
       assert isinstance(types, (list, tuple)), "types must be an iterable"
 
       def _register_protocol(klass):
 
-        ''' Closure to register a class as an available protocol right before
+        """ Closure to register a class as an available protocol right before
             class construction. Mounts a ``Protocol``'s label, content types,
             and configuration.
 
             :param klass: Target class to register and return. Subclass of
               :py:class:`canteen.base.protocol.Protocol`.
 
-            :returns: Target ``klass``, after registration. '''
+            :returns: Target ``klass``, after registration. """
 
         # assign protocol details
         klass.__label__, klass.__content_types__, klass.__config__ = (
@@ -172,33 +151,33 @@ with runtime.Library('protorpc') as (library, protorpc):
     @decorators.classproperty
     def name(self):
 
-      ''' Class-level accessor for the 'short name' of this ``Protocol`` class.
+      """ Class-level accessor for the 'short name' of this ``Protocol`` class.
           For example, ``jsonrpc``.
 
-          :returns: ``str`` short name for this :py:class:`Protocol`. '''
+          :returns: ``str`` short name for this :py:class:`Protocol`. """
 
       return self.__label__
 
     @decorators.classproperty
     def content_type(self):
 
-      ''' Class-level accessor for the primary ``Content-Type`` this
+      """ Class-level accessor for the primary ``Content-Type`` this
           :py:class:`Protocol` should respond to. The first entry in the
           available options is used as the primary ``Content-Type``.
 
-          :returns: Primary ``str`` ``Content-Type`` value. '''
+          :returns: Primary ``str`` ``Content-Type`` value. """
 
       return self.__content_types__[0]
 
     @decorators.classproperty
     def alternative_content_types(self):
 
-      ''' Class-level accessor for 'alternative' ``Content-Type``s that this
+      """ Class-level accessor for 'alternative' ``Content-Type``s that this
           :py:class:`Protocol` should respond to. Alternative content types
           will be responded to, but not used for responses (the 'primary'
           ``Content-Type`` is used as the response's type).
 
-          :returns: ``list`` of ``str`` ``Content-Type``s. '''
+          :returns: ``list`` of ``str`` ``Content-Type``s. """
 
       return [i for i in (
         filter(lambda x: x != self.content_type, self.__content_types__))]
@@ -207,7 +186,7 @@ with runtime.Library('protorpc') as (library, protorpc):
     @abc.abstractmethod
     def encode_message(self, message):
 
-      ''' Encode a message according to this :py:class:`Protocol`. Must be
+      """ Encode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
 
           Failure to specify this method will prevent an implementing class
@@ -220,7 +199,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           :returns: ``None``, but child class implementations are expected to
             return an encoded ``str``/``unicode`` representation of
-            ``message``. '''
+            ``message``. """
 
       raise NotImplementedError('Method `Protocol.encode_message`'
                                 ' is abstract.')  # pragma: no cover
@@ -228,7 +207,7 @@ with runtime.Library('protorpc') as (library, protorpc):
     @abc.abstractmethod
     def decode_message(self, message_type, encoded_message):
 
-      ''' Decode a message according to this :py:class:`Protocol`. Must be
+      """ Decode a message according to this :py:class:`Protocol`. Must be
           implemented by child classes, and so is marked as an abstract method.
 
           Failure to specify this method will prevent an implementing class from
@@ -244,7 +223,7 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           :returns: ``None``, but child class implementations are expected to
             return an inflated ``message_type`` based on the provided
-            ``encoded_message``. '''
+            ``encoded_message``. """
 
       raise NotImplementedError('Method `Protocol.decode_message`'
                                 ' is abstract.')  # pragma: no cover

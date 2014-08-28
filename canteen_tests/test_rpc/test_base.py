@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   base RPC tests
   ~~~~~~~~~~~~~~
@@ -13,15 +13,14 @@
       A copy of this license is included as ``LICENSE.md`` in
       the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
 import inspect
 
 # canteen
-from canteen import rpc
-from canteen import model
+from canteen import (rpc, model)
 from canteen.core import Library
 
 # canteen testing
@@ -37,7 +36,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
   class SampleMessage(messages.Message):
 
-    ''' Sample ProtoRPC message. '''
+    """ Sample ProtoRPC message. """
 
     string = messages.StringField(1)
     integer = messages.IntegerField(2)
@@ -45,7 +44,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
   class SampleModel(model.Model):
 
-    ''' Sample Canteen model. '''
+    """ Sample Canteen model. """
 
     string = basestring
     integer = int
@@ -55,11 +54,11 @@ with Library('protorpc', strict=True) as (library, protorpc):
   # Tests the basics of the RPC framework.
   class BaseRPCTests(FrameworkTest):
 
-    ''' Tests basic `canteen.rpc` functionality '''
+    """ Tests basic `canteen.rpc` functionality """
 
     def test_exports(self):
 
-      ''' Test basic RPC exports '''
+      """ Test basic RPC exports """
 
       assert hasattr(rpc, 'VariantField')
       assert hasattr(rpc, 'StringOrIntegerField')
@@ -69,7 +68,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_export_classes(self):
 
-      ''' Test basic RPC class exports '''
+      """ Test basic RPC class exports """
 
       assert hasattr(rpc, 'ServiceHandler')
       assert hasattr(rpc, 'Exception')
@@ -82,25 +81,22 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_service_construction(self):
 
-      ''' Test basic `rpc.Service` construction '''
+      """ Test basic `rpc.Service` construction """
 
       class SampleService(rpc.Service):
-
-        ''' Sample RPC service '''
+          """ Sample RPC service """
 
       SampleService()
 
     def test_service_mappings(self):
 
-      ''' Test generation of `rpc.Service` mappings '''
+      """ Test generation of `rpc.Service` mappings """
 
       class SampleService(rpc.Service):
-
-        ''' Sample RPC service '''
+          """ Sample RPC service """
 
       class SampleServiceTwo(rpc.Service):
-
-        ''' Sample RPC service 2 '''
+          """ Sample RPC service 2 """
 
       mappings = (
         ('/_rpc/sample1', SampleService),
@@ -111,15 +107,13 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_service_mappings_with_dict(self):
 
-      ''' Test generation of `rpc.Service` mappings from a dict '''
+      """ Test generation of `rpc.Service` mappings from a dict """
 
       class SampleService(rpc.Service):
-
-        ''' Sample RPC service '''
+          """ Sample RPC service """
 
       class SampleServiceTwo(rpc.Service):
-
-        ''' Sample RPC service 2 '''
+          """ Sample RPC service 2 """
 
       mappings = {
         '/_rpc/sample1': SampleService,
@@ -130,15 +124,13 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_service_mappings_duplicate_uris(self):
 
-      ''' Test invalid URIs with service mappings generator '''
+      """ Test invalid URIs with service mappings generator """
 
       class SampleService(rpc.Service):
-
-        ''' Sample RPC service '''
+          """ Sample RPC service """
 
       class SampleServiceTwo(rpc.Service):
-
-        ''' Sample RPC service 2 '''
+          """ Sample RPC service 2 """
 
       mappings = (
         ('/_rpc/sample1', SampleService),
@@ -153,17 +145,17 @@ with Library('protorpc', strict=True) as (library, protorpc):
   # Tests the base ServiceHandler class.
   class ServiceHandlerTests(FrameworkTest):
 
-    ''' Tests the `rpc.ServiceHandler` class '''
+    """ Tests the `rpc.ServiceHandler` class """
 
     def test_construct(self):
 
-      ''' Test constructing an `rpc.ServiceHandler` '''
+      """ Test constructing an `rpc.ServiceHandler` """
 
       rpc.ServiceHandler()  # pretty simple
 
     def test_add_service(self):
 
-      ''' Test `ServiceHandler.add_service` '''
+      """ Test `ServiceHandler.add_service` """
 
       class SampleService(rpc.Service): pass
 
@@ -175,7 +167,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_get_service(self):
 
-      ''' Test `ServiceHandler.get_service` '''
+      """ Test `ServiceHandler.get_service` """
 
       handler, svc = self.test_add_service()
 
@@ -186,7 +178,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_services_iter(self):
 
-      ''' Test `ServiceHandler.services` as an iterator '''
+      """ Test `ServiceHandler.services` as an iterator """
 
       handler, svc = self.test_add_service()
 
@@ -199,7 +191,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_describe_struct(self):
 
-      ''' Test describing `Service` definitions as a dictionary '''
+      """ Test describing `Service` definitions as a dictionary """
 
       handler, svc = self.test_add_service()
 
@@ -217,7 +209,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_describe_json(self):
 
-      ''' Test describing `Service` definitions as JSON '''
+      """ Test describing `Service` definitions as JSON """
 
       handler, svc = self.test_add_service()
 
@@ -235,7 +227,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_describe_javascript(self):
 
-      ''' Test describing `Service` definitions via JavaScript '''
+      """ Test describing `Service` definitions via JavaScript """
 
       handler, svc = self.test_add_service()
 
@@ -245,7 +237,9 @@ with Library('protorpc', strict=True) as (library, protorpc):
       assert 'true' in manifest  # in config
       assert 'apptools.rpc.service.factory(' in manifest
 
-      manifest = json.loads(manifest.replace('apptools.rpc.service.factory(', '').replace(');', ''))
+      manifest = manifest.replace('apptools.rpc.service.factory(', '')
+      manifest = manifest.replace(');', '')
+      manifest = json.loads(manifest)
       assert len(manifest)
 
       sample_item = None
@@ -258,7 +252,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_describe_invalid_format(self):
 
-      ''' Test describing `Service` definitions with an invalid format '''
+      """ Test describing `Service` definitions with an invalid format """
 
       handler, svc = self.test_add_service()
 
@@ -268,12 +262,16 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_describe_javascript_with_custom_callable(self):
 
-      ''' Test describing `Service` definitions via JavaScript with a custom callable '''
+      """ Test describing `Service` definitions via JavaScript with a custom
+          callable """
 
       handler, svc = self.test_add_service()
 
       # describe as dictionary and interrogate
-      manifest = handler.describe(json=False, javascript=True, callable='testing')
+      manifest = handler.describe(json=False,
+                                  javascript=True,
+                                  callable='testing')
+
       assert 'sample' in manifest  # service name
       assert 'true' in manifest  # in config
       assert 'testing(' in manifest
@@ -291,7 +289,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_build_wsgi_application(self):
 
-      ''' Test assembling a WSGI application for `Service` dispatch '''
+      """ Test assembling a WSGI application for `Service` dispatch """
 
       handler, svc = self.test_add_service()
 
@@ -319,15 +317,14 @@ with Library('protorpc', strict=True) as (library, protorpc):
   # Tests the `rpc.ServiceFactory` class.
   class ServiceFactoryTests(FrameworkTest):
 
-    ''' Tests `rpc.ServiceFactory` '''
+    """ Tests `rpc.ServiceFactory` """
 
     def test_construct(self):
 
-      ''' Test construction of a new `ServiceFactory` '''
+      """ Test construction of a new `ServiceFactory` """
 
       class SomeService(rpc.Service):
-
-        ''' Some sample service. '''
+          """ Some sample service. """
 
       factory = rpc.ServiceFactory.construct(SomeService)
       assert factory
@@ -335,7 +332,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_instance_factory(self):
 
-      ''' Test instance creation through `ServiceFactory` '''
+      """ Test instance creation through `ServiceFactory` """
 
       factory = self.test_construct()
       instance = factory()
@@ -348,11 +345,11 @@ with Library('protorpc', strict=True) as (library, protorpc):
   # Tests the `rpc.remote` class.
   class DecoratorTests(FrameworkTest):
 
-    ''' Tests `rpc.remote` '''
+    """ Tests `rpc.remote` """
 
     def test_construct(self):
 
-      ''' Test construction of a new `rpc.remote` wrapper '''
+      """ Test construction of a new `rpc.remote` wrapper """
 
       r = rpc.remote('registered', version=1)
 
@@ -362,13 +359,12 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_raw(self):
 
-      ''' Test wrapping a `Service` with `rpc.remote` directly '''
+      """ Test wrapping a `Service` with `rpc.remote` directly """
 
       r = self.test_construct()
 
       class RegisteredService(rpc.Service):
-
-        ''' Service mock for testing registration '''
+          """ Service mock for testing registration """
 
       klass = r(RegisteredService)
 
@@ -379,7 +375,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_service(self):
 
-      ''' Test wrapping a `Service` with `rpc.remote.service` '''
+      """ Test wrapping a `Service` with `rpc.remote.service` """
 
       klass, r = self.test_wrap_raw()
 
@@ -388,11 +384,11 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_method(self):
 
-      ''' Test wrapping a method with `rpc.remote.method` '''
+      """ Test wrapping a method with `rpc.remote.method` """
 
       class SampleMessage(messages.Message):
 
-        ''' Mock message '''
+        """ Mock message """
 
         string = messages.StringField(1)
         integer = messages.IntegerField(2)
@@ -400,12 +396,12 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       class RegisteredService(rpc.Service):
 
-        ''' Service mock for testing registration '''
+        """ Service mock for testing registration """
 
         @rpc.remote.method(SampleMessage)
         def registered_method(self, request):  # pragma: no cover
 
-          ''' I am a registered service message. '''
+          """ I am a registered service message. """
 
           request.integer += 1
           request.string += ", world!"
@@ -416,18 +412,19 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_method_models(self):
 
-      ''' Test wrapping a method with `rpc.remote.method` that uses Canteen models '''
+      """ Test wrapping a method with `rpc.remote.method` that uses Canteen
+          models """
 
       class SampleRequest(model.Model):
 
-        ''' Mock request '''
+        """ Mock request """
 
         string = basestring
         integer = int
 
       class SampleResponse(model.Model):
 
-        ''' Mock response '''
+        """ Mock response """
 
         string = basestring
         integer = int
@@ -435,12 +432,12 @@ with Library('protorpc', strict=True) as (library, protorpc):
       @rpc.remote.service('registered')
       class RegisteredService(rpc.Service):
 
-        ''' Service mock for testing registration '''
+        """ Service mock for testing registration """
 
         @rpc.remote.method(SampleRequest, SampleResponse)
         def registered_method(self, request):  # pragma: no cover
 
-          ''' I am a registered service message. '''
+          """ I am a registered service message. """
 
           return SampleResponse(**{
             'string': request.string + ', world!',
@@ -452,7 +449,8 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_method_dispatch(self):
 
-      ''' Test dispatching an RPC directly through a wrapped `rpc.remote.method` '''
+      """ Test dispatching an RPC directly through a wrapped
+          `rpc.remote.method` """
 
       RegisteredService, SampleMessage = self.test_wrap_method()
 
@@ -468,9 +466,11 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_wrap_method_dispatch_models(self):
 
-      ''' Test dispatching an RPC with models through a wrapped `rpc.remote.method` '''
+      """ Test dispatching an RPC with models through a wrapped
+         `rpc.remote.method` """
 
-      RegisteredService, SampleRequest, SampleResponse = self.test_wrap_method_models()
+      RegisteredService, SampleRequest, SampleResponse = (
+          self.test_wrap_method_models())
 
       # make message
       request = SampleRequest(string='Hello', integer=10)
@@ -481,4 +481,5 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       assert result.string == 'Hello, world!'
       assert result.integer == 11
-      assert isinstance(result, messages.Message), "expected response class %s, got %s" % (messages.Message, result)
+      assert isinstance(result, messages.Message), (
+          "expected response class %s, got %s" % (messages.Message, result))

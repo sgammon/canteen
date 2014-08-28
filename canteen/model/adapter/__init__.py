@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   model adapters
   ~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # module constants
 __version__ = (0, 8)  # module version-string

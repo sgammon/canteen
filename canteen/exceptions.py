@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   exceptions
   ~~~~~~~~~~
@@ -13,9 +13,8 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 
 class Error(Exception):
-
-  ''' Top-level error for all of :py:mod:`canteen`. '''
+    """ Top-level error for all of :py:mod:`canteen`. """

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   page base
   ~~~~~~~~~
@@ -17,22 +17,7 @@
     @url('/')
     class Home(Page):
 
-      """ I'm a page, yo """
-
-      def GET(self):
-
-        """ Responds to HTTP GET """
-
-        self.respond("<b>Hello, web!</b>")
-
-
-  :author: Sam Gammon <sg@samgammon.com>
-  :copyright: (c) Sam Gammon, 2014
-  :license: This software makes use of the MIT Open Source License.
-            A copy of this license is included as ``LICENSE.md`` in
-            the root of the project.
-
-'''
+      """
 
 # DI & util
 from . import handler
@@ -40,9 +25,9 @@ from . import handler
 
 class Page(handler.Handler):
 
-  ''' Extendable class exposed to developers to prepare a class that responds to
+  """ Extendable class exposed to developers to prepare a class that responds to
       particular HTTP requests. Great way to return static content or render
       templates, as ``Page``s come preconfigured for use with :py:mod:`Jinja2`
-      and Canteen's builtin logic (session, static asset and caching tools). '''
+      and Canteen's builtin logic (session, static asset and caching tools). """
 
   __owner__ = "Page"

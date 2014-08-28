@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   stdlib runtime
   ~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core
 from ..core import runtime
@@ -28,12 +28,12 @@ with runtime.Library('wsgiref') as (library, wsgiref):
 
   class StandardWSGI(runtime.Runtime):
 
-    '''  '''
+    """  """
 
     __default__ = True
 
     def bind(self, interface, port):  # pragma: no cover
 
-      '''  '''
+      """  """
 
       return simple_server.make_server(interface, port, self.dispatch)

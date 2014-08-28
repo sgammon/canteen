@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   redis model adapter
   ~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
@@ -51,7 +51,7 @@ except ImportError as e:  # pragma: no cover
 try:
   import gevent; _support.gevent = gevent
 except ImportError as e:  # pragma: no cover
-  _support.gevent = False
+  gevent, _support.gevent = None, False
 else:  # pragma: no cover
   if _support.redis and (
     hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket')):
@@ -65,7 +65,7 @@ else:  # pragma: no cover
 try:
   import msgpack; _support.msgpack = msgpack
 except ImportError:  # pragma: no cover
-  _support.msgpack = False
+  msgpack, _support.msgpack = None, False
 
 
 ##### ==== compressors ==== #####
@@ -74,24 +74,24 @@ except ImportError:  # pragma: no cover
 try:
   import zlib; _support.zlib = zlib
 except ImportError:  # pragma: no cover
-  _support.zlib = False
+  zlib, _support.zlib = None, False
 
 # resolve snappy
 try:
   import snappy; _support.snappy = snappy
 except ImportError:  # pragma: no cover
-  _support.snappy = False
+  snappy, _support.snappy = None, False
 
 # resolve lz4
 try:
   import lz4; _support.lz4 = lz4
 except ImportError:  # pragma: no cover
-  _support.lz4 = False
+  lz4, _support.lz4 = None, False
 
 
 class RedisMode(object):
 
-  ''' Map of hard-coded modes of internal operation for the `RedisAdapter`. '''
+  """ Map of hard-coded modes of internal operation for the `RedisAdapter`. """
 
   hashkey_hash = 'hashkey'  # HSET <key>, <field> => <value> [...]
   hashkey_blob = 'hashblob'  # HSET <entity_group>, <key_id>, <entity>
@@ -101,7 +101,7 @@ class RedisMode(object):
 
 class RedisAdapter(IndexedModelAdapter):
 
-  ''' Adapt model classes to Redis. '''
+  """ Adapt model classes to Redis. """
 
   # key encoding
   adapter = _redis_client
@@ -118,7 +118,7 @@ class RedisAdapter(IndexedModelAdapter):
 
   class EngineConfig(object):
 
-    ''' Configuration for the `RedisAdapter` engine. '''
+    """ Configuration for the `RedisAdapter` engine. """
 
     encoding = True  # encoding for keys and special values
     serializer = json  # json or msgpack
@@ -128,206 +128,206 @@ class RedisAdapter(IndexedModelAdapter):
 
   class Operations(object):
 
-    ''' Available datastore operations. '''
+    """ Available datastore operations. """
 
     ## Key Operations
-    SET = 'SET'  # set a value at a key directly
-    GET = 'GET'  # get a value by key directly
-    KEYS = 'KEYS'  # get a list of all keys matching a regex
-    DUMP = 'DUMP'  # dump serialized information about a key
-    DELETE = 'DEL'  # delete a key=> value pair, by key
-    EXISTS = 'EXISTS'  # determine if a key exists
-    EXPIRE = 'EXPIRE'  # set expiration time for a key
-    EXPIRE_AT = 'EXPIREAT'  # set absolute expiration for a key
-    MIGRATE = 'MIGRATE'  # atomically transfer key and value to a different Redis instance
-    MOVE = 'MOVE'  # move a key from one `db` to another
-    GETBIT = 'GETBIT'  # retrieve a specific bit from a key value
-    GETSET = 'GETSET'  # set a value by key, and return the existing value
-    GETRANGE = 'GETRANGE'  # return the substring of str value at given key
-    OBJECT = 'OBJECT'  # inspect internals of redis objects
-    PERSIST = 'PERSIST'  # remove expiration of a key
-    PEXPIRE = 'PEXPIRE'  # set TTL for a key in milliseconds
-    PEXPIREAT = 'PEXPIREAT'  # set TTL absolutely in milliseconds
-    PTTL = 'TTL'  # get TTL for a key in milliseconds
-    RANDOM = 'RANDOMKEY'  # select a random key from the database
-    RENAME = 'RENAME'  # rename a key to a different name
-    RENAMENX = 'RENAMENX'  # rename a key, only if the new key doesn't exist
-    RESTORE = 'RESTORE'  # restore a key previously DUMPed
-    SORT = 'SORT'  # sort the elements in a list or set
-    TTL = 'TTL'  # get the TTL for a key
-    TYPE = 'TYPE'  # determine the type of a key
-    SCAN = 'SCAN'  # incrementally iterate over keyspace
+    SET = 'SET'
+    GET = 'GET'
+    KEYS = 'KEYS'
+    DUMP = 'DUMP'
+    DELETE = 'DEL'
+    EXISTS = 'EXISTS'
+    EXPIRE = 'EXPIRE'
+    EXPIRE_AT = 'EXPIREAT'
+    MIGRATE = 'MIGRATE'
+    MOVE = 'MOVE'
+    GETBIT = 'GETBIT'
+    GETSET = 'GETSET'
+    GETRANGE = 'GETRANGE'
+    OBJECT = 'OBJECT'
+    PERSIST = 'PERSIST'
+    PEXPIRE = 'PEXPIRE'
+    PEXPIREAT = 'PEXPIREAT'
+    PTTL = 'TTL'
+    RANDOM = 'RANDOMKEY'
+    RENAME = 'RENAME'
+    RENAMENX = 'RENAMENX'
+    RESTORE = 'RESTORE'
+    SORT = 'SORT'
+    TTL = 'TTL'
+    TYPE = 'TYPE'
+    SCAN = 'SCAN'
 
     ## Counter Operations
-    INCREMENT = 'INCR'  # increment a key by 1
-    DECREMENT = 'DECR'  # decrement a key by 1
-    INCREMENT_BY = 'INCRBY'  # increment a key by int
-    DECREMENT_BY = 'DECRBY'  # decrement a key by int
-    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'  # incremement a key by float
+    INCREMENT = 'INCR'
+    DECREMENT = 'DECR'
+    INCREMENT_BY = 'INCRBY'
+    DECREMENT_BY = 'DECRBY'
+    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'
 
     ## Hash Operations
-    HASH_SET = 'HSET'  # set the value of an individual hash field
-    HASH_GET = 'HGET'  # get the value of an individual hash field
-    HASH_KEYS = 'HKEYS'  # get all the property names in a hash
-    HASH_SCAN = 'HSCAN'  # incrementally iterate over fields and values by optional pattern
-    HASH_DELETE = 'HDEL'  # delete one or more individual hash fields
-    HASH_LENGTH = 'HLEN'  # retrieve the number of fields in a hash
-    HASH_VALUES = 'HVALS'  # get all values in a hash, without keys
-    HASH_EXISTS = 'HEXISTS'  # determine if an individual hash field exists
-    HASH_GET_ALL = 'HGETALL'  # get all fields and values of a hash
-    HASH_SET_SAFE = 'HSETNX'  # set the value of a hash field, only if it doesn't exist
-    HASH_MULTI_GET = 'HMGET'  # get the values of multiple hash fields
-    HASH_MULTI_SET = 'HMSET'  # set the values of multiple hash fields
-    HASH_INCREMENT = 'HINCRBY'  # increment an individual hash field by X
-    HASH_INCREMENT_FLOAT = 'HINCRBYFLOAT'  # increment an individual hash field by float(X)
+    HASH_SET = 'HSET'
+    HASH_GET = 'HGET'
+    HASH_KEYS = 'HKEYS'
+    HASH_SCAN = 'HSCAN'
+    HASH_DELETE = 'HDEL'
+    HASH_LENGTH = 'HLEN'
+    HASH_VALUES = 'HVALS'
+    HASH_EXISTS = 'HEXISTS'
+    HASH_GET_ALL = 'HGETALL'
+    HASH_SET_SAFE = 'HSETNX'
+    HASH_MULTI_GET = 'HMGET'
+    HASH_MULTI_SET = 'HMSET'
+    HASH_INCREMENT = 'HINCRBY'
+    HASH_INCREMENT_FLOAT = 'HINCRBYFLOAT'
 
     ## String Commands
-    APPEND = 'APPEND'  # append string data to to an existing key
-    STRING_LENGTH = 'STRLEN'  # retrieve the length of a string value at a key
+    APPEND = 'APPEND'
+    STRING_LENGTH = 'STRLEN'
 
     ## List Operations
-    LIST_SET = 'LSET'  # set a value in a list by its index
-    LEFT_POP = 'LPOP'  # pop a value off the left side of a list
-    RIGHT_POP = 'RPOP'  # pop a value off the right side of a list
-    LEFT_PUSH = 'LPUSH'  # add a value to the right side of a list
-    RIGHT_PUSH = 'RPUSH'  # add a value to the right side of a list
-    LEFT_PUSH_X = 'LPUSHX'  # add a value to the left side of a list, only if it already exists
-    RIGHT_PUSH_X = 'RPUSHX'  # add a value to the right side of a list, only if it already exists
-    LIST_TRIM = 'LTRIM'  # truncate the list to only containing X values
-    LIST_INDEX = 'LINDEX'  # get a value from a list by its index
-    LIST_RANGE = 'LRANGE'  # get a range of values from a list
-    LIST_LENGTH = 'LLEN'  # retrieve the current length of a list
-    LIST_REMOVE = 'LREM'  # remove elements from an existing list
-    BLOCK_LEFT_POP = 'BLPOP'  # same as lpop, but block until an item is available
-    BLOCK_RIGHT_POP = 'BRPOP'  # same as rpop, but block until an item is available
+    LIST_SET = 'LSET'
+    LEFT_POP = 'LPOP'
+    RIGHT_POP = 'RPOP'
+    LEFT_PUSH = 'LPUSH'
+    RIGHT_PUSH = 'RPUSH'
+    LEFT_PUSH_X = 'LPUSHX'
+    RIGHT_PUSH_X = 'RPUSHX'
+    LIST_TRIM = 'LTRIM'
+    LIST_INDEX = 'LINDEX'
+    LIST_RANGE = 'LRANGE'
+    LIST_LENGTH = 'LLEN'
+    LIST_REMOVE = 'LREM'
+    BLOCK_LEFT_POP = 'BLPOP'
+    BLOCK_RIGHT_POP = 'BRPOP'
 
     ## Set Operations
-    SET_ADD = 'SADD'  # add a new member to a set
-    SET_POP = 'SPOP'  # pop and remove an item from the end of a set
-    SET_MOVE = 'SMOVE'  # move a member from one set to another
-    SET_DIFF = 'SDIFF'  # calculate the difference/delta of two sets
-    SET_UNION = 'SUNION'  # calculate the union/combination of two sets
-    SET_REMOVE = 'SREM'  # remove one or more members from a set
-    SET_MEMBERS = 'SMEMBERS'  # retrieve all members of a set
-    SET_INTERSECT = 'SINTER'  # calculate the intersection of two sets
-    SET_IS_MEMBER = 'SISMEMBER'  # determine if a value is a member of a set
-    SET_DIFF_STORE = 'SDIFFSTORE'  # calculate the delta of two sets and store the result
-    SET_CARDINALITY = 'SCARD'  # calculate the number of members in a set
-    SET_UNION_STORE = 'SUNIONSTORE'  # calculate the union of two sets and store the result
-    SET_RANDOM_MEMBER = 'SRANDMEMBER'  # retrieve a random member of a set
-    SET_INTERSECT_STORE = 'SINTERSTORE'  # calculate the intersection of a set and store the result
+    SET_ADD = 'SADD'
+    SET_POP = 'SPOP'
+    SET_MOVE = 'SMOVE'
+    SET_DIFF = 'SDIFF'
+    SET_UNION = 'SUNION'
+    SET_REMOVE = 'SREM'
+    SET_MEMBERS = 'SMEMBERS'
+    SET_INTERSECT = 'SINTER'
+    SET_IS_MEMBER = 'SISMEMBER'
+    SET_DIFF_STORE = 'SDIFFSTORE'
+    SET_CARDINALITY = 'SCARD'
+    SET_UNION_STORE = 'SUNIONSTORE'
+    SET_RANDOM_MEMBER = 'SRANDMEMBER'
+    SET_INTERSECT_STORE = 'SINTERSTORE'
 
     ## Sorted Set Operations
-    SORTED_ADD = 'ZADD'  # add a member to a sorted set
-    SORTED_RANK = 'ZRANK'  # determine the index o a member in a sorted set
-    SORTED_RANGE = 'ZRANGE'  # return a range of members in a sorted set, by index
-    SORTED_SCORE = 'ZSCORE'  # get the score associated with the given member in a sorted set
-    SORTED_COUNT = 'ZCOUNT'  # count the members in a sorted set with scores within a given range
-    SORTED_REMOVE = 'ZREM'  # remove one or more members from a sorted set
-    SORTED_CARDINALITY = 'ZCARD'  # get the number of members in a sorted set (cardinality)
-    SORTED_UNION_STORE = 'ZUNIONSTORE'  # compute the union of two sorted sets, storing the result at a new key
-    SORTED_INCREMENT_BY = 'ZINCRBY'  # increment the score of a member in a sorted set by X
-    SORTED_INDEX_BY_SCORE = 'ZREVRANK'  # determine the index of a member in a sorted set, scores ordered high=>low
-    SORTED_RANGE_BY_SCORE = 'ZRANGEBYSCORE'  # return a range of members in a sorted set, by score
-    SORTED_INTERSECT_STORE = 'ZINTERSTORE'  # intersect multiple sets, storing the result in a new key
-    SORTED_MEMBERS_BY_INDEX = 'ZREVRANGE'  # get a range of members in a sorted set. by index, scores high=>low
-    SORTED_MEMBERS_BY_SCORE = 'ZREVRANGEBYSCORE'  # remove all members in a sorted set within the given scores
-    SORTED_REMOVE_RANGE_BY_RANK = 'ZREMRANGEBYRANK'  # remove members in a sorted set within a given range of ranks
-    SORTED_REMOVE_RANGE_BY_SCORE = 'ZREMRANGEBYSCORE'  # remove members in a sorted set within a range of scores
+    SORTED_ADD = 'ZADD'
+    SORTED_RANK = 'ZRANK'
+    SORTED_RANGE = 'ZRANGE'
+    SORTED_SCORE = 'ZSCORE'
+    SORTED_COUNT = 'ZCOUNT'
+    SORTED_REMOVE = 'ZREM'
+    SORTED_CARDINALITY = 'ZCARD'
+    SORTED_UNION_STORE = 'ZUNIONSTORE'
+    SORTED_INCREMENT_BY = 'ZINCRBY'
+    SORTED_INDEX_BY_SCORE = 'ZREVRANK'
+    SORTED_RANGE_BY_SCORE = 'ZRANGEBYSCORE'
+    SORTED_INTERSECT_STORE = 'ZINTERSTORE'
+    SORTED_MEMBERS_BY_INDEX = 'ZREVRANGE'
+    SORTED_MEMBERS_BY_SCORE = 'ZREVRANGEBYSCORE'
+    SORTED_REMOVE_RANGE_BY_RANK = 'ZREMRANGEBYRANK'
+    SORTED_REMOVE_RANGE_BY_SCORE = 'ZREMRANGEBYSCORE'
 
     ## Pub/Sub Operations
-    PUBLISH = 'PUBLISH'  # publish a message to a specific pub/sub channel
-    SUBSCRIBE = 'SUBSCRIBE'  # subscribe to messages on an exact channel
-    UNSUBSCRIBE = 'UNSUBSCRIBE'  # unsubscribe from messages on an exact channel
-    PATTERN_SUBSCRIBE = 'PSUBSCRIBE'  # subscribe to all pub/sub channels matching a pattern
-    PATTERN_UNSUBSCRIBE = 'PUNSUBSCRIBE'  # unsubscribe from all pub/sub channels matching a pattern
+    PUBLISH = 'PUBLISH'
+    SUBSCRIBE = 'SUBSCRIBE'
+    UNSUBSCRIBE = 'UNSUBSCRIBE'
+    PATTERN_SUBSCRIBE = 'PSUBSCRIBE'
+    PATTERN_UNSUBSCRIBE = 'PUNSUBSCRIBE'
 
     ## Transactional Operations
-    EXEC = 'EXEC'  # execute buffered commands in a pipeline queue
-    MULTI = 'MULTI'  # start a new pipeline, where commands can be buffered
-    WATCH = 'WATCH'  # watch a key, such that we can receive a notification in the event it is modified
-    UNWATCH = 'UNWATCH'  # unwatch all currently watched keys
-    DISCARD = 'DISCARD'  # discard buffered commands in a pipeline completely
+    EXEC = 'EXEC'
+    MULTI = 'MULTI'
+    WATCH = 'WATCH'
+    UNWATCH = 'UNWATCH'
+    DISCARD = 'DISCARD'
 
     ## Scripting Operations
-    EVALUATE = 'EVAL'  # evaluate a script inline, written in Lua
-    EVALUATE_STORED = 'EVALSHA'  # execute an already-loaded script
-    SCRIPT_LOAD = ('SCRIPT', 'LOAD')  # load a script into memory for future execution
-    SCRIPT_KILL = ('SCRIPT', 'KILL')  # kill the currently running script
-    SCRIPT_FLUSH = ('SCRIPT', 'FLUSH')  # flush all scripts from the script cache
-    SCRIPT_EXISTS = ('SCRIPT', 'EXISTS')  # check existence of scripts in the script cache
+    EVALUATE = 'EVAL'
+    EVALUATE_STORED = 'EVALSHA'
+    SCRIPT_LOAD = ('SCRIPT', 'LOAD')
+    SCRIPT_KILL = ('SCRIPT', 'KILL')
+    SCRIPT_FLUSH = ('SCRIPT', 'FLUSH')
+    SCRIPT_EXISTS = ('SCRIPT', 'EXISTS')
 
     ## Connection Operations
-    ECHO = 'ECHO'  # echo the given string from the server side - for testing
-    PING = 'PING'  # 'ping' to receive a 'pong' from the server - for keepalive
-    QUIT = 'QUIT'  # exit and close the current connection
-    SELECT = 'SELECT'  # select the currently-active database
-    AUTHENTICATE = 'AUTH'  # authenticate to a protected redis instance
+    ECHO = 'ECHO'
+    PING = 'PING'
+    QUIT = 'QUIT'
+    SELECT = 'SELECT'
+    AUTHENTICATE = 'AUTH'
 
     ## Server Operations
-    TIME = 'TIME'  # get the current time, as seen by the server
-    SYNC = 'SYNC'  # internal command - for master/slave propagation
-    SAVE = 'SAVE'  # synchronously save the dataset to disk
-    INFO = 'INFO'  # get information and statistics about the server
-    DEBUG = ('DEBUG', 'OBJECT')  # get detailed debug information about an object
-    DB_SIZE = 'DBSIZE'  # get the number of keys in a database
-    SLOWLOG = 'SLOWLOG'  # manages the redis slow queries log
-    MONITOR = 'MONITOR'  # listen for all requests received by the server in realtime
-    SLAVE_OF = 'SLAVEOF'  # make the server a slave, or promote it to master
-    SHUTDOWN = 'SHUTDOWN'  # synchronously save to disk and shutdown the server process
-    FLUSH_DB = 'FLUSHDB'  # flush all keys and values from the current database
-    FLUSH_ALL = 'FLUSHALL'  # flush all keys and values in all of redis
-    LAST_SAVE = 'LASTSAVE'  # retrieve a UNIX timestamp indicating the last successful save to disk
-    CONFIG_GET = ('CONFIG', 'GET')  # get the value of a redis configuration parameter
-    CONFIG_SET = ('CONFIG', 'SET')  # set the value of a redis configuration parameter
-    CLIENT_KILL = ('CLIENT', 'KILL')  # kill a client's active connection with redis
-    CLIENT_LIST = ('CLIENT', 'LIST')  # list all the active client connctions with redis
-    CLIENT_GET_NAME = ('CLIENT', 'GETNAME')  # get the name of the current connection
-    CLIENT_SET_NAME = ('CLIENT', 'SETNAME')  # set the name of the current connection
-    CONFIG_RESET_STAT = ('CONFIG', 'RESETSTAT')  # reset infostats that are served by "INFO"
-    BACKGROUND_SAVE = 'BGSAVE'  # in the background, save the current dataset to disk
-    BACKGROUND_REWRITE = 'BGREWRITEAOF'  # in the background, rewrite the current AOF
+    TIME = 'TIME'
+    SYNC = 'SYNC'
+    SAVE = 'SAVE'
+    INFO = 'INFO'
+    DEBUG = ('DEBUG', 'OBJECT')
+    DB_SIZE = 'DBSIZE'
+    SLOWLOG = 'SLOWLOG'
+    MONITOR = 'MONITOR'
+    SLAVE_OF = 'SLAVEOF'
+    SHUTDOWN = 'SHUTDOWN'
+    FLUSH_DB = 'FLUSHDB'
+    FLUSH_ALL = 'FLUSHALL'
+    LAST_SAVE = 'LASTSAVE'
+    CONFIG_GET = ('CONFIG', 'GET')
+    CONFIG_SET = ('CONFIG', 'SET')
+    CLIENT_KILL = ('CLIENT', 'KILL')
+    CLIENT_LIST = ('CLIENT', 'LIST')
+    CLIENT_GET_NAME = ('CLIENT', 'GETNAME')
+    CLIENT_SET_NAME = ('CLIENT', 'SETNAME')
+    CONFIG_RESET_STAT = ('CONFIG', 'RESETSTAT')
+    BACKGROUND_SAVE = 'BGSAVE'
+    BACKGROUND_REWRITE = 'BGREWRITEAOF'
 
   @classmethod
   def is_supported(cls):
 
-    ''' Check whether this adapter is supported in the current environment.
+    """ Check whether this adapter is supported in the current environment.
 
         :returns: The imported ``Redis`` driver, or ``False`` if it could not
-          be found. '''
+          be found. """
 
     return _support.redis
 
   @decorators.classproperty
   def serializer(cls):
 
-    ''' Load and return the optimal serialization codec.
+    """ Load and return the optimal serialization codec.
 
         :returns: Currently-configured serializer, mounted statically at
-          ``cls.EngineConfig.serializer``. '''
+          ``cls.EngineConfig.serializer``. """
 
     return cls.EngineConfig.serializer
 
   @decorators.classproperty
   def compressor(cls):
 
-    ''' Load and return the optimal data compressor.
+    """ Load and return the optimal data compressor.
 
         :returns: Currently-configured compressor, mounted statically at
-          ``cls.EngineConfig.compression``. '''
+          ``cls.EngineConfig.compression``. """
 
     return cls.EngineConfig.compression or zlib
 
   @classmethod
   def acquire(cls, name, bases, properties):
 
-    '''  '''
+    """  """
 
     return super(RedisAdapter, cls).acquire(name, bases, properties)
 
   def __init__(self):
 
-    '''  '''
+    """  """
 
     global _server_profiles
     global _default_profile
@@ -339,26 +339,24 @@ class RedisAdapter(IndexedModelAdapter):
     if not _default_profile:
 
       ## Resolve Redis config
-      if not servers:  # pragma: no cover
-        return None  # no servers to connect to (on noez)
-
-      for name, config in servers.items():
-        if name == 'default' or (config.get('default', False) is True):
-          _default_profile = name
-        elif not _default_profile:  # pragma: no cover
-          _default_profile = name
-        _server_profiles[name] = config
+      if servers:
+        for name, config in servers.items():
+          if name == 'default' or (config.get('default', False) is True):
+            _default_profile = name
+          elif not _default_profile:  # pragma: no cover
+            _default_profile = name
+          _server_profiles[name] = config
 
   @classmethod
   def channel(cls, kind):
 
-    ''' Retrieve a write channel to Redis.
+    """ Retrieve a write channel to Redis.
 
         :param kind: String :py:class:`model.Model` kind to retrieve a channel
           for.
 
         :returns: Acquired ``Redis`` client connection, potentially specific to
-          the handed-in ``kind``. '''
+          the handed-in ``kind``. """
 
     # convert to string kind if we got a model class
     if not isinstance(kind, basestring) and kind is not None:
@@ -372,11 +370,11 @@ class RedisAdapter(IndexedModelAdapter):
 
     # check kind-specific profiles
     if kind in _profiles_by_model.get('index', set()):
-      client = _client_connections[kind] = cls.adapter.StrictRedis(**_profiles_by_model['map'].get(kind))
-      ## @TODO: patch client with connection/workerpool (if gevent)
+      client = _client_connections[kind] = (
+          cls.adapter.StrictRedis(**_profiles_by_model['map'].get(kind)))
       return client
 
-    ## @TODO: patch client with connection/workerpool (if gevent)
+    ## @TODO(sgammon): patch client with connection/workerpool (if gevent)
 
     # check for cached default connection
     if '__default__' in _client_connections:
@@ -385,15 +383,17 @@ class RedisAdapter(IndexedModelAdapter):
     # otherwise, build new default
     default_profile = _server_profiles[_default_profile]
     if isinstance(default_profile, basestring):
-      profile = _server_profiles[default_profile]  # if it's a string, it's a pointer to a profile
+      # if it's a string, it's a pointer to a profile
+      profile = _server_profiles[default_profile]
 
-    client = _client_connections['__default__'] = cls.adapter.StrictRedis(**profile)
+    client = _client_connections['__default__'] = (
+        cls.adapter.StrictRedis(**profile))
     return client
 
   @classmethod
   def execute(cls, operation, kind, *args, **kwargs):
 
-    ''' Acquire a channel and execute an operation, optionally buffering the
+    """ Acquire a channel and execute an operation, optionally buffering the
         command.
 
         :param operation: Operation name to execute (from
@@ -408,19 +408,20 @@ class RedisAdapter(IndexedModelAdapter):
         :param kwargs: Keyword arguments to pass to the low-level operation
           selected.
 
-        :returns: Result of the selected low-level operation. '''
+        :returns: Result of the selected low-level operation. """
 
     # defer to pipeline or resolve channel for kind
     target = kwargs.get('target', None)
     if target is None:
       target = cls.channel(kind)
-    if 'target' in kwargs:
-      del kwargs['target']  # if we were passed an explicit target, remove the arg so the driver doesn't complain
+
+    if 'target' in kwargs: del kwargs['target']
 
     try:
       if isinstance(operation, tuple):
-        operation = '_'.join([operation])  # reduce (CLIENT, KILL) to 'client_kill' (for example)
-      if isinstance(target, (_redis_client.client.Pipeline, _redis_client.client.StrictPipeline)):
+        operation = '_'.join([operation])  # (CLIENT, KILL) => "CLIENT KILL"
+      if isinstance(target, (_redis_client.client.Pipeline,
+                             _redis_client.client.StrictPipeline)):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
       return getattr(target, operation.lower())(*args, **kwargs)
@@ -432,12 +433,12 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def get(cls, key, pipeline=None, _entity=None):
 
-    ''' Retrieve an entity by Key from Redis.
+    """ Retrieve an entity by Key from Redis.
 
         :param key: Target :py:class:`model.Key` to retrieve from storage.
 
         :returns: The deserialized and decompressed entity associated with the
-          target ``key``. '''
+          target ``key``. """
 
     from canteen import model
 
@@ -502,7 +503,7 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def put(cls, key, entity, model, pipeline=None):
 
-    ''' Persist an entity to storage in Redis.
+    """ Persist an entity to storage in Redis.
 
         :param key: New (and potentially empty) :py:class:`model.Key` for
           ``entity``. Must be assigned an ``ID`` by the driver through
@@ -515,7 +516,7 @@ class RedisAdapter(IndexedModelAdapter):
         :param model: Schema :py:class:`model.Model` associated with the target
           ``entity`` being persisted.
 
-        :returns: Result of the lower-level write operation. '''
+        :returns: Result of the lower-level write operation. """
 
     from canteen import model as _model
 
@@ -582,12 +583,12 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def delete(cls, key, pipeline=None):
 
-    ''' Delete an entity by Key from Redis.
+    """ Delete an entity by Key from Redis.
 
         :param key: Target :py:class:`model.Key`, whose associated
           :py:class:`model.Model` is being deleted.
 
-        :returns: The result of the low-level delete operation. '''
+        :returns: The result of the low-level delete operation. """
 
     from canteen import model
 
@@ -636,7 +637,7 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, pipeline=None):
 
-    ''' Allocate new :py:class:`model.Key` IDs up to ``count``. Allocated IDs
+    """ Allocate new :py:class:`model.Key` IDs up to ``count``. Allocated IDs
         are guaranteed not to be provisioned or otherwise used by the underlying
         persistence engine, and thus can be used for uniquely identifying
         non-deterministic data.
@@ -655,7 +656,7 @@ class RedisAdapter(IndexedModelAdapter):
           for use in a :py:class:`model.Key` directly. If **more than one** ID
           is requested, a **generator** is returned, which ``yields`` a set of
           provisioned integer IDs, each suitable for use in a
-          :py:class:`model.Key` directly. '''
+          :py:class:`model.Key` directly. """
 
     if not count:
       raise ValueError("Cannot allocate less than 1 ID's.")
@@ -702,10 +703,10 @@ class RedisAdapter(IndexedModelAdapter):
     if count > 1:
       def _generate_range():
 
-        ''' Generate a range of requested ID's.
+        """ Generate a range of requested ID's.
 
             :yields: Each item in a set of provisioned integer IDs,
-              suitable for use in a :py:class:`model.Key`. '''
+              suitable for use in a :py:class:`model.Key`. """
 
         bottom_range = (value - count)
         for i in xrange(bottom_range, value):
@@ -717,7 +718,7 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def encode_key(cls, joined, flattened):
 
-    ''' Encode a Key for storage in ``Redis``. Since we don't need to
+    """ Encode a Key for storage in ``Redis``. Since we don't need to
         do anything fancy, just delegate this to the abstract (default)
         encoder, which is ``base64``.
 
@@ -731,7 +732,7 @@ class RedisAdapter(IndexedModelAdapter):
 
         :returns: In the case that ``encoding`` is *on*, the encoded string
           :py:class:`model.Key`, suitable for storage in ``Redis``. Otherwise
-          (``encoding`` is *off*), the cleartext ``joined`` key. '''
+          (``encoding`` is *off*), the cleartext ``joined`` key. """
 
     if cls.EngineConfig.encoding:
       return abstract._encoder(joined)
@@ -740,7 +741,7 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def write_indexes(cls, writes, pipeline=None, execute=True):  # pragma: no cover
 
-    ''' Write a batch of index updates generated earlier via
+    """ Write a batch of index updates generated earlier via
         :py:meth:`RedisAdapter.generate_indexes`.
 
         :param writes: Batch of writes to commit to ``Redis``.
@@ -751,7 +752,7 @@ class RedisAdapter(IndexedModelAdapter):
 
         :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented.
 
-        :returns: '''
+        :returns: """
 
     origin, meta, property_map = writes
 
@@ -873,19 +874,19 @@ class RedisAdapter(IndexedModelAdapter):
   @classmethod
   def clean_indexes(cls, key, pipeline=None):  # pragma: no cover
 
-    ''' Clean indexes and index entries matching a particular
+    """ Clean indexes and index entries matching a particular
       :py:class:`model.Key`, and generated via the adapter method
       :py:meth:`RedisAdapter.generate_indexes`.
 
       :param key: Target :py:class:`model.Key` to clean from ``Redis`` indexes.
-      :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented. '''
+      :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented. """
 
     return  # not currently implemented
 
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    ''' Execute a :py:class:`model.Query` across one (or multiple)
+    """ Execute a :py:class:`model.Query` across one (or multiple)
         indexed properties.
 
         :param kind: Kind name (``str``) for which we are querying across, or
@@ -907,7 +908,7 @@ class RedisAdapter(IndexedModelAdapter):
 
         :returns: Iterable (``list``) of matching :py:class:`model.Key` yielded
           by execution of the current :py:class:`Query`. Returns
-          empty iterable (``[]``) in the case that no results could be found. '''
+          empty iterable (``[]``) in the case that no results could be found. """
 
     # @TODO(sgammon): desparately needs rewriting. absolute utter plebbery.
 
@@ -945,7 +946,8 @@ class RedisAdapter(IndexedModelAdapter):
           _f.target.name: (_f.target, _f.value.data)
         })
 
-        for operation, index, config in cls.write_indexes((origin, [], property_map), None, False):
+        for operation, index, config in cls.write_indexes((
+                origin, [], property_map), execute=False):
 
           if operation == 'ZADD':
             _flag, _index_key, value = 'Z', index[1], index[2]
@@ -1093,7 +1095,8 @@ class RedisAdapter(IndexedModelAdapter):
       # fill pipeline
       _seen_results = 0
       for key in matching_keys:
-        if (not (_and_filters or _or_filters)) and (options.limit > 0 and _seen_results >= options.limit):
+        if (not (_and_filters or _or_filters)) and (
+                0 < options.limit <= _seen_results):
           break
         _seen_results += 1
 
@@ -1113,7 +1116,7 @@ class RedisAdapter(IndexedModelAdapter):
           break
 
         # decode raw entity
-        decoded = cls.get(None, None, entity)
+        decoded = cls.get(key=None, _entity=entity)
 
         # attach key, decode entity and construct
         decoded['key'] = key

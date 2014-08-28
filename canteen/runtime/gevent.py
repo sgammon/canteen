@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   gevent runtime
   ~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core
 from ..core import runtime

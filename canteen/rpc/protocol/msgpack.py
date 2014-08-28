@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   msgpack RPC protocol
   ~~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
@@ -28,21 +28,21 @@ _content_types = (
 )
 
 
-with runtime.Library('msgpack') as (library, msgpack):
-  with runtime.Library('protorpc') as (library, protorpc):
+with runtime.Library('msgpack') as (msglib, msgpack):
+  with runtime.Library('protorpc') as (protolib, protorpc):
 
     # submodules
-    protojson = library.load('protojson')  # used for structure
+    protojson = protolib.load('protojson')  # used for structure
 
 
     @protocol.Protocol.register('msgpack', _content_types)
     class Msgpack(protocol.Protocol, protojson.ProtoJson):
 
-      '''  '''
+      """  """
 
       def encode_message(self, message):
 
-        '''  '''
+        """  """
 
         message.check_initialized()
 
@@ -57,7 +57,7 @@ with runtime.Library('msgpack') as (library, msgpack):
 
       def decode_message(self, message_type, encoded_message):
 
-        '''  '''
+        """  """
 
         # garbage in, garbage out
         if not encoded_message.strip():  # pragma: no cover

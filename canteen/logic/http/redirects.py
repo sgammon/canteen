@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP redirect logic
   ~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # runtime
 from canteen.base import logic
@@ -30,11 +30,11 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   @decorators.bind('http.redirects')
   class Redirects(logic.Logic):
 
-    '''  '''
+    """  """
 
     @SessionEngine.configure('redirects')
     class RedirectSessions(SessionEngine):
 
-      '''  '''
+      """  """
 
       pass

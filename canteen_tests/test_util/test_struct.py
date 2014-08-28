@@ -30,7 +30,7 @@ class BaseUtilTests(test.FrameworkTest):
 
     ''' Test that `canteen.util` exports expected things. '''
 
-    assert hasattr(struct, '_EMPTY')
+    assert hasattr(struct, 'EMPTY')
     assert hasattr(struct, '_TOMBSTONE')
 
 

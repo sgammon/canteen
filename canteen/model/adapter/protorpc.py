@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   protorpc model extensions
   ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import datetime
@@ -27,7 +27,7 @@ from canteen.util import struct as datastructures
 ## == protorpc support == ##
 try:
   # force absolute import to prevent infinite recursion
-  protorpc = __import__('protorpc', tuple(), tuple(), [], -1)
+  protorpc = __import__('protorpc', tuple(), tuple(), [], 0)
 
 except ImportError as e:  # pragma: no cover
   # flag as unavailable
@@ -35,7 +35,7 @@ except ImportError as e:  # pragma: no cover
 
 else:
   # extended imports (must be absolute)
-  _p = __import__('protorpc', [], [], ['messages', 'message_types'], -1)
+  _p = __import__('protorpc', [], [], ['messages', 'message_types'], 0)
   pmessages = getattr(_p, 'messages')
   pmessage_types = getattr(_p, 'message_types')
 
@@ -78,7 +78,7 @@ else:
   # recursive message builder
   def build_message(_model):
 
-    ''' Recursively builds a new `Message` class dynamically from a canteen
+    """ Recursively builds a new `Message` class dynamically from a canteen
         :py:class:`model.Model`. Properties are converted to their
         :py:mod:`protorpc` equivalents and factoried into a full
         :py:class:`messages.Message` class.
@@ -92,7 +92,7 @@ else:
           or serialization error.
 
         :returns: Constructed (but not instantiated)
-          :py:class:`protorpc.messages.Message` class. '''
+          :py:class:`protorpc.messages.Message` class. """
 
     # must nest import to avoid circular dependencies
     from canteen import rpc
@@ -128,7 +128,7 @@ else:
       if _field_kwarg in prop._options:
 
         # grab explicit field, if any
-        explicit = prop._options.get(_field_kwarg, datastructures._EMPTY)
+        explicit = prop._options.get(_field_kwarg, datastructures.EMPTY)
 
         # explcitly setting `False` or `None` means skip this field
         if (explicit is False or explicit is None):
@@ -162,12 +162,12 @@ else:
             if not isinstance(_pargs, list):
               _pargs = [i for i in _pargs]
 
-            _field_i = _field_i + 1
+            _field_i += 1
             _pargs.append(_field_i)
             _pargs = tuple(_pargs)
           else:
             # shortcut: replace it if there's no args
-            _field_i = _field_i + 1
+            _field_i += 1
             _pargs = (_field_i,)
 
           # factory field
@@ -182,7 +182,7 @@ else:
 
       # check variant by dict
       if prop._basetype == dict:
-        _field_i = _field_i + 1
+        _field_i += 1
         _model_message[name] = rpc.VariantField(_field_i)
         continue
 
@@ -194,12 +194,12 @@ else:
         if prop._basetype is model.Model:
 
           ## general, top-level `Model` means a variant field
-          _field_i = _field_i + 1
+          _field_i += 1
           _model_message[name] = rpc.VariantField(_field_i)
           continue
 
         # recurse - it's a model class
-        _field_i = _field_i + 1
+        _field_i += 1
         _pargs.append(prop._basetype.to_message_model())
         _pargs.append(_field_i)
 
@@ -211,7 +211,7 @@ else:
       elif prop._basetype == model.Key:
 
         # build field and advance
-        _field_i = _field_i + 1
+        _field_i += 1
         _pargs.append(rpc.Key)
         _pargs.append(_field_i)
         _model_message[name] = pmessages.MessageField(*_pargs)
@@ -221,7 +221,7 @@ else:
       elif prop._basetype in _builtin_basetypes:
 
         # build field and advance
-        _field_i = _field_i + 1
+        _field_i += 1
         _pargs.append(_field_i)
         _model_message[name] = (
           _field_basetype_map[prop._basetype](*_pargs, **_pkwargs))
@@ -231,7 +231,7 @@ else:
       elif hasattr(prop._basetype, '__message__'):
 
         # delegate field and advance
-        _field_i = _field_i + 1
+        _field_i += 1
         _pargs.append(_field_i)
         _model_message[name] = prop._basetype.__message__(*_pargs, **_pkwargs)
         continue
@@ -249,13 +249,13 @@ else:
   ## ProtoRPCKey
   class ProtoRPCKey(KeyMixin):
 
-    ''' Adapt `Key` classes to ProtoRPC messages. '''
+    """ Adapt `Key` classes to ProtoRPC messages. """
 
     def to_message(self, flat=False, encoded=False):
 
-      ''' Convert a `Key` instance to a ProtoRPC `Message` instance.
+      """ Convert a `Key` instance to a ProtoRPC `Message` instance.
 
-          :returns: Constructed :py:class:`protorpc.Key` message object. '''
+          :returns: Constructed :py:class:`protorpc.Key` message object. """
 
       from canteen import rpc
 
@@ -276,9 +276,9 @@ else:
     @classmethod
     def to_message_model(cls):
 
-      ''' Return a schema for a `Key` instance in ProtoRPC `Message` form.
+      """ Return a schema for a `Key` instance in ProtoRPC `Message` form.
 
-          :returns: Vanilla :py:class:`protorpc.Key` class. '''
+          :returns: Vanilla :py:class:`protorpc.Key` class. """
 
       from canteen import rpc
       return rpc.Key
@@ -286,7 +286,7 @@ else:
     @classmethod
     def from_message(cls, key_message):
 
-      '''  '''
+      """  """
 
       parent = cls.from_message(key_message.parent) if (
         key_message.parent
@@ -299,11 +299,11 @@ else:
   ## ProtoRPCModel
   class ProtoRPCModel(ModelMixin):
 
-    ''' Adapt Model classes to ProtoRPC messages. '''
+    """ Adapt Model classes to ProtoRPC messages. """
 
     def to_message(self, *args, **kwargs):
 
-      ''' Convert a `Model` instance to a ProtoRPC `Message` class.
+      """ Convert a `Model` instance to a ProtoRPC `Message` class.
 
           :param args: Positional arguments to pass to
             :py:meth:`Model.to_dict`.
@@ -312,7 +312,7 @@ else:
             :py:meth:`Model.to_dict`.
 
           :returns: Constructed and initialized :py:class:`protorpc.Message`
-            object. '''
+            object. """
 
       # must import inline to avoid circular dependency
       from canteen import rpc
@@ -342,7 +342,7 @@ else:
 
       def _check_value(item):
 
-        ''' Checks for invalid ProtoRPC values. '''
+        """ Checks for invalid ProtoRPC values. """
 
         key, value = item
 
@@ -356,13 +356,13 @@ else:
     @classmethod
     def to_message_model(cls):
 
-      ''' Convert a `Model` class to a ProtoRPC `Message` class. Delegates
+      """ Convert a `Model` class to a ProtoRPC `Message` class. Delegates
           to :py:func:`build_message`, see docs there for exceptions raised
           (:py:exc:`TypeError` and :py:exc:`ValueError`).
 
           :returns: Constructed (but not initialized) dynamically-build
             :py:class:`message.Message` class corresponding to
-            the current model (``cls``). '''
+            the current model (``cls``). """
 
       global _model_impl
 
@@ -378,7 +378,7 @@ else:
     @classmethod
     def from_message(cls, message):
 
-      ''' DOCSTRING '''
+      """ DOCSTRING """
 
       # create an empty model, loading its key
       # (if present, which it will be if this is coming from `to_message`)

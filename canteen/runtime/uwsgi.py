@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   uwsgi runtime
   ~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core + util
 from ..util import debug
@@ -32,12 +32,12 @@ try:  # pragma: no cover
     @decorators.bind('uwsgi')
     class uWSGI(runtime.Runtime):
 
-      '''  '''
+      """  """
 
       @classmethod
       def register_rpc(cls, method):
 
-        '''  '''
+        """  """
 
         pass  # @TODO(sgammon): register methods
 

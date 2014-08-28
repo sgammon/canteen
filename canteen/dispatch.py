@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   dispatch
   ~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 app = None
 
@@ -22,7 +22,7 @@ def spawn(app,
           dev=False,
           config=None):  # pragma: no cover
 
-  ''' Spawn a Canteen app, suitable for dispatch
+  """ Spawn a Canteen app, suitable for dispatch
       as a WSGI application.
 
       :param app: Canteen application to be spawned,
@@ -38,7 +38,7 @@ def spawn(app,
 
       :returns: Instance of ``canteen.Runtime`` that
         can be dispatched via WSGI and wraps the target
-        ``app`` object.  '''
+        ``app`` object.  """
 
   # canteen core & util
   from canteen.core import runtime
@@ -54,9 +54,9 @@ def run(app=None,
         interface='127.0.0.1',
         port=8080,
         dev=True,
-        config={}):  # pragma: no cover
+        config=None):  # pragma: no cover
 
-  ''' Run a lightweight development server via the
+  """ Run a lightweight development server via the
       currently-active runtime. Suitable for use
       locally, with no required parameters at all.
 
@@ -83,6 +83,6 @@ def run(app=None,
         easy way to put up a dev server.
 
       :returns: Nothing useful, as this blocks to
-        serve requests forever and ever. '''
+        serve requests forever and ever. """
 
-  return spawn(app, dev, config).serve(interface, port)
+  return spawn(app, dev, config or {}).serve(interface, port)

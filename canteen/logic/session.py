@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   session logic
   ~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 
 # stdlib
@@ -42,7 +42,7 @@ _BUILTIN_SESSION_PROPERTIES = frozenset((
 
 class ClientSession(models.Model):
 
-  '''  '''
+  """  """
 
   seen = int  # when this session was last seen
   data = dict  # attached session state data
@@ -55,7 +55,7 @@ class ClientSession(models.Model):
 
 class Session(object):
 
-  '''  '''
+  """  """
 
   __id__ = None  # session ID slot
   __session__ = None  # holds model instance for session
@@ -64,7 +64,7 @@ class Session(object):
                      model=ClientSession,
                      **kwargs):
 
-    '''  '''
+    """  """
 
     if isinstance(model, type):
       # set established timestamp if it's not there already
@@ -93,7 +93,7 @@ class Session(object):
   @decorators.classproperty
   def config(cls):
 
-    '''  '''
+    """  """
 
     return config.Config().get('Sessions', {'debug': True})
 
@@ -105,25 +105,25 @@ class Session(object):
       self.__session__.csrf)))
 
   ## == Get/Set == ##
-  def set(self, key, value, exception=False):
+  def set(self, key, value, exception=Exception):
 
-    '''  '''
+    """  """
 
     try:
       return setattr(self.data, key, value) or self
     except KeyError:
-      if exception:
+      if exception is not Exception:
           raise exception('Could not write to'
                           ' session item "%s".' % key)
 
-  def get(self, key, default=None, exception=False):
+  def get(self, key, default=None, exception=Exception):
 
-    '''  '''
+    """  """
 
     if key in self.data: return self.data[key]
     if default: return default
-    if exception: raise exception('Could not resolve session data'
-                                  ' item "%s".' % key)
+    if exception is not Exception: raise exception('Could not resolve session'
+                                                   ' data item "%s".' % key)
 
   # item protocol
   __getitem__ = lambda self, key: (
@@ -134,14 +134,14 @@ class Session(object):
 
   def __contains__(self, key):
 
-    '''  '''
+    """  """
 
     return key in self.__session__.data
 
   ## == Reset == ##
   def reset(self, save=False, adapter=None):
 
-    '''  '''
+    """  """
 
     # tombstone and clear CSRF
     self.__session__.csrf, self.__session__.tombstoned = None, True
@@ -150,7 +150,7 @@ class Session(object):
 
   def reset_csrf(self, save=False, adapter=None):
 
-    '''  '''
+    """  """
 
     # clear the current CSRF
     self.__session__.csrf = None
@@ -163,7 +163,7 @@ class Session(object):
   ## == Save/Load == ##
   def save(self, environ, adapter=None):
 
-    '''  '''
+    """  """
 
     if 'REMOTE_ADDR' in environ:
       self.__session__.client = environ.get('REMOTE_ADDR')
@@ -177,7 +177,7 @@ class Session(object):
   @classmethod
   def load(cls, id, model=ClientSession, strict=False, data=None):
 
-    '''  '''
+    """  """
 
     # manufacture our own session, by loading the model
     #_session = model.get(Session.make_key(id, model))
@@ -190,7 +190,7 @@ class Session(object):
   @staticmethod
   def generate_token(salt=''):
 
-    '''  '''
+    """  """
 
     return Session.config.get('hash', hashlib.sha256)(
       salt + reduce(operator.add, (
@@ -200,7 +200,7 @@ class Session(object):
   @staticmethod
   def make_key(id=None, model=ClientSession):
 
-    '''  '''
+    """  """
 
     return models.Key(model, id or (
       Session.generate_token(Session.config.get('salt', ''))))
@@ -208,7 +208,7 @@ class Session(object):
 
 class SessionEngine(object):
 
-  '''  '''
+  """  """
 
   ## == Internals == ##
   __label__, __metaclass__ = None, abc.ABCMeta
@@ -216,7 +216,7 @@ class SessionEngine(object):
 
   def __init__(self, name, config, api):
 
-    '''  '''
+    """  """
 
     self.__path__, self.__config__, self.__api__ = name, config, api
 
@@ -228,11 +228,11 @@ class SessionEngine(object):
   @staticmethod
   def configure(name, **config):
 
-    '''  '''
+    """  """
 
     def add_engine(klass):
 
-      '''  '''
+      """  """
 
       klass.__label__ = name
       Sessions.add_engine(name, klass, **config)
@@ -244,14 +244,14 @@ class SessionEngine(object):
   @abc.abstractmethod
   def load(self, context):
 
-    '''  '''
+    """  """
 
     raise NotImplementedError('Method `SessionEngine.load` is abstract.')
 
   @abc.abstractmethod
   def commit(self, context, session):
 
-    '''  '''
+    """  """
 
     raise NotImplementedError('Method `SessionEngine.commit` is abstract.')
 
@@ -259,7 +259,7 @@ class SessionEngine(object):
 @decorators.bind('sessions')
 class Sessions(logic.Logic):
 
-  '''  '''
+  """  """
 
   ## == Internals == ##
   __salt__ = None  # the secret value to prepend to the cookie before hashing
@@ -270,14 +270,14 @@ class Sessions(logic.Logic):
   @decorators.classproperty
   def config(cls):
 
-    '''  '''
+    """  """
 
     return config.Config().get('Sessions', {'debug': True})
 
   @decorators.classproperty
   def salt(cls):
 
-    '''  '''
+    """  """
 
     if not cls.__salt__:
       cls.__salt__ = cls.config.get('salt')
@@ -288,7 +288,7 @@ class Sessions(logic.Logic):
   @decorators.classproperty
   def secret(cls):
 
-    '''  '''
+    """  """
 
     if not cls.__secret__:
       cls.__secret__ = cls.config.get('secret')
@@ -299,7 +299,7 @@ class Sessions(logic.Logic):
   @decorators.classproperty
   def engines(cls):
 
-    '''  '''
+    """  """
 
     for engine in cls.__engines__.iteritems():
       yield engine
@@ -307,7 +307,7 @@ class Sessions(logic.Logic):
   @classmethod
   def add_engine(cls, name, engine, **config):
 
-    '''  '''
+    """  """
 
     cls.__engines__[name] = (engine, config)
     return cls
@@ -315,7 +315,7 @@ class Sessions(logic.Logic):
   @classmethod
   def get_engine(cls, name=None, context=None):
 
-    '''  '''
+    """  """
 
     _CONTEXT, _context_cfg = (
       (False, {}) if not context else (
@@ -343,7 +343,7 @@ class Sessions(logic.Logic):
   @decorators.bind('reset')
   def reset(self, redirect=None, save=True, engine=None):
 
-    '''  '''
+    """  """
 
     pass
 
@@ -351,7 +351,7 @@ class Sessions(logic.Logic):
     'environ', 'endpoint', 'arguments', 'request', 'http')))
   def establish(self, environ, endpoint, arguments, request, http):
 
-    '''  '''
+    """  """
 
     if request.session:  # are sessions enabled?
 
@@ -365,7 +365,7 @@ class Sessions(logic.Logic):
     'request', 'message'), context=('request', 'http')))
   def load(self, request, http):
 
-    '''  '''
+    """  """
 
     if http:  # HTTP sessions
 
@@ -384,7 +384,7 @@ class Sessions(logic.Logic):
     'status', 'headers', 'request', 'http', 'response')))
   def commit(self, status, headers, request, http, response):
 
-    '''  '''
+    """  """
 
     if response:  # we can only apply sessions to full responses
       if request.session:  # are sessions enabled?
@@ -398,7 +398,7 @@ class Sessions(logic.Logic):
                                     'response', 'request', 'http', 'environ')))
   def save(self, response, request, http, environ):
 
-    '''  '''
+    """  """
 
     if request.session and response:  # are sessions enabled?
 

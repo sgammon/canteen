@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP agent logic
   ~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # canteen core & util
 from canteen.base import logic
@@ -21,8 +21,8 @@ from canteen.util import decorators
 
 class Vendor(struct.BidirectionalEnum):
 
-  ''' Enumerated common vendors that can be found in an HTTP client or browser's
-      ``User-Agent`` string. '''
+  """ Enumerated common vendors that can be found in an HTTP client or browser's
+      ``User-Agent`` string. """
 
   GOOGLE = 0x0  # Chrome
   MOZILLA = 0x1  # Firefox
@@ -35,27 +35,27 @@ class Vendor(struct.BidirectionalEnum):
 
 class AgentInfo(object):
 
-  ''' Base class structure that removes object slots in favor of an extendable,
+  """ Base class structure that removes object slots in favor of an extendable,
       fully-static object structure. Used for indivisual objects that retain or
-      specify details about an HTTP client's ``User-Agent`` string. '''
+      specify details about an HTTP client's ``User-Agent`` string. """
 
   __slots__ = tuple()
 
   def dump(self):
 
-    ''' Dump the local data carried by this ``AgentInfo`` object or subclass
+    """ Dump the local data carried by this ``AgentInfo`` object or subclass
         object.
 
-        :returns: Dictionary (``dict``) of held ``key => value`` pairs. '''
+        :returns: Dictionary (``dict``) of held ``key => value`` pairs. """
 
     return dict(((k, getattr(self, k, None)) for k in self.__slots__))
 
   def __repr__(self):
 
-    ''' Generate a pleasant string representation for this unit of
+    """ Generate a pleasant string representation for this unit of
         ``AgentInfo``.
 
-        :returns: Human-readable string representation of this object. '''
+        :returns: Human-readable string representation of this object. """
 
     return "%s(%s)" % (
       self.__class__.__name__.replace('Agent', ''),
@@ -69,8 +69,8 @@ class AgentInfo(object):
 
 class AgentVersion(AgentInfo):
 
-  ''' Holds parsed version information for a software HTTP client or browser,
-      found while scanning the ``User-Agent`` header. '''
+  """ Holds parsed version information for a software HTTP client or browser,
+      found while scanning the ``User-Agent`` header. """
 
   __slots__ = (
     'major',  # major browser version (the `3` in 3.0)
@@ -80,19 +80,19 @@ class AgentVersion(AgentInfo):
 
   def __init__(self, major, minor=None, micro=None):
 
-    ''' Initialize this version info container.
+    """ Initialize this version info container.
 
         :param major: Major version.
         :param minor: Minor version (optional, defaults to ``None``).
-        :param micro: Micro version (optional, defaults to ``None``). '''
+        :param micro: Micro version (optional, defaults to ``None``). """
 
     self.major, self.minor, self.micro = major, minor, micro
 
 
 class AgentOS(AgentInfo):
 
-  ''' Holds parsed operating system information for a software HTTP client or
-      browser, found while scanning the ``User-Agent`` string. '''
+  """ Holds parsed operating system information for a software HTTP client or
+      browser, found while scanning the ``User-Agent`` string. """
 
   __slots__ = (
     'name',  # `Mac OS X` for mac, `Windows XP` for Windows, etc
@@ -102,7 +102,7 @@ class AgentOS(AgentInfo):
 
   def __init__(self, name, vendor, version):
 
-    ''' Initialize this OS info container.
+    """ Initialize this OS info container.
 
         :param name: Name of the operating system running on the host described
           by the subject ``User-Agent`` string.
@@ -111,14 +111,14 @@ class AgentOS(AgentInfo):
           running on the host described by the ``User-Agent`` string.
 
         :param version: Version information for the operating system running on
-          the host described by the ``User-Agent`` string. '''
+          the host described by the ``User-Agent`` string. """
 
     self.name, self.vendor, self.version = name, vendor, version
 
   @classmethod
   def scan(cls, request, user_agent, detected):
 
-    ''' Scan a target ``user_agent`` string, encapsulated by an HTTP
+    """ Scan a target ``user_agent`` string, encapsulated by an HTTP
         ``request``, for information about an HTTP client or browser's active
         operating system.
 
@@ -132,7 +132,7 @@ class AgentOS(AgentInfo):
           ``User-Agent`` detection process.
 
         :returns: Spawned ``AgentOS`` info container describing any operating
-          system information in the ``User-Agent`` in question.'''
+          system information in the ``User-Agent`` in question."""
 
     return cls(*{
         'bsd': ('BSD', Vendor.OPEN, AgentVersion(0)),
@@ -147,8 +147,8 @@ class AgentOS(AgentInfo):
 
 class AgentCapabilities(AgentInfo):
 
-  ''' Holds parsed or detected information about a software HTTP client or
-      browser's extra/interesting capabilities. '''
+  """ Holds parsed or detected information about a software HTTP client or
+      browser's extra/interesting capabilities. """
 
   __slots__ = (
     'spdy',  # support for SPDY
@@ -160,7 +160,7 @@ class AgentCapabilities(AgentInfo):
 
   def __init__(self, **kwargs):
 
-    ''' Initialize this capabilities container.
+    """ Initialize this capabilities container.
 
         :param **kwargs: Accepts keywords for supported flags, to set them as
           active (``True``) or inactive (``False``). Currently, the supported
@@ -170,7 +170,7 @@ class AgentCapabilities(AgentInfo):
           - ``quic`` - is the client browser communicating over QUIC?
           - ``http2`` - is the client browser communicating over HTTP2?
           - ``webp`` - does the client indicate support for WebP?
-          - ``webm`` - does the client indicate support for WebM?  '''
+          - ``webm`` - does the client indicate support for WebM?  """
 
     for datapoint in self.__slots__:
       setattr(self, datapoint, kwargs[datapoint] if datapoint in (
@@ -179,7 +179,7 @@ class AgentCapabilities(AgentInfo):
   @classmethod
   def scan(cls, request, user_agent, detected):
 
-    ''' Scan a target ``user_agent`` string, encapsulated by an HTTP
+    """ Scan a target ``user_agent`` string, encapsulated by an HTTP
         ``request``, for information about an HTTP client or browser's
         indicated or implied capabilities.
 
@@ -194,7 +194,7 @@ class AgentCapabilities(AgentInfo):
 
         :returns: Spawned ``AgentCapabilities`` object describing any detected
           capabilities implied or indicated by the subject ``User-Agent``
-          string. '''
+          string. """
 
     detected = {}  # detected capabilities
     accept_string = request.headers['Accept'] if 'Accept' in (
@@ -213,7 +213,7 @@ class AgentCapabilities(AgentInfo):
 
 class AgentFingerprint(AgentInfo):
 
-  ''' Holds a full picture of detected information about a software HTTP client
+  """ Holds a full picture of detected information about a software HTTP client
       or browser, scanned or inferred from various request headers such as
       ``User-Agent`` and ``Accept``.
 
@@ -224,7 +224,7 @@ class AgentFingerprint(AgentInfo):
       - supported languages, character sets, mimetypes and encodings
       - a client's OS (contained in an ``AgentOS`` instance)
       - a client's inferred or indicated capabilities (in an
-        ``AgentCapabilities`` instance) '''
+        ``AgentCapabilities`` instance) """
 
   __slots__ = (
 
@@ -277,11 +277,11 @@ class AgentFingerprint(AgentInfo):
 
   def __init__(self, **kwargs):
 
-    ''' Initialize a new ``AgentFingerprint`` object.
+    """ Initialize a new ``AgentFingerprint`` object.
 
         :param **kwargs: Arbitrary container of parameters to write into the
           new ``AgentFingerprint`` object. Valid options are specified in the
-          object's ``__slots__`` attribute. '''
+          object's ``__slots__`` attribute. """
 
     for datapoint in self.__slots__:
       setattr(self, datapoint, kwargs[datapoint] if datapoint in (
@@ -290,10 +290,10 @@ class AgentFingerprint(AgentInfo):
   @property
   def os(self):
 
-    ''' Property accessor for detected operating system information.
+    """ Property accessor for detected operating system information.
 
         :returns: ``AgentOS`` instance describing operating system information
-          for a given ``AgentFingerprint`` subject. '''
+          for a given ``AgentFingerprint`` subject. """
 
     if not hasattr(self, '__os__') or (
       hasattr(self, '__os__') and not self.__os__):
@@ -303,11 +303,11 @@ class AgentFingerprint(AgentInfo):
   @property
   def supports(self):
 
-    ''' Property accessor for inferred or indicated client capabilities.
+    """ Property accessor for inferred or indicated client capabilities.
 
         :returns: ``AgentCapabilities`` instance describing detected/supported
           capabilities and features for a given ``AgentFingerprint``
-          subject. '''
+          subject. """
 
     if not hasattr(self, '__supports__') or (
       hasattr(self, '__supports__') and not self.__supports__):
@@ -319,7 +319,7 @@ class AgentFingerprint(AgentInfo):
   @classmethod
   def scan(cls, request, ua):
 
-    ''' Scan a target HTTP ``request`` and ``User-Agent`` string for various
+    """ Scan a target HTTP ``request`` and ``User-Agent`` string for various
         pieces of information, such as an OS, browser/vendor, etc. Also scan
         other request-based headers that can provide hints about supported
         browser features and options.
@@ -332,23 +332,18 @@ class AgentFingerprint(AgentInfo):
 
         :returns: Spawned ``AgentFingerprint`` instance describing any and all
           information available to be parsed from the ``User-Agent`` and
-          ``Accept``-series request headers. '''
+          ``Accept``-series request headers. """
 
-    detected = {}  # holds detected truths/guesses
+    detected = {
+      'accept': request.headers.get('accept'),
+      'string': request.headers.get('user-agent'),
+      'charsets': request.accept_charsets,
+      'encodings': request.accept_encodings,
+      'languages': request.accept_languages,
+      'mimetypes': request.accept_mimetypes
+    }  # holds detected truths/guesses
 
-    # copy over raw strings
-    detected['accept'] = request.headers.get('accept')
-    detected['string'] = request.headers.get('user-agent')
-
-    # copy over accept details
-    detected['charsets'], detected['encodings'] = (
-      request.accept_charsets, request.accept_encodings)
-
-    detected['languages'], detected['mimetypes'] = (
-      request.accept_languages, request.accept_mimetypes)
-
-    if ua is None:
-      return cls(**{})
+    if ua is None: return cls(**{})
 
     # detect version first
     version = detected['version'] = ua.version.split('.')
@@ -360,7 +355,7 @@ class AgentFingerprint(AgentInfo):
         break
       try:
         version_spec.append(int(grouping))
-      except:
+      except ValueError:
         break
 
     # if we detected *anything* as an int, add it as our version
@@ -386,7 +381,7 @@ class AgentFingerprint(AgentInfo):
       ## Engines
       ('trident', ua.browser == 'msie'),
       ('blink', ua.browser in ('chrome', 'opera')),
-      ('presto', ua.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
+      ('presto', ua.browser == 'opera' and version.major < 15),
       ('webkit', ua.browser in ('safari', 'chrome', 'opera')),
       ('spidermonkey', ua.browser in ('firefox', 'seamonkey')),
       ('gecko', 'Gecko' in ua.string and ('WebKit' not in ua.string and (
@@ -408,8 +403,7 @@ class AgentFingerprint(AgentInfo):
         Vendor.MICROSOFT: detected.get('msie'),
         Vendor.OPERA: detected.get('opera'),
         Vendor.APPLE: detected.get('safari'),
-        Vendor.OPEN: detected.get('seamonkey'),
-      }.iteritems():
+        Vendor.OPEN: detected.get('seamonkey')}.iteritems():
 
       if v: detected['vendor'] = k
 
@@ -441,13 +435,14 @@ class AgentFingerprint(AgentInfo):
 @decorators.bind('http.agent')
 class UserAgent(logic.Logic):
 
-  ''' Provides structured access to HTTP request headers. Interrogates values
+  """ Provides structured access to HTTP request headers. Interrogates values
       such as ``User-Agent`` and ``Accept`` to infer or detect things such as a
-      client's OS, browser, and feature capabilities. '''
+      client's OS, browser, and feature capabilities. """
 
-  def scan(self, request):
+  @staticmethod
+  def scan(request):
 
-    ''' Scan an HTTP ``request`` for information about the other end of the
+    """ Scan an HTTP ``request`` for information about the other end of the
         connection. Detect as much information as possible from headers such as
         ``User-Agent`` and ``Accept``.
 
@@ -455,6 +450,6 @@ class UserAgent(logic.Logic):
 
         :returns: :py:class:`AgentFingerprint` instance containing any detected
           information found in the ``User-Agent`` or ``Accept``-series request
-          headers. '''
+          headers. """
 
     return AgentFingerprint.scan(request, request.user_agent)

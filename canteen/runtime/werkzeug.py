@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   werkzeug runtime
   ~~~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib & core
 import os
@@ -58,7 +58,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
   class Werkzeug(runtime.Runtime):
 
-    '''  '''
+    """  """
 
     base_exception = err.HTTPException
 
@@ -66,7 +66,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
     def bind(self, interface, address):  # pragma: no cover
 
-      '''  '''
+      """  """
 
       paths = {}
 

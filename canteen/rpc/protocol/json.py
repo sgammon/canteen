@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   JSON RPC protocol
   ~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
@@ -41,16 +41,16 @@ with runtime.Library('protorpc') as (library, protorpc):
   @protocol.Protocol.register('json', _content_types)
   class JSON(protocol.Protocol, protojson.ProtoJson):
 
-    '''  '''
+    """  """
 
     def encode_message(self, message):
 
-      '''  '''
+      """  """
 
       return protojson.ProtoJson().encode_message(message)
 
     def decode_message(self, message_type, encoded_message):
 
-      '''  '''
+      """  """
 
       return protojson.ProtoJson().decode_message(message_type, encoded_message)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP etag logic
   ~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core runtime
 from canteen.base import logic
@@ -32,23 +32,23 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   @decorators.bind('http.etags')
   class ETags(logic.Logic):
 
-    '''  '''
+    """  """
 
     @SessionEngine.configure('etags')
     class ETagSessions(SessionEngine):
 
-      '''  '''
+      """  """
 
       ## == Session Management == ##
       def load(self, context):
 
-        '''  '''
+        """  """
 
         pass
 
       def commit(self, context, session):
 
-        '''  '''
+        """  """
 
         pass
 
@@ -56,7 +56,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.classproperty
     def config(cls):
 
-      '''  '''
+      """  """
 
       return config.Config().get('http', {}).get('etags', {'debug': True})
 
@@ -64,13 +64,13 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @hooks.HookResponder('request', rollup=True)
     def request(self, **context):
 
-      '''  '''
+      """  """
 
       pass
 
     @hooks.HookResponder('response', rollup=True)
     def response(self, **context):
 
-      '''  '''
+      """  """
 
       pass

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   tests
   ~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 from __future__ import print_function
 
@@ -40,14 +40,14 @@ if __debug__:
 
   class BaseTest(unittest.TestCase):
 
-    '''  '''
+    """  """
 
     __appconfig__ = None  # class-level assignment of app config state
 
     @classmethod
     def set_config(cls, target):
 
-      '''  '''
+      """  """
 
       cls.__appconfig__ = target  # assign at class-level
 
@@ -62,13 +62,13 @@ if __debug__:
 
       def _dispatch_endpoint(self):
 
-        '''  '''
+        """  """
 
         return spawn(None, dev=True, config=config.Config(**self.__appconfig__))
 
       def _spawn_client(self, wsgi_target=None):
 
-        '''  '''
+        """  """
 
         return self.__werkzeug__.test.Client(*(
           wsgi_target or self.__werkzeug__.testapp.test_app,
@@ -76,13 +76,13 @@ if __debug__:
 
       def dispatch(self, app, method, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return getattr(self._spawn_client(app), method.lower())(*args, **kwargs)
 
       def GET(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -90,7 +90,7 @@ if __debug__:
 
       def POST(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -98,7 +98,7 @@ if __debug__:
 
       def HEAD(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -106,7 +106,7 @@ if __debug__:
 
       def OPTIONS(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -114,7 +114,7 @@ if __debug__:
 
       def PUT(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -122,7 +122,7 @@ if __debug__:
 
       def DELETE(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -130,7 +130,7 @@ if __debug__:
 
       def TRACE(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -138,7 +138,7 @@ if __debug__:
 
       def PATCH(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -146,7 +146,7 @@ if __debug__:
 
       def CONNECT(self, *args, **kwargs):
 
-        '''  '''
+        """  """
 
         return self.dispatch(*(
           kwargs.get('app', self._dispatch_endpoint()),
@@ -155,14 +155,14 @@ if __debug__:
 
   class AppTest(BaseTest):
 
-    '''  '''
+    """  """
 
     __root__, __owner__, __metaclass__ = True, 'AppTest', meta.Proxy.Registry
 
 
   class FrameworkTest(BaseTest):
 
-    '''  '''
+    """  """
 
     __root__, __owner__, __metaclass__ = (
       True, 'FrameworkTest', meta.Proxy.Registry)
@@ -174,7 +174,7 @@ if __debug__:
           format='text',
           verbosity=1, **kwargs):  # pragma: nocover
 
-    '''  '''
+    """  """
 
     # fill testsuite with found testcases
     master_suite, loader = [], unittest.TestLoader()
@@ -193,7 +193,7 @@ if __debug__:
 
     def filter_suite(suite):
 
-      '''  '''
+      """  """
 
       if not suite.countTestCases():
         return False
@@ -203,7 +203,7 @@ if __debug__:
 
     def merge_suite(left, right):
 
-      '''  '''
+      """  """
 
       _master = []
       for case in [test for test in left] + [test for test in right]:
@@ -229,7 +229,6 @@ if __debug__:
         import xmlrunner
       except ImportError:
         raise RuntimeError('Cannot generate XML output without `xmlrunner`.')
-        sys.exit(1)
       else:
         return xmlrunner.XMLTestRunner(output=output).run(master_suite)
     runner = unittest.TextTestRunner(stream=output or sys.stdout,
@@ -239,7 +238,7 @@ if __debug__:
 
   def clirunner(arguments, root=None):  # pragma: nocover
 
-    '''  '''
+    """  """
 
     output, format = None, 'text'
 

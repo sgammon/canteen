@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP semantics
   ~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # session API
 from .. import session
@@ -27,7 +27,7 @@ from canteen.util import decorators
 
 def url(name_or_route, route=None, **kwargs):
 
-  '''  '''
+  """  """
 
   # extract route and name (optional, but first arg if specified)
   name, route = (None, name_or_route) if not route else (name_or_route, route)
@@ -38,7 +38,7 @@ def url(name_or_route, route=None, **kwargs):
   # inject the rule factory
   def inject(target):
 
-    '''  '''
+    """  """
 
     wrap = None  # check wrap
     if 'wrap' in kwargs:
@@ -70,7 +70,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
   @decorators.bind('http', namespace=False)
   class HTTPSemantics(logic.Logic):
 
-    '''  '''
+    """  """
 
     # @TODO(sgammon): rename this, it clashes with DI
     __aliases__ = {}  # aliases to routes
@@ -88,20 +88,20 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
                       wrappers.AuthorizationMixin,
                       wrappers.CommonRequestDescriptorsMixin):
 
-      '''  '''
+      """  """
 
       __session__ = None  # internal slot for session reference
 
       @property
       def session(self):
 
-        '''  '''
+        """  """
 
         return self.__session__
 
       def set_session(self, session_obj, engine=None):
 
-        '''  '''
+        """  """
 
         if session_obj and not isinstance(session_obj, session.Session):
           if 'uuid' not in session_obj and 'id' not in session_obj:
@@ -127,7 +127,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
                        wrappers.WWWAuthenticateMixin,
                        wrappers.CommonResponseDescriptorsMixin):
 
-      '''  '''
+      """  """
 
       pass
 
@@ -135,7 +135,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.classproperty
     def config(cls):
 
-      '''  '''
+      """  """
 
       return config.Config().get('http', {'debug': True})
 
@@ -143,7 +143,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @classmethod
     def add_route(cls, route, target, **kwargs):
 
-      '''  '''
+      """  """
 
       route, name = route
 
@@ -154,7 +154,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @classmethod
     def resolve_route(cls, name):
 
-      '''  '''
+      """  """
 
       if name in cls.__aliases__:
         name, handler, route_args = cls.router.get(cls.__aliases__[name])
@@ -164,21 +164,21 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @classmethod
     def new_request(cls, environ):
 
-      '''  '''
+      """  """
 
       return cls.HTTPRequest(environ)
 
     @classmethod
     def new_response(cls, *args, **kwargs):
 
-      '''  '''
+      """  """
 
       return cls.HTTPResponse(*args, **kwargs)
 
     @decorators.classproperty
     def router(cls):
 
-      '''  '''
+      """  """
 
       from canteen.logic import cache
 
@@ -189,7 +189,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.classproperty
     def routes(cls):
 
-      '''  '''
+      """  """
 
       for url, (name, target, kwargs) in cls.router.items():
         yield routing.Rule(url, endpoint=name, **kwargs)
@@ -197,7 +197,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.classproperty
     def route_map(cls):
 
-      '''  '''
+      """  """
 
       if not cls.__map__:
         cls.__map__ = routing.Map([route for route in cls.routes])
@@ -207,14 +207,14 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.bind('error', wrap=classmethod)
     def error(cls, code):
 
-      '''  '''
+      """  """
 
       exceptions.abort(code)
 
     @decorators.bind('redirect', wrap=classmethod)
     def redirect(cls, url=None, name=None, permanent=False, *args, **kwargs):
 
-      '''  '''
+      """  """
 
       # sanity checks
       if (not url and not name) or (url and name):
@@ -227,7 +227,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     @decorators.bind('response', wrap=classmethod)
     def response(cls, *args, **kwargs):
 
-      '''  '''
+      """  """
 
       return wrappers.Response(*args, **kwargs)
 

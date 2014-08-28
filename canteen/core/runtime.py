@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   core runtime
   ~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 from __future__ import print_function
 
@@ -31,7 +31,7 @@ from .injection import Bridge
 
 class Runtime(object):
 
-  '''  '''
+  """  """
 
   # == Public Properties == #
 
@@ -41,8 +41,8 @@ class Runtime(object):
   application = None  # WSGI application callable or delegate
 
   # == Private Properties == #
-  __hooks__ = {}  # mapped hookpoints and methods to call
-  __owner__ = "Runtime"  # metabucket owner name for subclasses
+  __hooks__ = {}  # mapped hook points and methods to call
+  __owner__ = "Runtime"  # meta bucket owner name for subclasses
   __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, _so power_
   __metaclass__ = Proxy.Component  # this should be injectable
@@ -53,14 +53,14 @@ class Runtime(object):
   @abc.abstractproperty
   def base_exception(self):
 
-    '''  '''
+    """  """
 
     return False
 
   @classmethod
   def spawn(cls, app):
 
-    '''  '''
+    """  """
 
     # if we're running as ``Runtime``, resolve a runtime first
     return (cls.resolve() if cls is Runtime else cls)(app)
@@ -68,7 +68,7 @@ class Runtime(object):
   @classmethod
   def resolve(cls):
 
-    '''  '''
+    """  """
 
     # @TODO(sgammon): figure out how to prioritize/select a runtime
     _default, _preferred = None, []
@@ -86,17 +86,16 @@ class Runtime(object):
     return _default  # WSGIref
 
   @classmethod
-  def set_precedence(cls, status=True):
+  def set_precedence(cls, status=False):
 
-    '''  '''
+    """  """
 
-    cls.__precedence__ = True
-    return cls
+    return setattr(cls, '__precendence__', status) or cls
 
   @classmethod
   def add_hook(cls, hook, context_and_func):
 
-    '''  '''
+    """  """
 
     context, func = context_and_func
     assert isinstance(hook, basestring), "hook name must be a string"
@@ -107,7 +106,7 @@ class Runtime(object):
   @classmethod
   def get_hooks(cls, point):
 
-    '''  '''
+    """  """
 
     if point in cls.__hooks__:
       for i in cls.__hooks__[point]:
@@ -117,11 +116,12 @@ class Runtime(object):
   @classmethod
   def execute_hooks(cls, points, *args, **kwargs):
 
-    '''  '''
+    """  """
 
     if isinstance(points, basestring): points = (points,)
     for point in points:
       for context, hook in cls.get_hooks(point):
+        # noinspection PyBroadException
         try:
           # run as classmethod
           if isinstance(hook, classmethod):
@@ -154,7 +154,7 @@ class Runtime(object):
 
   def __init__(self, app):
 
-    '''  '''
+    """  """
 
     self.application, self.bridge = (
       app,
@@ -163,13 +163,13 @@ class Runtime(object):
 
   def initialize(self):
 
-    '''  '''
+    """  """
 
     self.execute_hooks('initialize', runtime=self)
 
   def configure(self, config):
 
-    '''  '''
+    """  """
 
     self.config = config
     self.initialize()  # let subclasses initialize
@@ -177,7 +177,7 @@ class Runtime(object):
 
   def serve(self, interface, port, bind_only=False):
 
-    '''  '''
+    """  """
 
     server = self.bind(interface, port)
 
@@ -192,7 +192,7 @@ class Runtime(object):
 
   def bind_environ(self, environ):
 
-    '''  '''
+    """  """
 
     from ..logic import http
     self.routes = http.HTTPSemantics.route_map.bind_to_environ(environ)
@@ -205,7 +205,7 @@ class Runtime(object):
 
   def dispatch(self, environ, start_response):
 
-    '''  '''
+    """  """
 
     from ..base import handler as base_handler
 
@@ -253,6 +253,8 @@ class Runtime(object):
 
       # dispatch error hook for 404
       self.execute_hooks(('error', 'complete'), **context)
+
+      # noinspection PyCallByClass
       http.error(404)
 
     # class-based pages/handlers
@@ -314,7 +316,7 @@ class Runtime(object):
       # make a neat little shim, containing our runtime
       def _foreign_runtime_bridge(status, headers):
 
-        '''  '''
+        """  """
 
         # call response hooks
         context['status'], context['headers'], context['response'] = (
@@ -412,7 +414,7 @@ class Runtime(object):
           context['status'],
           context['headers'],
           context['response']
-        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], result
+        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
@@ -423,11 +425,8 @@ class Runtime(object):
     if not callable(handler):
       if isinstance(handler, basestring):
 
-        status, headers = (
-          context['status'],
-          context['headers'],
-          context['response']
-        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], handler
+        context['status'], context['headers'], context['response'] = (
+          '200 OK', [('Content-Type', 'text/html; charset=utf-8')], result)
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
@@ -437,7 +436,7 @@ class Runtime(object):
 
   def wrap(self, dispatch):
 
-    '''  '''
+    """  """
 
     if not self.__wrapped__:
 
@@ -472,7 +471,7 @@ class Runtime(object):
 
             def maybe_flush_profile():
 
-              '''  '''
+              """  """
 
               _current_profile.dump_stats(profile_path)
 
@@ -483,7 +482,7 @@ class Runtime(object):
 
           def _dispatch(*args, **kwargs):
 
-            ''' Wrapper to enable profiler support. '''
+            """ Wrapper to enable profiler support. """
 
             ## dispatch
             response = _current_profile.runcall(dispatch, *args, **kwargs)
@@ -497,13 +496,13 @@ class Runtime(object):
   @abc.abstractmethod
   def bind(self, interface, address):
 
-    '''  '''
+    """  """
 
     raise NotImplementedError
 
   def __call__(self, environ, start_response):
 
-    '''  '''
+    """  """
 
     try:
       return self.wrap(self.dispatch)(environ, start_response)
@@ -517,7 +516,7 @@ class Runtime(object):
 
 class Library(object):
 
-  '''  '''
+  """  """
 
   name = None  # string name of the library
   strict = False  # whether to hard-fail on ImportError
@@ -529,7 +528,7 @@ class Library(object):
 
   def __init__(self, package, strict=False):
 
-    '''  '''
+    """  """
 
     if isinstance(package, basestring):
       self.name = package
@@ -539,7 +538,7 @@ class Library(object):
 
   def load(self, *subpackages):
 
-    '''  '''
+    """  """
 
     loaded = []
     for package in subpackages:
@@ -550,7 +549,7 @@ class Library(object):
 
   def __enter__(self):
 
-    '''  '''
+    """  """
 
     if not self.package and (self.supported is None):
       try:
@@ -565,7 +564,7 @@ class Library(object):
 
   def __exit__(self, exception_cls, exception, traceback):
 
-    '''  '''
+    """  """
 
     if exception:
       if self.strict: return False

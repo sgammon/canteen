@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   debug utils
   ~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import sys
@@ -26,7 +26,7 @@ except ImportError:
 
 def Logger(name):  # pragma: no cover
 
-  '''  '''
+  """  """
 
   logger = logging.getLogger(name)
   logger.setLevel(10)

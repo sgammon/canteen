@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   handler base
   ~~~~~~~~~~~~
@@ -16,7 +16,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import itertools
@@ -28,13 +28,13 @@ from ..util import decorators
 
 class Handler(object):
 
-  ''' Base class structure for a ``Handler`` of some request or desired action.
+  """ Base class structure for a ``Handler`` of some request or desired action.
       Specifies basic machinery for tracking a ``request`` alongside some form
       of ``response``.
 
       Also keeps track of relevant ``environ`` (potentially from WSGI) and sets
       up a jump off point for DI-provided tools like logging, config, caching,
-      template rendering, etc. '''
+      template rendering, etc. """
 
   # @TODO(sgammon): HTTPify
   config = property(lambda self: {})
@@ -60,7 +60,7 @@ class Handler(object):
                      request=None,
                      response=None, **context):
 
-    ''' Initialize a new ``Handler`` object with proper ``environ`` details and
+    """ Initialize a new ``Handler`` object with proper ``environ`` details and
         inform it of larger world around it.
 
         ``Handler`` objects (much like ``Runtime`` objects) are designed to be
@@ -86,7 +86,7 @@ class Handler(object):
           of :py:class:`werkzeug.wrappers.Request`.
 
         :param response: Object to use for ``self.response``. Usually an
-          instance of :py:class:`werkzeug.wrappers.Response`. '''
+          instance of :py:class:`werkzeug.wrappers.Response`. """
 
     # startup/assign internals
     self.__runtime__, self.__environ__, self.__callback__ = (
@@ -142,11 +142,11 @@ class Handler(object):
   @property
   def template_context(self):
 
-    ''' Generate template context to be used in rendering source templates. The
+    """ Generate template context to be used in rendering source templates. The
         ``template_context`` accessor is expected to return a ``dict`` of
         ``name=>value`` pairs to present to the template API.
 
-        :returns: ``dict`` of template context. '''
+        :returns: ``dict`` of template context. """
 
     # for javascript context
     from canteen.rpc import ServiceHandler
@@ -215,16 +215,16 @@ class Handler(object):
 
   def respond(self, content=None):
 
-    ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
+    """ Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
         content. UTF-8 encoding happens if necessary.
 
         :param content: Content to respond to. Must be ``str``, ``unicode``, or
           a similar string buffer object.
 
-        :returns: Generated (filled-in) ``self.response`` object. '''
+        :returns: Generated (filled-in) ``self.response`` object. """
 
     # today is a good day
-    if not self.status: self.status = 200
+    if not self.status: self.__status__ = 200
     if content: self.response.response = content
 
     # set status code and return
@@ -232,15 +232,15 @@ class Handler(object):
                   ('status_code' if isinstance(self.status, int) else 'status'),
                     self.status) or (
                   (i.encode('utf-8').strip() for i in self.response.response),
-                  self.response)
+                    self.response)
 
   def render(self, template,
-                   headers={},
+                   headers=None,
                    content_type='text/html; charset=utf-8',
-                   context={},
+                   context=None,
                    _direct=False, **kwargs):
 
-    ''' Render a source ``template`` for the purpose of responding to this
+    """ Render a source ``template`` for the purpose of responding to this
         ``Handler``'s request, given ``context`` and proper ``headers`` for
         return.
 
@@ -264,11 +264,11 @@ class Handler(object):
           than ``self.response``. Bool, defaults to ``False`` as this
           technically breaks WSGI.
 
-        :returns: Rendered template content, added to ``self.response``. '''
+        :returns: Rendered template content, added to ``self.response``. """
 
     from canteen.util import config
 
-    # set mimetype
+    # set mime type
     if content_type: self.response.mimetype = content_type
 
     # collapse and merge HTTP headers (base headers first)
@@ -276,14 +276,14 @@ class Handler(object):
       iter(self.template.base_headers),
       self.config.get('http', {}).get('headers', {}).iteritems(),
       self.headers.iteritems(),
-      headers.iteritems()
+      (headers or {}).iteritems()
     ))
 
     # merge template context
     _merged_context = dict(itertools.chain(*(i.iteritems() for i in (
       self.template.base_context,
       self.template_context,
-      context,
+      context or {},
       kwargs
     ))))
 
@@ -300,7 +300,7 @@ class Handler(object):
 
   def __call__(self, url_args, direct=False):
 
-    ''' Kick off the local response dispatch process, and run any necessary
+    """ Kick off the local response dispatch process, and run any necessary
         pre/post hooks (named ``prepare`` and ``destroy``, respectively).
 
         :param url_args: Arguments parsed from URL according to matched route.
@@ -311,7 +311,7 @@ class Handler(object):
           technically breaks WSGI.
 
         :returns: ``self.response`` if ``direct`` mode is not active, otherwise
-          ``self`` for chainability. '''
+          ``self`` for chainability. """
 
     # run prepare hook, if specified
     if hasattr(self, 'prepare'):

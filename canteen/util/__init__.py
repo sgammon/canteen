@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   util
   ~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 from __future__ import print_function
 
@@ -36,14 +36,14 @@ from .decorators import *
 
 def say(*args):  # pragma: no cover
 
-  '''  '''
+  """  """
 
   print(' '.join(map(lambda x: str(x), args)))
 
 
 def walk(root=None, debug=__debug__):  # pragma: no cover
 
-  '''  '''
+  """  """
 
   # make sure working directory is in path
   if os.getcwd() not in sys.path:
@@ -51,7 +51,7 @@ def walk(root=None, debug=__debug__):  # pragma: no cover
 
   def walker(bundle):
 
-    '''  '''
+    """  """
 
     loader, name, is_package = bundle
 
@@ -62,7 +62,6 @@ def walk(root=None, debug=__debug__):  # pragma: no cover
         print('Failed to preload path "%s"...' % (root or '.'))
         print(e)
         raise
-      return
     return (mod.__name__, is_package)
 
   if debug: print('Preloading path "%s"...' % (root or '.'))

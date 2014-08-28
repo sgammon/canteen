@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   config utils
   ~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
@@ -24,7 +24,7 @@ _appconfig = {}
 
 class Config(object):
 
-  '''  '''
+  """  """
 
   seen = set()  # seen config items
   wrap = None  # wrapped config block
@@ -33,7 +33,7 @@ class Config(object):
   ## -- Internals -- ##
   def __init__(self, sub=None, **blocks):
 
-    '''  '''
+    """  """
 
     global _appconfig
 
@@ -69,7 +69,7 @@ class Config(object):
 
   def get(self, key, default=None):
 
-    '''  '''
+    """  """
 
     if self.blocks:  # pragma: no cover
       if 'config' in self.blocks:

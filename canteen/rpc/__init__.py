@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   RPC
   ~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import abc
@@ -64,8 +64,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class VariantField(ProtoField):
 
-      ''' Field definition for a completely variant field. Allows containment
-          of any valid Python value supported by Protobuf/ProtoRPC. '''
+      """ Field definition for a completely variant field. Allows containment
+          of any valid Python value supported by Protobuf/ProtoRPC. """
 
       VARIANTS = frozenset([pmessages.Variant.DOUBLE, pmessages.Variant.FLOAT,
                             pmessages.Variant.BOOL, pmessages.Variant.INT64,
@@ -82,8 +82,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class StringOrIntegerField(ProtoField):
 
-      ''' Field definition for a field that can contain either a string or
-          integer. Usually used for key names/IDs or message IDs/hashes. '''
+      """ Field definition for a field that can contain either a string or
+          integer. Usually used for key names/IDs or message IDs/hashes. """
 
       VARIANTS = frozenset([pmessages.Variant.STRING, pmessages.Variant.DOUBLE,
                             pmessages.Variant.INT64, pmessages.Variant.INT32,
@@ -98,7 +98,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class Key(ProtoMessage):
 
-      ''' Message for a :py:class:`canteen.model.Key`. '''
+      """ Message for a :py:class:`canteen.model.Key`. """
 
       encoded = pmessages.StringField(1)  # encoded (`urlsafe`) key
       kind = pmessages.StringField(2)  # kind name for key
@@ -109,7 +109,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class Echo(ProtoMessage):
 
-      ''' I am rubber and you are glue... '''
+      """ I am rubber and you are glue... """
 
       message = pmessages.StringField(1, default='Hello, world!')
 
@@ -146,7 +146,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   def service_mappings(services, registry_path='/_rpc/meta', protocols=None):
 
-    ''' Generates mappings from `url -> service` for registered Canteen RPC
+    """ Generates mappings from `url -> service` for registered Canteen RPC
         services.
 
         Takes an iterable of URL and service mappings, wraps with appropriate
@@ -172,7 +172,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
         :returns: WSGI application prepared by :py:mod:`protorpc`, which, upon
           dispatch, will attempt to delegate response to the first matching
           ``Service`` implementation, as governed by the mappings generated in
-          this function from ``services``. '''
+          this function from ``services``. """
 
     if not protocols:
       # load canteen builtin protocols
@@ -216,7 +216,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     r'%s<string:version>/<string:service>.<string:method>' % _RPC_BASE_URI))
   class ServiceHandler(base.Handler):
 
-    ''' Builtin concrete :py:class:`base.Handler` for use with RPC services. As
+    """ Builtin concrete :py:class:`base.Handler` for use with RPC services. As
         services are bound to names, they are registered here and eventually
         mapped URLs are generated (via `service_mappings`).
 
@@ -225,14 +225,14 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
         following URLs (with examples inline):
 
         - concrete: ``v1/hello.hi`` for a ``HelloService`` with ``hi`` method
-        - meta: ``meta/registry.services`` to describe a service's methods '''
+        - meta: ``meta/registry.services`` to describe a service's methods """
 
     __services__ = {}  # holds services mapped to their names
 
     @classmethod
-    def add_service(cls, name, service, config={}, **kwargs):
+    def add_service(cls, name, service, config=None, **kwargs):
 
-      ''' Add a service to this handler's local dispatch registry.
+      """ Add a service to this handler's local dispatch registry.
           Called from ``@rpc.service`` to mount a service to dispatch.
 
           :param name: Simple string name for the service. For instance,
@@ -244,20 +244,21 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
             (at ``config``) or with ``kwargs``, which override items in
             ``config``.
 
-          :returns: The service class passwd at ``service``. '''
+          :returns: The service class passwd at ``service``. """
 
+      config = config or {}
       config.update(kwargs)
-      cls.__services__[name] = (service, config)
+      cls.__services__[name] = (service, config or {})
       return service
 
     @decorators.classproperty
     def services(cls):
 
-      ''' Iterator for all locally-registered services, presented as
+      """ Iterator for all locally-registered services, presented as
           a class-level property.
 
           :yields: Each named service, in the tupled format
-            ``name, service``, much like ``dict.iteritems``. '''
+            ``name, service``, much like ``dict.iteritems``. """
 
       for name in sorted(cls.__services__.iterkeys()):
         yield name, cls.__services__[name]
@@ -265,13 +266,13 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def get_service(cls, name):
 
-      ''' Retrieve a locally-registered service by name.
+      """ Retrieve a locally-registered service by name.
 
           :param name: Short name for the service. For instance,
             ``hello`` for ``HelloService``.
 
           :returns: Registered ``rpc.Service`` class at that name,
-            or ``None`` if no matching service could be located. '''
+            or ``None`` if no matching service could be located. """
 
       if name in cls.__services__:
         return cls.__services__[name][0]
@@ -281,7 +282,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
                       javascript=False,
                       callable='apptools.rpc.service.factory'):
 
-      ''' Describe locally-registered services in various formats.
+      """ Describe locally-registered services in various formats.
           Exposed to template context as ``services.describe``, so that
           frontends can easily be notified of supported RPC services.
 
@@ -306,7 +307,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :returns: ``list`` of ``tuples`` if requesting structured description,
             or a JSON string of that structure if ``json=True`` is passed, or JS
             code invoked with that JSON structure if ``javascript=True`` is
-            passed.'''
+            passed. """
 
       _services = []
       for name, service in cls.services:
@@ -337,7 +338,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @decorators.classproperty
     def application(cls):
 
-      ''' Utility for generating a WSGI application capable of dispatching
+      """ Utility for generating a WSGI application capable of dispatching
           locally-registered services on ``ServiceHandler``, exposed as a class-
           level property.
 
@@ -349,7 +350,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           ``HTTP 404`` is raised.
 
           :returns: Prepared ``protorpc.wsgi.utils.first_found`` WSGI
-            application closure.  '''
+            application closure.  """
 
       _services = []
       for name, service in cls.services:
@@ -380,7 +381,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def OPTIONS(self, version, service, method):
 
-      ''' Dispatch handler for ``HTTP OPTIONS`` requests. Specifies available
+      """ Dispatch handler for ``HTTP OPTIONS`` requests. Specifies available
           HTTP methods as ``OPTIONS`` and ``POST``, since (by default) only
           RPC-like functionality is supported.
 
@@ -388,13 +389,13 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :param service: Service name, as specified in the URL.
           :param method: Service method to dispatch, as specified in the URL.
 
-          :returns: Suitable HTTP response for an ``HTTP OPTIONS`` request. '''
+          :returns: Suitable HTTP response for an ``HTTP OPTIONS`` request. """
 
       return self.response('OPTIONS, POST')
 
     def POST(self, version, service, method):
 
-      ''' Dispatch handler for ``HTTP POST`` requests. Main entrypoint into
+      """ Dispatch handler for ``HTTP POST`` requests. Main entrypoint into
           the RPC framework via HTTP, as requests are ``POST``ed in a supported
           ``Content-Type`` for an attached ``Protocol``.
 
@@ -402,17 +403,17 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :param service: Service name, as specified in the URL.
           :param method: Service method to dispatch, as specified in the URL.
 
-          :returns: Suitable HTTP response for an ``HTTP POST`` request.  '''
+          :returns: Suitable HTTP response for an ``HTTP POST`` request.  """
 
       _status, _headers = None, None
 
       def _respond(status, headers):
 
-        ''' Inner response closure that overrides normal ``start_response``.
+        """ Inner response closure that overrides normal ``start_response``.
 
             :param status: HTTP status for response.
             :param headers: Iterable of ``(name, value)`` pairs for HTTP
-            response headers. '''
+            response headers. """
 
         _status, _headers = status, headers
 
@@ -427,54 +428,51 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
 
   class Exception(premote.ApplicationError):
-
-    ''' Base RPC exception class, used to indicate an
-        application-level error. Backed by ProtoRPC's
-        :py:class:`remote.ApplicationError`. '''
+      """ Base RPC exception class, used to indicate an
+          application-level error. Backed by ProtoRPC's
+          :py:class:`remote.ApplicationError`. """
 
 
   class ServerException(premote.ServerError):
-
-    ''' Base RPC exception class, used to indicate a
-        server-side error. Backed by ProtoRPC's
-        :py:class:`remote.ServerError`. '''
+      """ Base RPC exception class, used to indicate a
+          server-side error. Backed by ProtoRPC's
+          :py:class:`remote.ServerError`. """
 
 
   class ClientException(premote.RequestError):
-
-    ''' Base RPC exception class, used to indicate a
-        client-side error. Backed by ProtoRPC's
-        :py:class:`remote.RequestError`. '''
+      """ Base RPC exception class, used to indicate a
+          client-side error. Backed by ProtoRPC's
+          :py:class:`remote.RequestError`. """
 
 
   class Exceptions(datastructures.ObjectProxy):
-
-    ''' Datastructure used to house remote-capable
-        RPC exceptions, and for expression of error
-        types in meta APIs. '''
+      """ Datastructure used to house remote-capable
+          RPC exceptions, and for expression of error
+          types in meta APIs. """
 
 
   class AbstractService(premote.Service):
 
-    ''' Abstract class that provides basic Canteen
+    """ Abstract class that provides basic Canteen
         integration for remote services. Handles
-        MRO injection and ABC enforcement.'''
+        MRO injection and ABC enforcement."""
 
     class __metaclass__(premote.Service.__metaclass__):
 
-      ''' Inline metaclass for `AbstractService`
+      """ Inline metaclass for `AbstractService`
           that injects a DI delegate into the MRO
-          chain. '''
+          chain. """
 
       __delegate__ = None  # dependency injection delegate class
 
       def mro(cls):
 
-        ''' Inject a DI delegate (generated at `cls.delegate`)
+        """ Inject a DI delegate (generated at `cls.delegate`)
             to enable MRO-based injection.
 
-            :returns: Assembled MRO chain (a ``list``). '''
+            :returns: Assembled MRO chain (a ``list``). """
 
+        # noinspection PyCallByClass
         chain = type.mro(cls)
 
         if not premote.StubBase in cls.__bases__:
@@ -485,10 +483,10 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       def delegate(cls):
 
-        ''' Generate a DI delegate suitable for use as a window
+        """ Generate a DI delegate suitable for use as a window
             into Canteen's DI pool from ``AbstractService``.
 
-            :returns: Bound :py:class:`injection.Delegate`. '''
+            :returns: Bound :py:class:`injection.Delegate`. """
 
         cls.__class__.__delegate__ = injection.Delegate.bind(cls)
         return cls.__class__.__delegate__
@@ -496,11 +494,11 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @abc.abstractproperty
     def exceptions(self):  # pragma: no cover
 
-      ''' Abstract property requiring the specification of
+      """ Abstract property requiring the specification of
           expected exceptions from a remote service.
 
           :raises NotImplementedError: Always, as this property
-          is abstract. '''
+          is abstract. """
 
       raise NotImplementedError('Property `AbstractService.exceptions`'
                                 ' requires implementation by a concrete'
@@ -509,21 +507,21 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class Service(AbstractService):
 
-    ''' Base remote service class, used as an extension
+    """ Base remote service class, used as an extension
         point for Canteen application developers to create
-        their own remotely-accessible RPC services. '''
+        their own remotely-accessible RPC services. """
 
     __state__ = None  # local state
     __config__ = None  # local configuration
 
     def __init__(self, config=None, **kwargs):
 
-      ''' Initialize a new ``Service`` instance, optionally
+      """ Initialize a new ``Service`` instance, optionally
           overlaying configuration with ``config`` or ``kwargs``,
           which override items in ``config``.
 
           :param config: Positional opportunity to specify
-          service configuration. '''
+          service configuration. """
 
       config = config or {}
       config.update(kwargs)
@@ -537,18 +535,18 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def new_factory(cls, *args, **kwargs):
 
-      ''' Classmethod for constructing a new ``ServiceFactory``
+      """ Classmethod for constructing a new ``ServiceFactory``
           to wrap this ``Service`` class. Passes positional
           and keyword arguments for later use in ``Service``
           __init__.
 
-          :returns: Constructed ``ServiceFactory`` instance. '''
+          :returns: Constructed ``ServiceFactory`` instance. """
 
       return ServiceFactory.construct(cls, *args, **kwargs)
 
     def initialize_request_state(self, state):
 
-      ''' Initialize this service with ``state`` handed-in by
+      """ Initialize this service with ``state`` handed-in by
           ProtoRPC's underlying plumbing.
 
           :param state: State to attach locally. Always a
@@ -557,7 +555,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :py:class:`remote.HttpRequestState` (which is used
           when running over HTTP, obviously).
 
-          :returns: Nothing. '''
+          :returns: Nothing. """
 
       self.__state__ = state
       if hasattr(self, 'initialize'):
@@ -570,17 +568,17 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class ServiceFactory(object):
 
-    ''' Specifies an object that wraps an ``rpc.Service``
+    """ Specifies an object that wraps an ``rpc.Service``
         class and encapsulates a static set of ``args``
         and ``kwargs`` to construct instaces of that
-        wrapped ``Service``. '''
+        wrapped ``Service``. """
 
     service = Service  # service class to factory
     args, kwargs = None, None  # service init args
 
     def __new__(cls, **kwargs):
 
-      ''' New instances requested of this ``cls`` are
+      """ New instances requested of this ``cls`` are
           redirected to the constructor for the locally
           encapsulated ``Service`` class.
 
@@ -589,7 +587,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           ``kwargs`` before being handed to the target's
           constructor.
 
-          :returns: Constructed ``Service`` object. '''
+          :returns: Constructed ``Service`` object. """
 
       _kargs = copy.deepcopy(cls.kwargs)
       _kargs.update(kwargs)
@@ -599,7 +597,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def construct(cls, service, *args, **kwargs):
 
-      ''' Construct a new, dynamic ``ServiceFactory``
+      """ Construct a new, dynamic ``ServiceFactory``
           subclass dedicated to wrapping ``service``,
           optionally specifying positional ``args``
           and keyword ``kwargs``.
@@ -609,7 +607,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           subclass.
 
           :returns: Dynamically-generated ``ServiceFactory``
-          class wrapping given ``service`` class. '''
+          class wrapping given ``service`` class. """
 
       return type(service.__name__ + 'Factory', (cls,), {
         'args': args,
@@ -626,9 +624,9 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class remote(object):
 
-    ''' Utility class that provides utilities for
+    """ Utility class that provides utilities for
         registering and mounting ``remote`` methods,
-        services, and configuration. '''
+        services, and configuration. """
 
     name = None  # string name for target
     config = None  # config items for target
@@ -636,19 +634,19 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def __init__(self, name, expose='public', **config):
 
-      ''' Initialize this instance of ``remote``
+      """ Initialize this instance of ``remote``
           with a string ``name`` and exposure
           policy (at ``expose``, which defaults
           to 'public').
 
-          Configuration can be passed as kwargs. '''
+          Configuration can be passed as kwargs. """
 
       self.name, self.config = name, config
 
     @classmethod
     def register(cls, name_or_message, response=None, **config):
 
-      ''' Internal function used to register this
+      """ Internal function used to register this
           remote object, bound to either a ``name``
           (if the target is a ``Service``) or a
           ``request`` and ``response`` message pair.
@@ -657,7 +655,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
           :returns: Closured function designed to
           wrap the target callable with a routine
-          to register it before construction. '''
+          to register it before construction. """
 
       if isinstance(name_or_message, basestring):
         name, request = name_or_message, None
@@ -681,7 +679,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
         def _remote_method(method):
 
-          ''' Closure to wrap the target ``method``
+          """ Closure to wrap the target ``method``
               at construction time with appropriate
               tooling to execute remote RPCs.
 
@@ -690,11 +688,11 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
               :returns: Wrapped closure ``_respond``
               that, when called, dispatches the
-              target ``method``. '''
+              target ``method``. """
 
           def _respond(self, _request_message):
 
-            ''' Inner closure designed to wrap the
+            """ Inner closure designed to wrap the
                 raw remote ``method`` and enforce
                 validation/conversion of ProtoRPC
                 types to native Python ones.
@@ -714,7 +712,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
                 with ``_request_message`` as the
                 originating request, so long as the
                 request was successfully executed and
-                passed all client-related constraints. '''
+                passed all client-related constraints. """
 
             if isinstance(request, type) and issubclass(request, model.Model):
               # convert incoming message to model
@@ -777,7 +775,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def __call__(self, target):
 
-      ''' Callable wrapped for ``Service`` classes that is
+      """ Callable wrapped for ``Service`` classes that is
           dispatched as part of the construction/decorator
           flow. Adds hooks to local ``ServiceHandler`` for
           the locally-bound ``target`` ``Service`` class.
@@ -786,7 +784,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           and bound.
 
           :returns: ``target``, after executing hooks and
-          registering. '''
+          registering. """
 
       self.target = target
 

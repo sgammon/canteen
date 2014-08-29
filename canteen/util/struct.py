@@ -152,7 +152,7 @@ class ObjectProxy(UtilStruct):
 
         :returns: ``self``. """
 
-    self.case_sensitive = case_sensitive
+    self._case_sensitive = case_sensitive
     if fill:
       if kwargs: fill.update(kwargs)
       for k, v in (fill.iteritems() if isinstance(fill, dict) else iter(fill)):
@@ -333,13 +333,13 @@ class ObjectDictBridge(UtilStruct):
 
   # `obj[item]` syntax
   __getitem__ = lambda self, name: getattr(self.target, name)
-  __setitem__ = lambda self, name: setattr(self.target, name)
   __delitem__ = lambda self, name: delattr(self.target, name)
+  __setitem__ = lambda self, name, value: setattr(self.target, name, value)
 
   # `obj.item` syntax
   __getattr__ = lambda self, name: getattr(self.target, name)
-  __setattr__ = lambda self, name: setattr(self.target, name)
   __delattr__ = lambda self, name: delattr(self.target, name)
+  __setattr__ = lambda self, name, value: setattr(self.target, name, value)
 
   # contains override
   __contains__ = lambda self, name: bool(getattr(self.target, name, False))

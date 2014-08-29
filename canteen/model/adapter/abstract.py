@@ -690,6 +690,8 @@ class GraphModelAdapter(IndexedModelAdapter):
             'edge' if isinstance(key, model.Vertex.__keyclass__) else None))
         )], sanitized
 
+
+  # noinspection PyMethodMayBeStatic
   def _edges(self, target, types=None, **options):
 
     """ Prepares a query to fetch the ``Edges`` for a given ``target``
@@ -709,6 +711,7 @@ class GraphModelAdapter(IndexedModelAdapter):
     # @TODO(sgammon): finalize and remove nocover
     import pdb; pdb.set_trace()  # pragma: no cover
 
+  # noinspection PyMethodMayBeStatic
   def _neighbors(self, source, **options):
 
     """ Prepares a query to retrieve a ``source`` ``Vertex``'s neighbor
@@ -772,6 +775,7 @@ class DirectedGraphAdapter(GraphModelAdapter):
   """ Abstract base class for model adpaters that support directed-graph-type
       models. """
 
+  # noinspection PyMethodMayBeStatic
   def _heads_or_tails(self, key, type, tails=False):
 
     """ Prepares a query to retrieve directed ``Edge`` records that either
@@ -820,6 +824,7 @@ class DirectedGraphAdapter(GraphModelAdapter):
     raise NotImplementedError()  # pragma: no cover
 
 
+# noinspection PyAttributeOutsideInit
 class Mixin(object):
 
   """ Abstract parent for detecting and registering `Mixin` classes. """

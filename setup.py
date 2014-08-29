@@ -106,8 +106,11 @@ tools.setup(
       ] + [
         "canteen_tests",
         "canteen_tests.test_adapters",
+        "canteen_tests.test_base",
         "canteen_tests.test_core",
+        "canteen_tests.test_http",
         "canteen_tests.test_model",
+        "canteen_tests.test_rpc",
         "canteen_tests.test_util",
       ] if __debug__ else [],
       install_requires=([

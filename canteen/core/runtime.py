@@ -50,8 +50,8 @@ class Runtime(object):
   precedence = property(lambda self: self.__precedence__)  # protect writes
 
   # == Abstract Properties == #
-  @abc.abstractproperty
-  def base_exception(self):
+  @staticmethod
+  def base_exception():
 
     """  """
 
@@ -493,8 +493,7 @@ class Runtime(object):
 
     return self.__wrapped__
 
-  @abc.abstractmethod
-  def bind(self, interface, address):
+  def bind(self, interface, port):
 
     """  """
 

@@ -592,7 +592,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       _kargs = copy.deepcopy(cls.kwargs)
       _kargs.update(kwargs)
 
-      return cls.service(*cls.args, **_kargs)
+      return cls.service(*(cls.args or tuple()), **(_kargs or {}))
 
     @classmethod
     def construct(cls, service, *args, **kwargs):

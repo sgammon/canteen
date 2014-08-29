@@ -283,6 +283,8 @@ class AgentFingerprint(AgentInfo):
           new ``AgentFingerprint`` object. Valid options are specified in the
           object's ``__slots__`` attribute. """
 
+    self.__os__, self.__supports__ = None, None
+
     for datapoint in self.__slots__:
       setattr(self, datapoint, kwargs[datapoint] if datapoint in (
         kwargs) else None)
@@ -295,9 +297,6 @@ class AgentFingerprint(AgentInfo):
         :returns: ``AgentOS`` instance describing operating system information
           for a given ``AgentFingerprint`` subject. """
 
-    if not hasattr(self, '__os__') or (
-      hasattr(self, '__os__') and not self.__os__):
-      self.__os__ = AgentOS.scan(self)
     return self.__os__
 
   @property
@@ -309,9 +308,6 @@ class AgentFingerprint(AgentInfo):
           capabilities and features for a given ``AgentFingerprint``
           subject. """
 
-    if not hasattr(self, '__supports__') or (
-      hasattr(self, '__supports__') and not self.__supports__):
-      self.__supports__ = AgentCapabilities.scan(self)
     return self.__supports__
 
   capabilities = supports

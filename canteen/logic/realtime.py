@@ -18,6 +18,7 @@ from ..base import logic
 from ..util import decorators
 
 
+# noinspection PyMethodMayBeStatic
 @decorators.bind('realtime', namespace=True)
 class RealtimeSemantics(logic.Logic):
 

@@ -62,7 +62,7 @@ if __debug__:
 
           :returns: ``cls``, for chainability. """
 
-      return setattr(cls, '__appconfig__', target) or cls
+      return setattr(cls, '__appconfig__', target) or cls  # pragma: no cover
 
 
     with Library('werkzeug', strict=True) as (library, werkzeug):

@@ -33,13 +33,11 @@ _datastore = {}
 
 
 ## Constants
-_sorted_types = (
-  int,
-  long,
-  float,
-  datetime.date,
-  datetime.datetime
-)
+_sorted_types = (int,
+                 long,
+                 float,
+                 datetime.date,
+                 datetime.datetime)
 
 
 ## Utils
@@ -64,9 +62,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
     """ Perform first initialization. """
 
-    global _init
-    global _graph
-    global _metadata
+    global _init, _graph, _metadata
 
     # perform first init, if it hasn't been done
     if not _init:
@@ -110,7 +106,6 @@ class InMemoryAdapter(GraphModelAdapter):
 
     # key format: tuple(<str encoded key>, <tuple flattened key>)
     encoded, flattened = key
-    parent, kind, id = flattened
 
     # pull from in-memory backend
     entity = _datastore.get(encoded)
@@ -128,9 +123,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
     from canteen import model as api
 
-    global _graph
-    global _metadata
-    global _datastore
+    global _graph, _metadata, _datastore
 
     # encode key and flatten
     encoded, flattened = key
@@ -188,8 +181,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
     """ Delete an entity by Key from memory. """
 
-    global _metadata
-    global _datastore
+    global _metadata, _datastore
 
     # extract key
     if not isinstance(key, tuple):  # pragma: no cover
@@ -497,14 +489,18 @@ class InMemoryAdapter(GraphModelAdapter):
       ancestry_parent = options.ancestor.key
 
     # prepare workspace
-    _data_frame, _init = set(), False
-    _special_indexes, _sorted_indexes, _unsorted_indexes = [], [], []
+    _data_frame, _q_init = set(), False
+    _special_indexes, _sorted_indexes, _unsorted_indexes, _inmemory_filters = (
+        [], [], [], [])
+
     _index_groups = (_special_indexes, _sorted_indexes, _unsorted_indexes)
 
     ## apply ancestry first
     if ancestry_parent:
-      _group_index = _metadata[cls._group_prefix].get(ancestry_parent.urlsafe())
-      if _group_index: _special_indexes.append(_group_index)
+      _ekey = ancestry_parent.urlsafe()
+      _group_index = _metadata[cls._group_prefix].get(_ekey)
+      if _group_index: _special_indexes.append((False, (
+          query.KeyFilter(_ekey, type=query.KeyFilter.ANCESTOR), _group_index)))
 
     ## apply filters
     if filters or ancestry_parent:
@@ -522,24 +518,25 @@ class InMemoryAdapter(GraphModelAdapter):
           # valued index
           _index_key = (kind.__name__, _f.target.name)
           if _index_key in _metadata[cls._index_prefix]:
-            _sorted_indexes.append((
+            _sorted_indexes.append((True, (
               _f.target.name,
               _f.operator,
               _filter_val,
-              _metadata[cls._index_prefix][_index_key]))
+              _metadata[cls._index_prefix][_index_key])))
 
         else:
 
           # devalued index
           _index_key = ((kind.__name__, _f.target.name), _f.value.data)
           if _index_key in _metadata[cls._index_prefix]:
-            _unsorted_indexes.append(_metadata[cls._index_prefix][_index_key])
+            _unsorted_indexes.append((False, (_f,
+                                     _metadata[cls._index_prefix][_index_key])))
 
       for group in _index_groups:
-        for directive in group:
+        for is_sorted, directive in group:
 
           # sorted indexes
-          if isinstance(directive, tuple):
+          if is_sorted:
             target, operator, value, index = directive
             high_bound = (value if (operator in (
               query.LESS_THAN, query.LESS_THAN_EQUAL_TO)) else None)
@@ -559,8 +556,8 @@ class InMemoryAdapter(GraphModelAdapter):
               raise RuntimeError('Invalid sorted filter'
                                  ' operation: "%s".' % operator)
 
-            if not _init:  # no frame yet, initialize
-              _init = True
+            if not _q_init:  # no frame yet, initialize
+              _q_init = True
               _data_frame = (
                 set((value for _, value in filter(evaluate, index))))
             else:  # otherwise, filter
@@ -569,38 +566,57 @@ class InMemoryAdapter(GraphModelAdapter):
 
           # unsorted indexes
           else:
+            _fblock, _target = directive
 
-            if not _init:  # no frame yet, initialize
-              _init = True
-              _data_frame = directive
-            else:  # otherwise, filter
-              _data_frame &= directive
+            if _fblock.operator in frozenset((query.EQUALS,
+                                              query.CONTAINS,
+                                              query.KEY_KIND,
+                                              query.KEY_ANCESTOR)):
+
+              if not _q_init:  # no frame yet, initialize
+                _q_init = True
+                _data_frame = _target
+              else:
+                # filter against selected target
+                _data_frame &= _target
+            elif _fblock.operator is query.NOT_EQUALS:
+              # inequality filters are deferred
+              _inmemory_filters.append(_fblock)
+            else:  # pragma: no cover
+              raise RuntimeError('Invalid query operator "%s" encountered'
+                                  ' during execution.' % _fblock.operator)
 
     elif not filters and not ancestry_parent:
       # no filters - working with _all_ models of a kind as base
       _data_frame = _metadata[cls._kind_prefix].get(kind.__name__)
 
     ## inflate results (keys only)
-    if options.keys_only:
+    if options.keys_only and not _inmemory_filters:
       return (model.Key.from_urlsafe(k, _persisted=True) for k in _data_frame)
 
     result_entities = []
 
     ## inflate results (full models)
+    _seen = 0
     for key, entity in ((
       model.Key.from_urlsafe(k, _persisted=True), _datastore[k]) for k in (
-      _data_frame)):
+            _data_frame)):
 
-      _seen_results = 0
       if not entity: continue
-      if (options.limit > 0) and _seen_results >= options.limit:
+      if options.limit and _seen >= options.limit:
         break
 
       # attach key, decode entity and construct
       entity['key'] = key
+      obj = kind(_persisted=True, **entity)
 
-      _seen_results += 1
-      result_entities.append(kind(_persisted=True, **entity))
+      # collapse in-memory filters
+      for _inner_f in _inmemory_filters:
+        if not _inner_f(obj):
+          break
+      else:
+        _seen += 1
+        result_entities.append(obj)
 
     if not len(result_entities) > 1:
       return result_entities  # no need to sort, obvs
@@ -666,6 +682,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
     return result_entities
 
+  @classmethod
   def edges(cls, key1, key2=None, type=None, **kwargs):
 
     """ Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
@@ -674,6 +691,7 @@ class InMemoryAdapter(GraphModelAdapter):
 
     raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
 
+  @classmethod
   def neighbors(cls, key, type=None, **kwargs):
 
     """ Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,

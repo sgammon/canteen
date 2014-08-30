@@ -85,7 +85,6 @@ test:
 							--cover-html-dir=.develop/coverage/html \
 							--cover-xml-file=.develop/coverage/clover.xml \
 							--xunit-file=.develop/tests/xunit.xml $(TEST_FLAGS) canteen_tests
-	$(call okay,"All tests passed!")
 else
 test:
 	$(call warn,"Skipping tests.")

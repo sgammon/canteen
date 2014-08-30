@@ -193,8 +193,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
     m = [
       InMemoryModel(string="soop", integer=[1, 2, 3]),
       InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3])
-    ]
+      InMemoryModel(string="soop", integer=[1, 2, 3])]
 
     for _m in m: _m.put()
 
@@ -376,8 +375,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark"),
       InMemoryModel(key=child2, string="blasphemy"),
       InMemoryModel(key=child3, string="xylophone"),
-      InMemoryModel(key=child4, string="yompin")
-    ]
+      InMemoryModel(key=child4, string="yompin")]
 
     for _m in m: _m.put()
 

@@ -61,8 +61,7 @@ _operator_map = {
   GREATER_THAN_EQUAL_TO: operator.ge,
   CONTAINS: operator.contains,
   AND: operator.__and__,
-  OR: operator.__or__
-}
+  OR: operator.__or__}
 
 _operator_strings = {
   EQUALS: '==',
@@ -73,8 +72,7 @@ _operator_strings = {
   GREATER_THAN_EQUAL_TO: '>=',
   CONTAINS: 'CONTAINS',
   AND: 'AND',
-  OR: 'OR'
-}
+  OR: 'OR'}
 
 
 class QueryOptions(object):
@@ -90,11 +88,9 @@ class QueryOptions(object):
     '_projection',
     '_hint',
     '_plan',
-    '_cursor'
-  ))
+    '_cursor'))
 
   __slots__ = frozenset(('__explicit__',)) | options
-
   option_names = frozenset(('_'.join(opt.split('_')[1:]) for opt in options))
 
   # == Option Defaults == #
@@ -106,8 +102,7 @@ class QueryOptions(object):
     '_projection': None,
     '_hint': None,
     '_plan': None,
-    '_cursor': None
-  }
+    '_cursor': None}
 
   ## == Internal Methods == ##
   def __init__(self, **kwargs):
@@ -126,8 +121,7 @@ class QueryOptions(object):
 
     self.__explicit__ = False  # initialize explicit flag
     map(lambda bundle: self._set_option(*bundle),
-        map(lambda slot: (
-          slot, kwargs.get(slot, EMPTY)), self.option_names))
+        map(lambda slot: (slot, kwargs.get(slot, EMPTY)), self.option_names))
 
   def __iter__(self):
 
@@ -303,8 +297,7 @@ class GraphQueryOptions(QueryOptions):
 
   # == Options == #
   options = QueryOptions.options | frozenset((
-    '_base',
-  ))
+    '_base',))
 
   __slots__ = QueryOptions.options | options
 
@@ -312,8 +305,7 @@ class GraphQueryOptions(QueryOptions):
 
   # == Option Defaults == #
   _defaults = dict(QueryOptions._defaults, **{
-    '_graph_base': None
-  })
+    '_graph_base': None})
 
 
   ## == Public Properties == ##
@@ -571,6 +563,7 @@ class Query(AbstractQuery):
           :py:class:`model.Key` if ``keys_only`` is truthy) matching the current
           :py:class:`Query`, or ``None`` if no matching entities were found. """
 
+    options['limit'] = 1  # always has a limit of 1
     result = self._execute(options=QueryOptions(**options))
     return result[0] if result else result
 
@@ -649,22 +642,33 @@ class Filter(QueryComponent):
 
     """ Initialize this :py:class:`Filter`.
 
-        :param prop:
-        :param value:
-        :param AND:
-        :param OR:
-        :param type:
-        :param operator:
+        :param prop: Property object to filter against.
 
-        :raises:
+        :param value: Value to filter entity ``prop`` containers against.
 
-        :returns: """
+        :param AND: Subfilters to chain with a logical ``AND``.
+
+        :param OR: Subfilters to chain with a logical ``OR``.
+
+        :param type: Type of filter to create, defaults to ``PROPERTY``,
+          meaning it is a filter against a ``value`` in properties contained by
+          stored entities.
+
+        :param operator: Operator to use for comparing ``prop`` values against
+          ``value``. Can be one of the following options:
+          - ``EQUALS``, equating to ``x == y``
+          - ``NOT_EQUALS``, equating to ``x != y``
+          - ``LESS_THAN``, equating to ``x < y``
+          - ``LESS_THAN_EQUAL_TO``, equating to ``x <= y``
+          - ``GREATER_THAN``, equating to ``x > y``
+          - ``GREATER_THAN_EQUAL_TO``, equating to ``x >= y``
+          - ``CONTAINS``, equating to ``x in y`` """
 
     from canteen import model
     value = model.AbstractModel._PropertyValue(value)  # make a value
 
     # repeated properties do not support EQUALS -> only CONTAINS
-    if prop._repeated and operator is EQUALS:
+    if prop and prop._repeated and operator is EQUALS:
       self.operator = operator = CONTAINS
 
     self.target, self.value, self.kind, self.operator, self.chain = (
@@ -683,7 +687,7 @@ class Filter(QueryComponent):
 
     return 'Filter(%s %s %s)' % (
       (self.sub_operator.name + ' ') if self.sub_operator else (
-        '' + self.target.name),
+        '' + getattr(self.target, 'name', 'Key')),
       _operator_strings[self.operator], str(self.value))
 
   def AND(self, filter_expression):
@@ -778,6 +782,26 @@ class KeyFilter(Filter):
   # == Constants == #
   KIND = KEY_KIND
   ANCESTOR = KEY_ANCESTOR
+
+  def __init__(self, value,
+                      AND=None,
+                      OR=None,
+                      type=KEY_KIND):
+
+    """ Initialize this ``KeyFilter`` with either ``KIND`` or ``ANCESTOR``
+        filter modes and a ``value`` to filter against.
+
+        :param value: Value to filter entity keys against.
+
+        :param AND: Subfilters to chain with a logical ``AND``.
+
+        :param OR: Subfilters to chain with a logical ``OR``.
+
+        :param type: Type of filter to create, defaults to ``KIND``, meaning it
+          is a filter against a key's kind name. The other option is
+          ``ANCESTRY``, which filters against a key's ancetry path. """
+
+    super(KeyFilter, self).__init__(None, value, type=type)
 
 
 class Sort(QueryComponent):

@@ -49,8 +49,7 @@ _PROPERTY_SLOTS = (
   '_required',  # should property should be required?
   '_repeated',  # should property be allowed to keep multiple values?
   '_basetype',  # property base type, for validation and storage
-  '_default'  # default value for property, defaults to ``None``
-)
+  '_default')  # default value for property, defaults to ``None``
 
 
 def is_there_a_global(name):
@@ -65,7 +64,7 @@ def is_there_a_global(name):
         in module globals and is not falsy. """
 
   gl = globals()
-  return (name in gl and (not gl[name]))
+  return name in gl and (not gl[name])
 
 
 # == Metaclasses == #
@@ -145,7 +144,7 @@ class MetaFactory(type):
 
   ## = Exported Methods = ##
   @classmethod
-  def resolve(cls, name, bases, properties, default=True):
+  def resolve(mcs, name, bases, properties, default=True):
 
     """ Resolve a suitable model adapter for a given model Key or Model.
 
@@ -229,6 +228,8 @@ class AbstractKey(object):
   """ Abstract Key class. Provides base abstract
       functionality supporting concrete Key objects. """
 
+  __schema__ = _DEFAULT_KEY_SCHEMA  # set default key schema
+
   ## = Encapsulated Classes = ##
   class __metaclass__(MetaFactory):
 
@@ -236,10 +237,11 @@ class AbstractKey(object):
         class structure to support object-specific
         behavior. See ``cls.initialize`` for details. """
 
+    # class owner and schema to spawn by default
     __owner__, __schema__ = 'Key', _DEFAULT_KEY_SCHEMA
 
     @classmethod
-    def initialize(cls, name, bases, pmap):
+    def initialize(mcs, name, bases, pmap):
 
       """ Initialize a Key class. Reorganize class layout
           to support ``Key`` operations. The class property
@@ -262,7 +264,7 @@ class AbstractKey(object):
           :returns: Constructed type extending ``Key``. """
 
       # resolve adapter
-      _adapter = cls.resolve(name, bases, pmap)
+      _adapter = mcs.resolve(name, bases, pmap)
       _module = pmap.get('__module__', 'canteen.model')
 
       if isinstance(_adapter, tuple):
@@ -286,7 +288,7 @@ class AbstractKey(object):
 
       # resolve schema and add key format items, initted to None
       _schema = [
-        ('__%s__' % x, None) for x in pmap.get('__schema__', cls.__schema__)]
+        ('__%s__' % x, None) for x in pmap.get('__schema__', mcs.__schema__)]
 
       # return an argset for `type`
       return name, bases, dict(_schema + key_class + pmap.items())
@@ -363,11 +365,9 @@ class AbstractKey(object):
 
     if (not self and not other) or (self and other):
       if isinstance(other, self.__class__):  # class check
-        if self.__schema__ <= other.__schema__:  # subset check
-          if self.__schema__ >= other.__schema__:  # superset check
-            if isinstance(other, self.__class__):  # type check
-              # last resort: check each data property
-              return all((i for i in map(lambda x: (
+        if self.__schema__ == other.__schema__:
+            # last resort: check each data property
+            return all((i for i in map(lambda x: (
                 getattr(other, x) == getattr(self, x)), self.__schema__)))
     # didn't pass one of our tests
     return False  # pragma: no cover
@@ -527,7 +527,7 @@ class AbstractModel(object):
       return _filter_prop
 
     @classmethod
-    def initialize(cls, name, bases, properties):
+    def initialize(mcs, name, bases, properties):
 
       """ Initialize a ``Model`` descendent for use as a
           data model class. Reorganizes class internals
@@ -569,7 +569,7 @@ class AbstractModel(object):
 
         # parse spec (`name=<basetype>` or `name=<basetype>,<options>`)
         # also, model properties that start with '_' are ignored
-        for prop, spec in filter(cls._get_prop_filter(),
+        for prop, spec in filter(mcs._get_prop_filter(),
                                   properties.iteritems()):
 
           # build a descriptor object and data slot
@@ -578,7 +578,7 @@ class AbstractModel(object):
           property_map[prop] = Property(prop, basetype, **options)
 
         # drop non-data-properties into our ``_nondata_map``
-        for prop, value in filter(cls._get_prop_filter(inverse=True),
+        for prop, value in filter(mcs._get_prop_filter(inverse=True),
                                   properties.iteritems()):
           _nondata_map[prop] = value
 
@@ -598,7 +598,7 @@ class AbstractModel(object):
         prop_lookup = frozenset((k for k, v in property_map.iteritems()))
 
         # resolve default adapter for model
-        model_adapter = cls.resolve(name, bases, properties)
+        model_adapter = mcs.resolve(name, bases, properties)
         if isinstance(model_adapter, tuple):
           _base, model_adapter = model_adapter
         else:
@@ -644,7 +644,7 @@ class AbstractModel(object):
           _model_internals['__graph__'] = _model_internals[graph_flag] = True
 
         # inject our own property map
-        impl = super(MetaFactory, cls).__new__(cls, name, bases, modelclass)
+        impl = super(MetaFactory, mcs).__new__(mcs, name, bases, modelclass)
         return model_adapter._register(impl)
 
       return name, bases, properties  # pass-through to `type`
@@ -783,44 +783,49 @@ class AbstractModel(object):
             :py:class:`model.Property` object itself if accessed
             at a class level. """
 
-      if name not in cls.__lookup__:
+      if name not in cls.__lookup__:  # pragma: no cover
         raise exception('read', name, cls)  # cannot read non-data properties
       return cls.__dict__[name]
 
 
-  class _PropertyValue(tuple):
+  class _PropertyValue(object):
 
     """ Named-tuple class for property value bundles.
         DOCSTRING"""
 
-    __slots__ = tuple()
-    __fields__ = ('dirty', 'data')
+    __fields__, __slots__ = zip(*((f, '__%s__' % f) for f in ('data', 'dirty')))
 
-    def __new__(_cls, data, dirty=False):
+    def __init__(self, data, dirty=False):
 
-      """ Create a new `PropertyValue` instance.
+      """ Initialize a new `PropertyValue` instance.
 
-          :param data:
-          :param dirty:
+          :param data: The data to store in this ``_PropertyValue`` instance.
 
-          :returns: """
+          :param dirty: Whether the data has been modified/mutated since
+            original instantiation. Defaults to ``False``, as the most common
+            use case for constructing a new ``_PropertyValue`` instance is data
+            coming back from an adapter. """
 
-      return tuple.__new__(_cls, (data, dirty))  # pass up-the-chain to `tuple`
+      self.__data__, self.__dirty__ = data, dirty
 
-    # util: generate a string representation of this `_PropertyValue`
-    __repr__ = lambda self: "Value(%s)%s" % ((
-          '"%s"' % self[0]) if isinstance(self[0], basestring)
-              else self[0].__repr__(), '*' if self[1] else '')
+    # util: map data and dirty properties
+    data, dirty = (property(lambda self: self.__data__),
+                   property(lambda self: self.__dirty__))
 
     # util: reduce arguments for pickle
     __getnewargs__ = lambda self: tuple(self)
 
-    # util: lock down classdict
-    __dict__ = property(lambda self: dict(zip(self.__fields__, self)))
+    # util: iterate over items in order
+    __iter__ = lambda self: iter((self.__data__, self.__dirty__))
 
-    # util: map data and dirty properties
-    data = property(operator.itemgetter(0))
-    dirty = property(operator.itemgetter(1))
+    # util: support getitem syntax, where 0 is `data` and 1 is `dirty`
+    __getitem__ = lambda self, item: (
+        self.__data__ if not item else self.__dirty__)
+
+    # util: generate a string representation of this `_PropertyValue`
+    __repr__ = lambda self: "Value(%s)%s" % ((
+          '"%s"' % self.data) if isinstance(self.data, basestring)
+              else repr(self.data), '*' if self.dirty else '')
 
   # = Internal Methods = #
   def __new__(cls, *args, **kwargs):
@@ -1093,8 +1098,12 @@ class Key(AbstractKey):
       formats.items()[0] if formats else ('__constructed__', None))
 
     # disallow multiple key formats
-    if len(filter(lambda x: x[0] != '_persisted', formats.iteritems())) > 1:
+    try:
+      _fmtgen = (i for i in formats if i != '_persisted')
+      _fmtgen.next(), _fmtgen.next()
       raise exceptions.MultipleKeyFormats(', '.join(formats.keys()))
+    except StopIteration:
+      pass
 
     return {  # delegate full-key decoding to classmethods
       'raw': cls.from_raw,
@@ -1143,7 +1152,7 @@ class Key(AbstractKey):
     # also set kwarg-passed parent.
     self._set_internal('persisted', kwargs.get('_persisted', False))
 
-  def __setattr__(cls, name, value):
+  def __setattr__(self, name, value):
 
     """ Block attribute overwrites.
 
@@ -1154,11 +1163,11 @@ class Key(AbstractKey):
         :returns: """
 
     if not name.startswith('__'):
-      if name not in cls.__schema__:
-        raise exceptions.InvalidKeyAttributeWrite('create', name, cls)
-      if getattr(cls, name) is not None:
-        raise exceptions.InvalidKeyAttributeWrite('overwrite', name, cls)
-    return super(AbstractKey, cls).__setattr__(name, value)
+      if name not in self.__schema__:
+        raise exceptions.InvalidKeyAttributeWrite('create', name, self)
+      if getattr(self, name) is not None:
+        raise exceptions.InvalidKeyAttributeWrite('overwrite', name, self)
+    return super(AbstractKey, self).__setattr__(name, value)
 
 
 class VertexKey(Key):
@@ -1550,7 +1559,7 @@ class Edge(Model):
     """ DOCSTRING """
 
     @classmethod
-    def initialize(cls, name, bases, pmap):
+    def initialize(mcs, name, bases, pmap):
 
       """ DOCSTRING """
 
@@ -1560,8 +1569,7 @@ class Edge(Model):
       elif '__spec__' not in pmap or (
            '__spec__' in pmap and not pmap['__spec__'].directed):
         pmap['peers'] = Vertex, {'indexed': True, 'repeated': True}
-
-      return super(cls, cls).initialize(name, bases, pmap)
+      return super(mcs, mcs).initialize(name, bases, pmap)
 
   __spec_class__ = EdgeSpec
 

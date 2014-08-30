@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   model tests
   ~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
@@ -25,11 +25,11 @@ from canteen.test import FrameworkTest
 ## ModelExportTests
 class ModelExportTests(FrameworkTest):
 
-  ''' Tests objects exported by `model`. '''
+  """ Tests objects exported by `model`. """
 
   def test_concrete(self):
 
-    ''' Test that we can import concrete classes. '''
+    """ Test that we can import concrete classes. """
 
     try:
       from canteen import model

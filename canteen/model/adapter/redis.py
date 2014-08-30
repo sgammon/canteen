@@ -419,7 +419,8 @@ class RedisAdapter(IndexedModelAdapter):
 
     try:
       if isinstance(operation, tuple):
-        operation = '_'.join([operation])  # (CLIENT, KILL) => "CLIENT KILL"
+        # (CLIENT, KILL) => "CLIENT KILL"
+        operation = '_'.join(map(unicode, operation))
       if isinstance(target, (_redis_client.client.Pipeline,
                              _redis_client.client.StrictPipeline)):
         getattr(target, operation.lower())(*args, **kwargs)

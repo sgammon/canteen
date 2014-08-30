@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   cache logic tests
   ~~~~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
       A copy of this license is included as ``LICENSE.md`` in
       the root of the project.
 
-'''
+"""
 
 # stdlib
 import weakref
@@ -25,31 +25,31 @@ from canteen.logic import cache
 
 class PersistentCacheTests(test.FrameworkTest):
 
-  ''' Tests ``Caching.PersistentCache``. '''
+  """ Tests ``Caching.PersistentCache``. """
 
   def test_should_expire(self):
 
-    ''' Test that `PersistentCache` items never expire '''
+    """ Test that `PersistentCache` items never expire """
 
     p = cache.Caching.PersistentCache()
     assert not p.should_expire('anything', 12345)
 
   def test_on_tick(self):
 
-    ''' Test that `PersistentCache` ticks don't trigger sweeps '''
+    """ Test that `PersistentCache` ticks don't trigger sweeps """
 
     p = cache.Caching.PersistentCache()
     assert p.tick(12345) is NotImplemented
 
   def test_spawn_default(self):
 
-    ''' Test that `Caching.spawn` with default arguments gives default cache '''
+    """ Test that `Caching.spawn` with default arguments gives default cache """
 
     assert cache.Caching.spawn() is cache.Caching.spawn()
 
   def test_hard_flush(self):
 
-    ''' Test that `Caching.flush` empties all local caches '''
+    """ Test that `Caching.flush` empties all local caches """
 
     assert cache.Caching.set('hi', 5) == 5
 
@@ -58,7 +58,7 @@ class PersistentCacheTests(test.FrameworkTest):
 
   def test_default_cache_clear_named(self):
 
-    ''' Test against `Cache` interface method `clear` with a name '''
+    """ Test against `Cache` interface method `clear` with a name """
 
     # set and get again then iterate
     c = cache.Caching.spawn('nukeme')
@@ -81,23 +81,21 @@ class PersistentCacheTests(test.FrameworkTest):
 
 class CacheEngineTests(test.FrameworkTest):
 
-  ''' Tests ``cache.Cache.Engine`` object abstractness and interface '''
+  """ Tests ``cache.Cache.Engine`` object abstractness and interface """
 
   subject = cache.Cache.Engine
 
   def _spawn_cache(self, name=None):
 
-    ''' Utility to prepare a new cache with a default strategy and target. '''
+    """ Utility to prepare a new cache with a default strategy and target. """
 
     if self.subject is cache.Caching:
       return cache.Caching  # testing against default storage
-    elif self.subject is cache.Cache.Engine:
-      return cache.Caching.spawn()
     return cache.Caching.spawn(name or 'testing', {}, self.subject)
 
   def test_abstract(self):
 
-    ''' Test that `Cache` is abstract and implementors are not '''
+    """ Test that `Cache` is abstract and implementors are not """
 
     if self.subject is cache.Cache.Engine:
 
@@ -109,7 +107,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_interface(self):
 
-    ''' Test against the interface for a `Cache` '''
+    """ Test against the interface for a `Cache` """
 
     assert hasattr(self.subject, 'get')
     assert hasattr(self.subject, 'get_multi')
@@ -133,7 +131,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_get_hit(self):
 
-    ''' Test against `Cache` interface method `get` with hit '''
+    """ Test against `Cache` interface method `get` with hit """
 
     if not self.test_abstract():
 
@@ -144,7 +142,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_get_miss(self):
 
-    ''' Test against `Cache` interface method `get` with miss '''
+    """ Test against `Cache` interface method `get` with miss """
 
     if not self.test_abstract():
 
@@ -157,7 +155,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_items(self):
 
-    ''' Test against `Cache` interface method `items` '''
+    """ Test against `Cache` interface method `items` """
 
     if not self.test_abstract():
 
@@ -174,7 +172,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_set(self):
 
-    ''' Test against `Cache` interface method `set` '''
+    """ Test against `Cache` interface method `set` """
 
     if not self.test_abstract():
 
@@ -185,7 +183,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_delete(self):
 
-    ''' Test against `Cache` interface method `delete` '''
+    """ Test against `Cache` interface method `delete` """
 
     if not self.test_abstract():
 
@@ -198,7 +196,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_get_multi(self):
 
-    ''' Test against `Cache` interface method `get_multi` '''
+    """ Test against `Cache` interface method `get_multi` """
 
     if not self.test_abstract():
 
@@ -216,7 +214,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_set_multi(self):
 
-    ''' Test against `Cache` interface method `set_multi` '''
+    """ Test against `Cache` interface method `set_multi` """
 
     if not self.test_abstract():
 
@@ -230,7 +228,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_delete_multi(self):
 
-    ''' Test against `Cache` interface method `delete_multi` '''
+    """ Test against `Cache` interface method `delete_multi` """
 
     if not self.test_abstract():
 
@@ -248,7 +246,7 @@ class CacheEngineTests(test.FrameworkTest):
 
   def test_cache_clear(self):
 
-    ''' Test against `Cache` interface method `clear` '''
+    """ Test against `Cache` interface method `clear` """
 
     if not self.test_abstract():
 
@@ -267,13 +265,13 @@ class CacheEngineTests(test.FrameworkTest):
 
 class ThreadcacheTests(CacheEngineTests):
 
-  ''' Tests ``cache.Caching.Threadcache``. '''
+  """ Tests ``cache.Caching.Threadcache``. """
 
   subject = cache.Caching.Threadcache
 
   def test_value_weakref(self):
 
-    ''' Test that complex values are cached by weak reference '''
+    """ Test that complex values are cached by weak reference """
 
     class Something(object): pass
     x = Something()
@@ -293,6 +291,6 @@ class ThreadcacheTests(CacheEngineTests):
 
 class DefaultThreadcacheTests(CacheEngineTests):
 
-  ''' Tests ``cache.Caching``. '''
+  """ Tests ``cache.Caching``. """
 
   subject = cache.Caching

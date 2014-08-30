@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   struct tests
   ~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # testing
 from canteen import test
@@ -24,11 +24,11 @@ from canteen.util import struct
 
 class BaseUtilTests(test.FrameworkTest):
 
-  ''' Tests toplevel stuff on :py:mod:`canteen.util`. '''
+  """ Tests toplevel stuff on :py:mod:`canteen.util`. """
 
   def test_exports(self):
 
-    ''' Test that `canteen.util` exports expected things. '''
+    """ Test that `canteen.util` exports expected things """
 
     assert hasattr(struct, 'EMPTY')
     assert hasattr(struct, '_TOMBSTONE')
@@ -36,28 +36,27 @@ class BaseUtilTests(test.FrameworkTest):
 
 class SentinelTests(test.FrameworkTest):
 
-  ''' Tests :py:class:`canteen.util.struct.Sentinel`,
-      which represents a simple singleton sentinel
-      value.
+  """ Tests :py:class:`canteen.util.struct.Sentinel`, which represents a simple
+      singleton sentinel value.
 
-      Sentinels are kind of like The Highlander... '''
+      Sentinels are kind of like The Highlander... """
 
   def test_existence(self):
 
-    ''' Test basic existence of `util.struct.Sentinel`. '''
+    """ Test basic existence of `util.struct.Sentinel` """
 
     assert hasattr(struct, 'Sentinel')
 
   def test_construct(self):
 
-    ''' Test basic functionality of `util.struct.Sentinel`. '''
+    """ Test basic functionality of `util.struct.Sentinel` """
 
     SAMPLE = struct.Sentinel('SAMPLE')
     assert SAMPLE.name == "SAMPLE"
 
   def test_equality(self):
 
-    ''' Test basic equality comparison for `util.struct.Sentinel`. '''
+    """ Test basic equality comparison for `util.struct.Sentinel` """
 
     SAMPLE = struct.Sentinel('SAMPLE')
     assert SAMPLE.name == "SAMPLE"
@@ -67,56 +66,55 @@ class SentinelTests(test.FrameworkTest):
 
   def test_repr(self):
 
-    ''' Test basic string representation of a `util.struct.Sentinel`. '''
+    """ Test basic string representation of a `util.struct.Sentinel` """
 
     SAMPLE = struct.Sentinel('SAMPLE')
     assert 'SAMPLE' in str(SAMPLE)
 
   def test_falsy(self):
 
-    ''' Test ability to set a Sentinel as falsy. '''
+    """ Test ability to set a Sentinel as falsy. """
 
     BAD = struct.Sentinel('BAD', falsy=True)
     assert not BAD
 
   def test_not_falsy(self):
 
-    ''' Test ability to set a Sentinel as truthy. '''
+    """ Test ability to set a Sentinel as truthy. """
 
-    GOOD = struct.Sentinel('GOOD', falsy=False)
+    GOOD = struct.Sentinel('GOOD')
     assert GOOD
 
 
 class UtilStructTests(test.FrameworkTest):
 
-  ''' Tests :py:class:`util.struct.UtilStruct`,
-      which is used as a base class for utility
-      data structures. '''
+  """ Tests :py:class:`util.struct.UtilStruct`, which is used as a base class
+      for utility data structures. """
 
   def test_construct(self):
 
-    ''' Test that `UtilStruct` is abstract. '''
+    """ Test that `UtilStruct` is abstract """
 
     with self.assertRaises(NotImplementedError):
       struct.UtilStruct()
 
   def test_fillstruct_abstract(self):
 
-    ''' Test that `UtilStruct.fillStructure is abstract. '''
+    """ Test that `UtilStruct.fillStructure is abstract """
 
     with self.assertRaises(TypeError):
 
+
       class UtilStructBadImplementor(struct.UtilStruct):
 
-        ''' Bad implementor of `UtilStruct` that
-            should always raise a `TypeError` upon
-            instantiation. '''
+        """ Bad implementor of `UtilStruct` that should always raise a
+            `TypeError` upon instantiation. """
 
         def i_am_not_fill_struct(self):
 
-          ''' I am not `fillStruct`. '''
+          """ I am not `fillStruct`. """
 
-          return False
+          return False  # pragma: no cover
 
       UtilStructBadImplementor()
 
@@ -124,28 +122,27 @@ class UtilStructTests(test.FrameworkTest):
 
       class UtilStructBadSuper(struct.UtilStruct):
 
-        ''' Bad implementor of `UtilStruct` that
-            should always raise a `NotImplementedError`
-            because of invalid super access. '''
+        """ Bad implementor of `UtilStruct` that should always raise a
+            `NotImplementedError` because of invalid super access. """
 
         def fillStructure(self, _struct, case_sensitive=False, **kwargs):
 
-          ''' I am an invalid `fillStruct`. '''
+          """ I am an invalid `fillStruct`. """
 
-          return super(UtilStructBadSuper, self).fillStructure(_struct, case_sensitive, **kwargs)
+          _s = super(UtilStructBadSuper, self)
+          _s.fillStructure(*(_struct, case_sensitive), **kwargs)
 
       UtilStructBadSuper().fillStructure({'blab': 'blab'})
 
 
 class ObjectProxyTests(test.FrameworkTest):
 
-  ''' Tests :py:class:`util.struct.ObjectProxy`,
-      which makes a ``dict``-like object usable
-      via attribute syntax. '''
+  """ Tests :py:class:`util.struct.ObjectProxy`, which makes a ``dict``-like
+      object usable via attribute syntax. """
 
   def test_construct(self):
 
-    ''' Test that `util.ObjectProxy` can be constructed. '''
+    """ Test that `util.ObjectProxy` can be constructed. """
 
     # basic construction test
     st = struct.ObjectProxy()
@@ -154,8 +151,7 @@ class ObjectProxyTests(test.FrameworkTest):
     st_struct = struct.ObjectProxy({
       'hi': True,
       'iam': False,
-      'astruct': None
-    })
+      'astruct': None})
 
     # construction test with kwargs
     st_kwargs = struct.ObjectProxy(hi=1, iam=2, astruct=3)
@@ -164,18 +160,16 @@ class ObjectProxyTests(test.FrameworkTest):
     st_both = struct.ObjectProxy({
       'hi': True,
       'iam': False,
-      'astruct': None
-    }, hi=1, iam=2)
+      'astruct': None}, hi=1, iam=2)
 
   def test_fill_case_sensitive(self):
 
-    ''' Test that `util.ObjectProxy` can be case sensitive. '''
+    """ Test that `util.ObjectProxy` can be case sensitive. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=True)
+      'StRuct': None}, case_sensitive=True)
 
     assert st_struct.HelloThere is True
     assert not hasattr(st_struct, 'hellothere')
@@ -186,13 +180,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_fill_case_insensitive(self):
 
-    ''' Test that `util.ObjectProxy` can be case insensitive. '''
+    """ Test that `util.ObjectProxy` can be case insensitive. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=False)
+      'StRuct': None}, case_sensitive=False)
 
     assert st_struct.HelloThere is True
     assert st_struct.hellothere is True
@@ -202,13 +195,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_getitem(self):
 
-    ''' Test that `util.ObjectProxy` can be used with getitem syntax. '''
+    """ Test that `util.ObjectProxy` can be used with getitem syntax. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=False)
+      'StRuct': None}, case_sensitive=False)
 
     assert st_struct['HelloThere'] is True
     assert st_struct['hellothere'] is True
@@ -224,13 +216,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_getattr(self):
 
-    ''' Test that `util.ObjectProxy` can be used with getitem syntax. '''
+    """ Test that `util.ObjectProxy` can be used with getitem syntax. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=False)
+      'StRuct': None}, case_sensitive=False)
 
     assert st_struct.HelloThere is True
     assert st_struct.hellothere is True
@@ -250,13 +241,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_keys(self):
 
-    ''' Test buffered iteration with `util.ObjectProxy.keys`. '''
+    """ Test buffered iteration with `util.ObjectProxy.keys`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=True)
+      'StRuct': None}, case_sensitive=True)
 
     ref = ('HelloThere', 'IamA', 'StRuct')
     for key in st_struct.keys():
@@ -264,13 +254,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_iterkeys(self):
 
-    ''' Test streaming iteration with `util.ObjectProxy.iterkeys`. '''
+    """ Test streaming iteration with `util.ObjectProxy.iterkeys`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=True)
+      'StRuct': None}, case_sensitive=True)
 
     ref = ('HelloThere', 'IamA', 'StRuct')
     for key in st_struct.iterkeys():
@@ -280,13 +269,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_values(self):
 
-    ''' Test buffered iteration with `util.ObjectProxy.values`. '''
+    """ Test buffered iteration with `util.ObjectProxy.values`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': 1,
       'IamA': 2,
-      'StRuct': 3
-    })
+      'StRuct': 3})
 
     ref = (1, 2, 3)
     for val in st_struct.values():
@@ -294,13 +282,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_itervalues(self):
 
-    ''' Test streaming iteration with `util.ObjectProxy.itervalues`. '''
+    """ Test streaming iteration with `util.ObjectProxy.itervalues`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': 1,
       'IamA': 2,
-      'StRuct': 3
-    })
+      'StRuct': 3})
 
     ref = (1, 2, 3)
     for val in st_struct.itervalues():
@@ -310,13 +297,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_items(self):
 
-    ''' Test buffered iteration with `util.ObjectProxy.items`. '''
+    """ Test buffered iteration with `util.ObjectProxy.items`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=True)
+      'StRuct': None}, case_sensitive=True)
 
     ref = {'HelloThere': True, 'IamA': False, 'StRuct': None}
     for key, value in st_struct.items():
@@ -324,13 +310,12 @@ class ObjectProxyTests(test.FrameworkTest):
 
   def test_iteritems(self):
 
-    ''' Test streaming iteration with `util.ObjectProxy.iteritems`. '''
+    """ Test streaming iteration with `util.ObjectProxy.iteritems`. """
 
     st_struct = struct.ObjectProxy({
       'HelloThere': True,
       'IamA': False,
-      'StRuct': None
-    }, case_sensitive=True)
+      'StRuct': None}, case_sensitive=True)
 
     ref = {'HelloThere': True, 'IamA': False, 'StRuct': None}
     for key, value in st_struct.iteritems():
@@ -341,13 +326,13 @@ class ObjectProxyTests(test.FrameworkTest):
 
 class WritableObjectProxyTests(test.FrameworkTest):
 
-  ''' Tests :py:class:`util.struct.WritableObjectProxy`,
+  """ Tests :py:class:`util.struct.WritableObjectProxy`,
       which is like :py:class:`util.struct.ObjectProxy`
-      but allows writes at runtime. '''
+      but allows writes at runtime. """
 
   def test_setitem(self):
 
-    ''' Test that `util.WritableObjectProxy` can be used with setitem syntax. '''
+    """ Test that `util.WritableObjectProxy` can be used with setitem syntax """
 
     st_struct = struct.WritableObjectProxy()
     st_struct['hi'] = True
@@ -357,7 +342,7 @@ class WritableObjectProxyTests(test.FrameworkTest):
 
   def test_setattr(self):
 
-    ''' Test that `util.WritableObjectProxy` can be used with setattr syntax. '''
+    """ Test that `util.WritableObjectProxy` can be used with setattr syntax """
 
     st_struct = struct.WritableObjectProxy()
     st_struct.hi = True
@@ -367,7 +352,7 @@ class WritableObjectProxyTests(test.FrameworkTest):
 
   def test_delitem(self):
 
-    ''' Test that `util.WritableObjectProxy` can be used with delitem syntax. '''
+    """ Test that `util.WritableObjectProxy` can be used with delitem syntax """
 
     st_struct = struct.WritableObjectProxy()
     st_struct['hi'] = True
@@ -388,7 +373,7 @@ class WritableObjectProxyTests(test.FrameworkTest):
 
   def test_delattr(self):
 
-    ''' Test that `util.WritableObjectProxy` can be used with delattr syntax. '''
+    """ Test that `util.WritableObjectProxy` can be used with delattr syntax """
 
     st_struct = struct.WritableObjectProxy()
     st_struct.hi = True

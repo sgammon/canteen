@@ -30,8 +30,8 @@ from canteen.test import FrameworkTest
 with Library('protorpc', strict=True) as (library, protorpc):
 
   # load messages library
-  premote = library.load('remote')
-  messages = library.load('messages')
+  premote, messages = (library.load('remote'),
+                       library.load('messages'))
 
 
   class SampleMessage(messages.Message):
@@ -50,8 +50,6 @@ with Library('protorpc', strict=True) as (library, protorpc):
     integer = int
 
 
-  ## BaseRPCTests
-  # Tests the basics of the RPC framework.
   class BaseRPCTests(FrameworkTest):
 
     """ Tests basic `canteen.rpc` functionality """
@@ -83,6 +81,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       """ Test basic `rpc.Service` construction """
 
+
       class SampleService(rpc.Service):
           """ Sample RPC service """
 
@@ -92,16 +91,17 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       """ Test generation of `rpc.Service` mappings """
 
+
       class SampleService(rpc.Service):
           """ Sample RPC service """
+
 
       class SampleServiceTwo(rpc.Service):
           """ Sample RPC service 2 """
 
       mappings = (
         ('/_rpc/sample1', SampleService),
-        ('/_rpc/sample2', SampleServiceTwo)
-      )
+        ('/_rpc/sample2', SampleServiceTwo))
 
       rpc.service_mappings(mappings)
 
@@ -109,16 +109,17 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       """ Test generation of `rpc.Service` mappings from a dict """
 
+
       class SampleService(rpc.Service):
           """ Sample RPC service """
+
 
       class SampleServiceTwo(rpc.Service):
           """ Sample RPC service 2 """
 
       mappings = {
         '/_rpc/sample1': SampleService,
-        '/_rpc/sample2': SampleServiceTwo
-      }
+        '/_rpc/sample2': SampleServiceTwo}
 
       rpc.service_mappings(mappings)
 
@@ -126,23 +127,22 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       """ Test invalid URIs with service mappings generator """
 
+
       class SampleService(rpc.Service):
           """ Sample RPC service """
+
 
       class SampleServiceTwo(rpc.Service):
           """ Sample RPC service 2 """
 
       mappings = (
         ('/_rpc/sample1', SampleService),
-        ('/_rpc/sample1', SampleServiceTwo)
-      )
+        ('/_rpc/sample1', SampleServiceTwo))
 
       with self.assertRaises(premote.ServiceConfigurationError):
         rpc.service_mappings(mappings)
 
 
-  ## ServiceHandlerTests
-  # Tests the base ServiceHandler class.
   class ServiceHandlerTests(FrameworkTest):
 
     """ Tests the `rpc.ServiceHandler` class """
@@ -156,6 +156,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
     def test_add_service(self):
 
       """ Test `ServiceHandler.add_service` """
+
 
       class SampleService(rpc.Service): pass
 
@@ -196,7 +197,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
       handler, svc = self.test_add_service()
 
       # describe as dictionary and interrogate
-      manifest = handler.describe(json=False, javascript=False)
+      manifest = handler.describe()
       assert len(manifest)
 
       sample_item = None
@@ -214,7 +215,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
       handler, svc = self.test_add_service()
 
       # describe as dictionary and interrogate
-      manifest = json.loads(handler.describe(json=True, javascript=False))
+      manifest = json.loads(handler.describe(json=True))
       assert len(manifest)
 
       sample_item = None
@@ -232,7 +233,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
       handler, svc = self.test_add_service()
 
       # describe as dictionary and interrogate
-      manifest = handler.describe(json=False, javascript=True)
+      manifest = handler.describe(javascript=True)
       assert 'sample' in manifest  # service name
       assert 'true' in manifest  # in config
       assert 'apptools.rpc.service.factory(' in manifest
@@ -323,6 +324,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       """ Test construction of a new `ServiceFactory` """
 
+
       class SomeService(rpc.Service):
           """ Some sample service. """
 
@@ -363,6 +365,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
       r = self.test_construct()
 
+
       class RegisteredService(rpc.Service):
           """ Service mock for testing registration """
 
@@ -385,6 +388,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
     def test_wrap_method(self):
 
       """ Test wrapping a method with `rpc.remote.method` """
+
 
       class SampleMessage(messages.Message):
 

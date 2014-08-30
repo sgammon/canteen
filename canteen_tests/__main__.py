@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   test runner
   ~~~~~~~~~~~
@@ -13,7 +13,8 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
+
 
 if __debug__:
 

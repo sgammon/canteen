@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   protorpc adapter tests
   ~~~~~~~~~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import datetime
@@ -35,11 +35,11 @@ from canteen.model.adapter import protorpc
 
 class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
-  ''' Tests the ProtoRPC model adapter '''
+  """ Tests the ProtoRPC model adapter """
 
   def test_module_globals(self):
 
-    ''' Test ProtoRPC adapter globals '''
+    """ Test ProtoRPC adapter globals """
 
     assert hasattr(protorpc, 'protorpc')
     assert hasattr(protorpc, 'pmessages')
@@ -50,11 +50,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message(self):
 
-    ''' Test `build_message` with a basic `Model` '''
+    """ Test `build_message` with a basic `Model` """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int
@@ -73,11 +73,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_default(self):
 
-    ''' Test `build_message` with a property that has a default value '''
+    """ Test `build_message` with a property that has a default value """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int, {'default': 10}
@@ -96,11 +96,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_required(self):
 
-    ''' Test `build_message` with a required property '''
+    """ Test `build_message` with a required property """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int, {'required': True}
@@ -125,11 +125,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_repeated(self):
 
-    ''' Test `build_message` with a repeated property '''
+    """ Test `build_message` with a repeated property """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int, {'repeated': True}
@@ -151,11 +151,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_explicit_implementation_field(self):
 
-    ''' Test `build_message` with a valid explicit implementation field '''
+    """ Test `build_message` with a valid explicit implementation field """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = float, {'field': 'IntegerField'}
@@ -175,11 +175,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_invalid_implementation_field(self):
 
-    ''' Test `build_message` with an invalid explicit implementation field '''
+    """ Test `build_message` with an invalid explicit implementation field """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int, {'field': 'NoSuchField'}
@@ -189,11 +189,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_skip_field(self):
 
-    ''' Test `build_message` with an indication to skip a field '''
+    """ Test `build_message` with an indication to skip a field """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = float, {'field': False}
@@ -213,11 +213,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_explicit_field_args(self):
 
-    ''' Test `build_message` with implementation field args '''
+    """ Test `build_message` with implementation field args """
 
     class SimpleEnum(messages.Enum):
 
-      ''' Enumerates colors! '''
+      """ Enumerates colors! """
 
       RED = 0x0
       BLUE = 0x1
@@ -225,7 +225,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       color = basestring, {'field': ('EnumField', (SimpleEnum,))}
@@ -238,11 +238,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_explicit_field_args_kwargs(self):
 
-    ''' Test `build_message` with an implementation of field args + kwargs '''
+    """ Test `build_message` with an implementation of field args + kwargs """
 
     class SimpleEnum(messages.Enum):
 
-      ''' Enumerates colors! '''
+      """ Enumerates colors! """
 
       RED = 0x0
       BLUE = 0x1
@@ -250,7 +250,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       color = basestring, {
@@ -266,11 +266,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_bogus_explicit_field(self):
 
-    ''' Test `build_message` with a bogus field value '''
+    """ Test `build_message` with a bogus field value """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       color = basestring, {'field': 5.5}
@@ -280,18 +280,18 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_submodel(self):
 
-    ''' Test `build_message` with an embedded submodel '''
+    """ Test `build_message` with an embedded submodel """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int
 
     class SimpleContainer(model.Model):
 
-      ''' Simple container message '''
+      """ Simple container message """
 
       model = SimpleModel
 
@@ -303,11 +303,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_variant(self):
 
-    ''' Test `build_message` with a variant property '''
+    """ Test `build_message` with a variant property """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int
@@ -329,11 +329,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_variant_vanilla_model(self):
 
-    ''' Test `build_message` with a variant property (by vanilla `Model`) '''
+    """ Test `build_message` with a variant property (by vanilla `Model`) """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int
@@ -356,11 +356,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_key(self):
 
-    ''' Test `build_message` with a `Key` property '''
+    """ Test `build_message` with a `Key` property """
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = basestring
       integer = int
@@ -382,24 +382,24 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
   def test_build_message_hook(self):
 
-    ''' Test `build_message` with a target object hook '''
+    """ Test `build_message` with a target object hook """
 
     class SomeProperty(model.Property):
 
-      ''' Simple property with __message__ hook '''
+      """ Simple property with __message__ hook """
 
       _basetype = basestring
 
       @classmethod
       def __message__(cls, *args, **kwargs):
 
-        ''' Return an IntegerField implementation... '''
+        """ Return an IntegerField implementation... """
 
         return messages.IntegerField(*args, **kwargs)
 
     class SimpleModel(model.Model):
 
-      ''' Simple model message '''
+      """ Simple model message """
 
       string = SomeProperty
 
@@ -416,11 +416,11 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
 class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
-  ''' Tests for the ProtoRPC `Key` mixin '''
+  """ Tests for the ProtoRPC `Key` mixin """
 
   def test_key_to_message(self):
 
-    ''' Test converting a `Key` to a message '''
+    """ Test converting a `Key` to a message """
 
     key = model.Key('Hi', 5)
     message = key.to_message()
@@ -432,7 +432,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_key_with_name_to_message(self):
 
-    ''' Test converting a `Key` with a parent to a message '''
+    """ Test converting a `Key` with a parent to a message """
 
     key = model.Key('Hi', 'there')
     message = key.to_message()
@@ -444,7 +444,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_key_with_parent_to_message(self):
 
-    ''' Test converting a `Key` with a parent to a message '''
+    """ Test converting a `Key` with a parent to a message """
 
     key = model.Key('Hi', 'there', parent=model.Key('Sup', 'hey'))
     message = key.to_message()
@@ -460,7 +460,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_key_with_ancestry_to_message(self):
 
-    ''' Test converting a `Key` with two parent generations to a message '''
+    """ Test converting a `Key` with two parent generations to a message """
 
     key = model.Key('Hi', 'there', parent=model.Key('Sup', 'hey', parent=(
       model.Key('Hola', 'senor')
@@ -484,7 +484,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_key_to_message_model(self):
 
-    ''' Test converting a `Key` class to a message '''
+    """ Test converting a `Key` class to a message """
 
     message_class = model.Key.to_message_model()
     assert message_class.__name__ == model.Key.__name__
@@ -497,7 +497,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_message_to_key(self):
 
-    ''' Test inflating a message to a `Key` instance '''
+    """ Test inflating a message to a `Key` instance """
 
     message_class = model.Key.to_message_model()
     message = message_class(kind='Hi', id=5)
@@ -517,7 +517,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_message_to_key_with_name(self):
 
-    ''' Test inflating a message to a `Key` with a string ID '''
+    """ Test inflating a message to a `Key` with a string ID """
 
     message_class = model.Key.to_message_model()
     message = message_class(kind='Hi', id='friend')
@@ -537,7 +537,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_message_to_key_with_parent(self):
 
-    ''' Test inflating a message to a `Key` with a parent '''
+    """ Test inflating a message to a `Key` with a parent """
 
     message_class = model.Key.to_message_model()
     message = message_class(
@@ -563,7 +563,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
   def test_message_to_key_with_ancestry(self):
 
-    ''' Test inflating a message to a `Key` with deep ancestry '''
+    """ Test inflating a message to a `Key` with deep ancestry """
 
     message_class = model.Key.to_message_model()
     message = message_class(
@@ -595,15 +595,15 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
 
 class ProtoRPCAdaptedModelTests(test.FrameworkTest):
 
-  ''' Tests for the ProtoRPC `Model` mixin '''
+  """ Tests for the ProtoRPC `Model` mixin """
 
   def test_model_to_message(self):
 
-    ''' Test converting a `Model` to a `Message` '''
+    """ Test converting a `Model` to a `Message` """
 
     class SampleModel(model.Model):
 
-      ''' sample model '''
+      """ sample model """
 
       string = basestring
       number = int

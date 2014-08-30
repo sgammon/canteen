@@ -171,7 +171,7 @@ class Templates(logic.Logic):
 
     ## == Attributes == ##
     engine = jinja2  # we're using jinja :)
-    default_extensions = property(lambda self: [])
+    default_extensions = property(lambda self: None)
     default_config = property(lambda self: {
       'optimized': True, 'autoescape': True
     })
@@ -207,7 +207,7 @@ class Templates(logic.Logic):
             'jinja2.ext.with_',
             'jinja2.ext.do',
             'jinja2.ext.loopcontrols'
-          ] + self.default_extensions
+          ] + (self.default_extensions or [])
 
         # auto-add hamlish extension
         for ext in self.syntax_extension:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   model adapter tests
   ~~~~~~~~~~~~~~~~~~~
@@ -13,11 +13,10 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
-import unittest
 
 # canteen model API
 from canteen import model
@@ -26,23 +25,13 @@ from canteen import model
 from canteen.test import FrameworkTest
 
 
-if 'TEST_REIMPORT' in os.environ:  # pragma: nocover
-  from canteen_tests.test_model.test_adapters import test_abstract
-  from canteen_tests.test_model.test_adapters import test_core
-  from canteen_tests.test_model.test_adapters import test_inmemory
-  from canteen_tests.test_model.test_adapters import test_redis
-  from canteen_tests.test_model.test_adapters import test_adapters
-  from canteen_tests.test_model.test_adapters import test_exceptions
-
-
-## AdapterExportTests
 class AdapterExportTests(FrameworkTest):
 
-  ''' Tests objects exported by `model.adapter`. '''
+  """ Tests objects exported by `model.adapter`. """
 
   def test_top_level_adapter_exports(self):
 
-    ''' Test that we can import concrete classes. '''
+    """ Test that we can import concrete classes. """
 
     try:
       from canteen import model
@@ -57,14 +46,13 @@ class AdapterExportTests(FrameworkTest):
       self.assertTrue(adapter.ModelAdapter)  # `ModelAdapter` parent class
 
 
-## ModelAdapterTests
 class ModelAdapterTests(FrameworkTest):
 
-  ''' Test `adapter.abstract.ModelAdapter`. '''
+  """ Test `adapter.abstract.ModelAdapter`. """
 
   def test_adapter_registry(self):
 
-    ''' Test `adapter.abstract.ModelAdapter.registry`. '''
+    """ Test `adapter.abstract.ModelAdapter.registry`. """
 
     from canteen.model.adapter import abstract
 
@@ -75,7 +63,7 @@ class ModelAdapterTests(FrameworkTest):
     # Quick sample model to make sure class registration happens properly.
     class Sample(model.Model):
 
-      ''' Quick sample model. '''
+      """ Quick sample model. """
 
       pass
 
@@ -85,7 +73,7 @@ class ModelAdapterTests(FrameworkTest):
 
   def test_default_adapter(self):
 
-    ''' Test that the default adapter is assigned properly. '''
+    """ Test that the default adapter is assigned properly. """
 
     from canteen.model import adapter
     from canteen.model.adapter import abstract
@@ -94,7 +82,7 @@ class ModelAdapterTests(FrameworkTest):
     # Quick sample model to test default adapter injection.
     class TestDefault(model.Model):
 
-      ''' Quick sample model. '''
+      """ Quick sample model. """
 
       pass
 
@@ -104,7 +92,7 @@ class ModelAdapterTests(FrameworkTest):
 
   def test_explicit_adapter(self):
 
-    ''' Test that an adapter can be set explcitly on a model class. '''
+    """ Test that an adapter can be set explcitly on a model class. """
 
     from canteen.model import adapter
     from canteen.model.adapter import abstract
@@ -113,7 +101,7 @@ class ModelAdapterTests(FrameworkTest):
     # Quick sample model to test explicit adapter injection.
     class TestExplicit(model.Model):
 
-      ''' Quick sample model. '''
+      """ Quick sample model. """
 
       __adapter__ = adapter.RedisAdapter
 
@@ -123,7 +111,7 @@ class ModelAdapterTests(FrameworkTest):
 
   def test_mixin_repr(self):
 
-    ''' Test that a model `Mixin` generates a proper string representation '''
+    """ Test that a model `Mixin` generates a proper string representation """
 
     from canteen.model.adapter import core
 

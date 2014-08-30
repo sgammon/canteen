@@ -26,6 +26,8 @@ class Config(object):
 
   """  """
 
+  __dev__ = None  # debug mode
+
   seen = set()  # seen config items
   wrap = None  # wrapped config block
   blocks = None  # wrapped config blocks
@@ -50,8 +52,9 @@ class Config(object):
   config = property(lambda self: self.blocks.get('config', {}))
 
   debug = lambda self: (
-    any((os.environ.get('SERVER_SOFTWARE', 'Not Dev').startswith('Dev'),
-         os.environ.get('CANTEEN_DEBUG', None) in (
+    any((self.__dev__,
+         os.environ.get('SERVER_SOFTWARE', 'Not Dev').startswith('Dev'),
+         os.environ.get('CANTEEN_DEBUG', False) in (
           '1', 'yes', 'on', 'true', 'sure', 'whynot'),
          self.config.get('debug', False),
          self.app.get('debug', False),

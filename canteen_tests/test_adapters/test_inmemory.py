@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   inmemory adapter tests
   ~~~~~~~~~~~~~~~~~~~~~~
@@ -13,25 +13,22 @@
       A copy of this license is included as ``LICENSE.md`` in
       the root of the project.
 
-'''
+"""
 
 # stdlib
 import datetime
 
 # canteen model API
 from canteen import model
-from canteen.model import query
 from canteen.model.adapter import inmemory
 
 # abstract test bases
 from .test_abstract import GraphModelAdapterTests
 
 
-## InMemoryModel
-# Explicitly uses the builtin `InMemory` model adapter.
 class InMemoryModel(model.Model):
 
-  ''' Test model. '''
+  """ Test model. """
 
   __adapter__ = inmemory.InMemoryAdapter
 
@@ -42,15 +39,13 @@ class InMemoryModel(model.Model):
   date = datetime.datetime
 
 
-## InMemoryAdapterTests
-# Tests the `InMemory` model adapter.
 class InMemoryAdapterTests(GraphModelAdapterTests):
 
-  ''' Tests `model.adapter.inmemory` '''
+  """ Tests `model.adapter.inmemory` """
 
   def test_invalid_get(self):
 
-    ''' Test requesting a key that doesn't exist '''
+    """ Test requesting a key that doesn't exist """
 
     # get missing entity
     model_key = model.Key("Sample", "_____")
@@ -59,7 +54,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_named_entity_get_put(self):
 
-    ''' Test putting and getting an entity with a named key '''
+    """ Test putting and getting an entity with a named key """
 
     # put entity
     m = InMemoryModel(
@@ -99,7 +94,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_id_entity_get_put(self):
 
-    ''' Test putting and getting an entity with an ID'd key '''
+    """ Test putting and getting an entity with an ID'd key """
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -124,7 +119,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_delete_existing_entity_via_key(self):
 
-    ''' Test deleting an existing entity via `Key.delete()` '''
+    """ Test deleting an existing entity via `Key.delete()` """
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -142,7 +137,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_delete_existing_entity_via_model(self):
 
-    ''' Test deleting an existing entity via `Model.delete()` '''
+    """ Test deleting an existing entity via `Model.delete()` """
 
     # put entity
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
@@ -160,7 +155,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_delete_invalid_entity(self):
 
-    ''' Test deleting an invalid entity '''
+    """ Test deleting an invalid entity """
 
     # manufacture a key that shouldn't exist...
     m_k = model.Key("SampleKind", "____InvalidKey____")
@@ -177,7 +172,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_allocate_ids(self):
 
-    ''' Test allocating one and numerous ID's '''
+    """ Test allocating one and numerous ID's """
 
     # try allocating one ID
     next = inmemory.InMemoryAdapter.allocate_ids("Sample", 1)
@@ -192,7 +187,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_equality_query(self):
 
-    ''' Test equality queries with `InMemoryAdapter` '''
+    """ Test equality queries with `InMemoryAdapter` """
 
     # make some models
     m = [
@@ -217,27 +212,27 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_inequality_query(self):
 
-    ''' Test inequality queries with `InMemoryAdapter` '''
+    """ Test inequality queries with `InMemoryAdapter` """
 
     # make some models
     m = [
       InMemoryModel(string="soop", integer=[1, 2, 3]),
       InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3])
-    ]
+      InMemoryModel(string="soop", integer=[1, 2, 3]),
+      InMemoryModel(string="sploop", integer=[1, 2])]
 
     for _m in m: _m.put()
 
     # submit query
-    q = InMemoryModel.query().filter(InMemoryModel.string != "soooop")
+    q = InMemoryModel.query().filter(InMemoryModel.string != "sploop")
     result = q.fetch(limit=50)
 
     for r in result:
-      assert r.string != "soop"
+      assert r.string != "sploop"
 
   def test_range_query(self):
 
-    ''' Test range queries with `InMemoryAdapter` '''
+    """ Test range queries with `InMemoryAdapter` """
 
     now = datetime.datetime.now()
 
@@ -245,8 +240,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
     m = [
       InMemoryModel(string="soop", date=now + datetime.timedelta(days=1)),
       InMemoryModel(string="soop", date=now + datetime.timedelta(days=2)),
-      InMemoryModel(string="soop", date=now + datetime.timedelta(days=3))
-    ]
+      InMemoryModel(string="soop", date=now + datetime.timedelta(days=3))]
 
     for _m in m: _m.put()
 
@@ -259,7 +253,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ancestry_query(self):
 
-    ''' Test ancestry queries with `InMemoryAdapter` '''
+    """ Test ancestry queries with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'heyo')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -283,7 +277,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_compound_query(self):
 
-    ''' Test compound queries with `InMemoryAdapter` '''
+    """ Test compound queries with `InMemoryAdapter` """
 
     now = datetime.datetime.now()
     root = model.Key(InMemoryModel, 'hi')
@@ -294,35 +288,48 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
     # make some models
     m = [
-      InMemoryModel(key=root, string="hithere", date=now + datetime.timedelta(days=1)),
-      InMemoryModel(key=child1, string="hithere", date=now + datetime.timedelta(days=2)),
-      InMemoryModel(key=child2, string="hithere", date=now + datetime.timedelta(days=3)),
-      InMemoryModel(key=child3, string="noway", date=now + datetime.timedelta(days=4))
+      InMemoryModel(key=root,
+                    string="hithere",
+                    date=now + datetime.timedelta(days=1)),
+      InMemoryModel(key=child1,
+                    string="hithere",
+                    date=now + datetime.timedelta(days=2)),
+      InMemoryModel(key=child2,
+                    string="hithere",
+                    date=now + datetime.timedelta(days=3)),
+      InMemoryModel(key=child3,
+                    string="noway",
+                    date=now + datetime.timedelta(days=4))
     ]
 
     for _m in m: _m.put()
 
     # submit query
-    q = InMemoryModel.query(limit=50).filter(InMemoryModel.string == "hithere").filter(InMemoryModel.date > now)
+    q = InMemoryModel.query(limit=50)
+    q.filter(InMemoryModel.string == "hithere")
+    q.filter(InMemoryModel.date > now)
     result = q.fetch()
 
     assert len(result) == 3
 
     # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).filter(InMemoryModel.date > now)
+    q = InMemoryModel.query(ancestor=root, limit=50)
+    q.filter(InMemoryModel.date > now)
     result = q.fetch()
 
     assert len(result) == 3
 
     # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).filter(InMemoryModel.date > now).filter(InMemoryModel.string == "hithere")
+    q = InMemoryModel.query(ancestor=root, limit=50)
+    q.filter(InMemoryModel.date > now)
+    q.filter(InMemoryModel.string == "hithere")
     result = q.fetch()
 
     assert len(result) == 2
 
   def test_ascending_sort_string(self):
 
-    ''' Test an ascending sort on a string property with `InMemoryAdapter` '''
+    """ Test an ASC sort on a string property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-string')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -347,12 +354,15 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
     assert len(result) == 4
 
-    for l, r in zip(result, reversed(("aardvark", "blasphemy", "xylophone", "yompin"))):
+    for l, r in zip(result, reversed(("aardvark",
+                                      "blasphemy",
+                                      "xylophone",
+                                      "yompin"))):
       assert l.string == r
 
   def test_descending_sort_string(self):
 
-    ''' Test a descending sort on a string property with `InMemoryAdapter` '''
+    """ Test a DSC sort on a string property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-string-2')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -382,7 +392,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_integer(self):
 
-    ''' Test an ascending sort on an integer property with `InMemoryAdapter` '''
+    """ Test an ASC sort on an integer property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-int')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -396,8 +406,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark", number=5),
       InMemoryModel(key=child2, string="blasphemy", number=6),
       InMemoryModel(key=child3, string="xylophone", number=7),
-      InMemoryModel(key=child4, string="yompin", number=8)
-    ]
+      InMemoryModel(key=child4, string="yompin", number=8)]
 
     for _m in m: _m.put()
 
@@ -412,7 +421,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_integer(self):
 
-    ''' Test a descending sort on an integer property with `InMemoryAdapter` '''
+    """ Test a DSC sort on an integer property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-int-2')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -426,8 +435,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark", number=5),
       InMemoryModel(key=child2, string="blasphemy", number=6),
       InMemoryModel(key=child3, string="xylophone", number=7),
-      InMemoryModel(key=child4, string="yompin", number=8)
-    ]
+      InMemoryModel(key=child4, string="yompin", number=8)]
 
     for _m in m: _m.put()
 
@@ -442,7 +450,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_float(self):
 
-    ''' Test an ascending sort on a float property with `InMemoryAdapter` '''
+    """ Test an ASC sort on a float property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-float')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -456,13 +464,13 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark", floating=5.5),
       InMemoryModel(key=child2, string="blasphemy", floating=6.5),
       InMemoryModel(key=child3, string="xylophone", floating=7.5),
-      InMemoryModel(key=child4, string="yompin", floating=8.5)
-    ]
+      InMemoryModel(key=child4, string="yompin", floating=8.5)]
 
     for _m in m: _m.put()
 
     # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(+InMemoryModel.floating)
+    q = (
+     InMemoryModel.query(ancestor=root, limit=50).sort(+InMemoryModel.floating))
     result = q.fetch()
 
     assert len(result) == 4
@@ -472,7 +480,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_float(self):
 
-    ''' Test a descending sort on a float property with `InMemoryAdapter` '''
+    """ Test a DSC sort on a float property with `InMemoryAdapter` """
 
     root = model.Key(InMemoryModel, 'sorted-float')
     _key = lambda x: model.Key(InMemoryModel, x, parent=root)
@@ -486,13 +494,13 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark", floating=5.5),
       InMemoryModel(key=child2, string="blasphemy", floating=6.5),
       InMemoryModel(key=child3, string="xylophone", floating=7.5),
-      InMemoryModel(key=child4, string="yompin", floating=8.5)
-    ]
+      InMemoryModel(key=child4, string="yompin", floating=8.5)]
 
     for _m in m: _m.put()
 
     # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(-InMemoryModel.floating)
+    q = (
+     InMemoryModel.query(ancestor=root, limit=50).sort(-InMemoryModel.floating))
     result = q.fetch()
 
     assert len(result) == 4
@@ -502,7 +510,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_ascending_sort_datetime(self):
 
-    ''' Test an ascending sort on a `datetime` property with `InMemoryAdapter` '''
+    """ Test an ASC sort on a `datetime` property with `InMemoryAdapter` """
 
     now = datetime.datetime.now()
     later = lambda n: now + datetime.timedelta(days=n)
@@ -534,7 +542,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
 
   def test_descending_sort_datetime(self):
 
-    ''' Test a descending sort on a `datetime` property with `InMemoryAdapter` '''
+    """ Test a DSC sort on a `datetime` property with `InMemoryAdapter` """
 
     now = datetime.datetime.now()
     later = lambda n: now + datetime.timedelta(days=n)
@@ -550,8 +558,7 @@ class InMemoryAdapterTests(GraphModelAdapterTests):
       InMemoryModel(key=child1, string="aardvark", date=later(1)),
       InMemoryModel(key=child2, string="blasphemy", date=later(2)),
       InMemoryModel(key=child3, string="xylophone", date=later(3)),
-      InMemoryModel(key=child4, string="yompin", date=later(4))
-    ]
+      InMemoryModel(key=child4, string="yompin", date=later(4))]
 
     for _m in m: _m.put()
 

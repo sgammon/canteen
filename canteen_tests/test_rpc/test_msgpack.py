@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   msgpack protocol tests
   ~~~~~~~~~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
       A copy of this license is included as ``LICENSE.md`` in
       the root of the project.
 
-'''
+"""
 
 # canteen core
 from canteen.core import Library
@@ -38,7 +38,7 @@ with Library('msgpack') as (mlibrary, msgpack):
 
     class SampleMessage(messages.Message):
 
-      ''' Sample ProtoRPC message. '''
+      """ Sample ProtoRPC message. """
 
       string = messages.StringField(1)
       integer = messages.IntegerField(2)
@@ -48,17 +48,17 @@ with Library('msgpack') as (mlibrary, msgpack):
     # Tests the msgpack-based RPC protocol.
     class MsgpackProtocolTests(FrameworkTest):
 
-      ''' Tests `rpc.protocol.msgpack.Msgpack` '''
+      """ Tests `rpc.protocol.msgpack.Msgpack` """
 
       def test_msgpack_construct(self):
 
-        ''' Test basic construction of msgpack RPC protocol '''
+        """ Test basic construction of msgpack RPC protocol """
 
         msgpackrpc.Msgpack()  # yep just that
 
       def test_msgpack_encode_message(self):
 
-        ''' Test encoding RPC messages in msgpack '''
+        """ Test encoding RPC messages in msgpack """
 
         # prepare message
         msg = SampleMessage(string='hi', integer=5)
@@ -80,7 +80,7 @@ with Library('msgpack') as (mlibrary, msgpack):
 
       def test_msgpack_decode_message(self):
 
-        ''' Test decoding RPC messages from msgpack '''
+        """ Test decoding RPC messages from msgpack """
 
         # prepare message
         encoded, protocol = self.test_msgpack_encode_message()

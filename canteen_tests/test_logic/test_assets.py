@@ -2,8 +2,8 @@
 
 """
 
-  base page tests
-  ~~~~~~~~~~~~~~~
+  asset logic tests
+  ~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014

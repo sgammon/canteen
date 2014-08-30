@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   abstract adapter tests
   ~~~~~~~~~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import datetime
@@ -29,14 +29,14 @@ from canteen.model.adapter import abstract
 
 class AbstractModelAdapterTests(FrameworkTest):
 
-  ''' Tests `model.adapter.abstract.ModelAdapter` '''
+  """ Tests `model.adapter.abstract.ModelAdapter` """
 
   __abstract__ = True
   subject = abstract.ModelAdapter
 
   def test_abstract(self):
 
-    ''' Test `ModelAdapter` interface abstractness '''
+    """ Test `ModelAdapter` interface abstractness """
 
     if getattr(self, '__abstract__', False):
       with self.assertRaises(TypeError):
@@ -46,10 +46,9 @@ class AbstractModelAdapterTests(FrameworkTest):
 
   def test_utilities(self):
 
-    ''' Test `ModelAdapter` internal utilities '''
+    """ Test `ModelAdapter` internal utilities """
 
     assert hasattr(self.subject, 'acquire')
-
     assert hasattr(self.subject, 'config')
     assert hasattr(self.subject, 'logging')
     assert hasattr(self.subject, 'serializer')
@@ -58,7 +57,7 @@ class AbstractModelAdapterTests(FrameworkTest):
 
   def test_base_interface_compliance(self):
 
-    ''' Test base `ModelAdapter` interface compliance '''
+    """ Test base `ModelAdapter` interface compliance """
 
     assert hasattr(self.subject, 'get')
     assert hasattr(self.subject, 'put')
@@ -69,14 +68,14 @@ class AbstractModelAdapterTests(FrameworkTest):
 
 class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
-  ''' Tests `model.adapter.abstract.IndexedModelAdapter` '''
+  """ Tests `model.adapter.abstract.IndexedModelAdapter` """
 
   __abstract__ = True
   subject = abstract.IndexedModelAdapter
 
   def test_indexed_interface_compliance(self):
 
-    ''' Test `IndexedModelAdapter` interface compliance '''
+    """ Test `IndexedModelAdapter` interface compliance """
 
     assert hasattr(self.subject, 'write_indexes')
     assert hasattr(self.subject, 'clean_indexes')
@@ -84,7 +83,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   def test_attached_indexer_compliance(self):
 
-    ''' Test `IndexedModelAdapter.Indexer` for basic functionality '''
+    """ Test `IndexedModelAdapter.Indexer` for basic functionality """
 
     assert hasattr(self.subject, 'Indexer')
     indexer = self.subject.Indexer
@@ -97,7 +96,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   def test_indexer_convert_key(self):
 
-    ''' Test `Indexer.convert_key` '''
+    """ Test `Indexer.convert_key` """
 
     indexer = self.subject.Indexer
     sample_key = model.Key('Sample', 'key')
@@ -108,7 +107,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   def test_indexer_convert_date(self):
 
-    ''' Test `Indexer.convert_date` '''
+    """ Test `Indexer.convert_date` """
 
     indexer = self.subject.Indexer
     sample_date = datetime.date(year=2014, month=7, day=29)
@@ -119,7 +118,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   def test_indexer_convert_time(self):
 
-    ''' Test `Indexer.convert_time` '''
+    """ Test `Indexer.convert_time` """
 
     indexer = self.subject.Indexer
     sample_time = datetime.time(hour=12, minute=30)
@@ -130,7 +129,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
   def test_indexer_convert_datetime(self):
 
-    ''' Test `Indexer.convert_datetime` '''
+    """ Test `Indexer.convert_datetime` """
 
     indexer = self.subject.Indexer
     sample_datetime = datetime.datetime(year=2014, month=7, day=29, hour=12, minute=30)
@@ -142,21 +141,21 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
 class GraphModelAdapterTests(IndexedModelAdapterTests):
 
-  ''' Tests `model.adapter.abstract.GraphModelAdapter` '''
+  """ Tests `model.adapter.abstract.GraphModelAdapter` """
 
   __abstract__ = True
   subject = abstract.GraphModelAdapter
 
   def test_interface_compliance(self):
 
-    ''' Test `GraphModelAdapter` interface compliance '''
+    """ Test `GraphModelAdapter` interface compliance """
 
     assert hasattr(self.subject, 'edges')
     assert hasattr(self.subject, 'neighbors')
 
   def test_make_vertex(self):
 
-    ''' Test `GraphModelAdapter` `Vertex` put '''
+    """ Test `GraphModelAdapter` `Vertex` put """
 
     pass
 
@@ -201,14 +200,14 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
 
 class DirectedGraphAdapterTests(GraphModelAdapterTests):
 
-  ''' Tests `model.adapter.abstract.DirectedGraphAdapter` '''
+  """ Tests `model.adapter.abstract.DirectedGraphAdapter` """
 
   __abstract__ = True
   subject = abstract.DirectedGraphAdapter
 
   def test_interface_compliance(self):
 
-    ''' Test `DirectedGraphAdapter` interface compliance '''
+    """ Test `DirectedGraphAdapter` interface compliance """
 
     assert hasattr(self.subject, 'heads')
     assert hasattr(self.subject, 'tails')

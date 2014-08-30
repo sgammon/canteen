@@ -37,4 +37,16 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       """  """
 
-      pass
+      def load(self, context):
+
+        """  """
+
+        raise NotImplementedError('Method `RedirectSessions.load` is not'
+                                  ' yet implemented.')
+
+      def commit(self, context, session):
+
+        """  """
+
+        raise NotImplementedError('Method `RedirectSessions.commit` is not'
+                                  ' yet implemented.')

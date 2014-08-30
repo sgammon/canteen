@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   JSON protocol tests
   ~~~~~~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
       A copy of this license is included as ``LICENSE.md`` in
       the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
@@ -36,7 +36,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
   class SampleMessage(messages.Message):
 
-    ''' Sample ProtoRPC message. '''
+    """ Sample ProtoRPC message. """
 
     string = messages.StringField(1)
     integer = messages.IntegerField(2)
@@ -46,17 +46,17 @@ with Library('protorpc', strict=True) as (library, protorpc):
   # Tests the JSON-based RPC protocol.
   class JSONProtocolTests(FrameworkTest):
 
-    ''' Tests `rpc.protocol.json.JSON` '''
+    """ Tests `rpc.protocol.json.JSON` """
 
     def test_json_construct(self):
 
-      ''' Test basic construction of JSON RPC protocol '''
+      """ Test basic construction of JSON RPC protocol """
 
       jsonrpc.JSON()  # yep just that
 
     def test_json_encode_message(self):
 
-      ''' Test encoding RPC messages in JSON '''
+      """ Test encoding RPC messages in JSON """
 
       # prepare message
       msg = SampleMessage(string='hi', integer=5)
@@ -78,7 +78,7 @@ with Library('protorpc', strict=True) as (library, protorpc):
 
     def test_json_decode_message(self):
 
-      ''' Test decoding RPC messages from JSON '''
+      """ Test decoding RPC messages from JSON """
 
       # prepare message
       encoded, protocol = self.test_json_encode_message()

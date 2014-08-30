@@ -76,6 +76,7 @@ class ModelAdapter(object):
 
     return config.Config().get(self.__class__.__name__, {'debug': True})
 
+  # noinspection PyMethodParameters
   @decorators.classproperty
   def logging(cls):
 
@@ -347,6 +348,7 @@ class ModelAdapter(object):
     return False  # pragma: no cover
 
 
+# noinspection PyAbstractClass
 class IndexedModelAdapter(ModelAdapter):
 
   """ Abstract base class for model adapters that support additional indexing

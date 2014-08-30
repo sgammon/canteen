@@ -254,7 +254,7 @@ class Runtime(object):
       # dispatch error hook for 404
       self.execute_hooks(('error', 'complete'), **context)
 
-      # noinspection PyCallByClass
+      # noinspection PyCallByClass,PyTypeChecker
       http.error(404)
 
     # class-based pages/handlers

@@ -19,7 +19,6 @@ app = None
 
 
 def spawn(app,
-          dev=False,
           config=None):  # pragma: no cover
 
   """ Spawn a Canteen app, suitable for dispatch
@@ -27,10 +26,6 @@ def spawn(app,
 
       :param app: Canteen application to be spawned,
         usually passed as a Python module.
-
-      :param dev: Boolean flag indicating we should
-        operate in ``dev`` mode if passed as ``True``.
-        Defaults to ``False``.
 
       :param config: Application configuration, in
         the form of a ``canteen.util.Config`` instance
@@ -50,7 +45,6 @@ def spawn(app,
 
 # @TODO(sgammon): wtf is root
 def run(app=None,
-        root=None,
         interface='127.0.0.1',
         port=8080,
         dev=True,

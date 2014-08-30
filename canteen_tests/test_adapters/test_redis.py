@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   redis adapter tests
   ~~~~~~~~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # abstract test bases
 from .test_abstract import IndexedModelAdapterTests
@@ -23,4 +23,4 @@ from .test_abstract import IndexedModelAdapterTests
 # Tests the `Redis` model adapter.
 class RedisAdapterTests(IndexedModelAdapterTests):
 
-  ''' Tests `model.adapter.redis.Redis` '''
+    """ Tests `model.adapter.redis.Redis` """

@@ -53,8 +53,8 @@ class Assets(logic.Logic):
     config.Config().app.get('paths', {}).get('assets', _default_asset_path)))
 
   ### === Detection & Bindings === ###
-  @hooks.HookResponder('initialize', context=('runtime',))
-  def bind_urls(self, runtime):
+  @hooks.HookResponder('initialize')
+  def bind_urls(self):
 
     """  """
 

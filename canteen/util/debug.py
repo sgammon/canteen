@@ -18,6 +18,7 @@ import sys
 
 # 3rd party / stdlib
 try:
+  # noinspection PyPackageRequirements
   import logbook as logging
 except ImportError:
   import logging

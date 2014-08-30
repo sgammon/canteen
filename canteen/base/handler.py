@@ -36,12 +36,13 @@ class Handler(object):
       up a jump off point for DI-provided tools like logging, config, caching,
       template rendering, etc. """
 
-  # @TODO(sgammon): HTTPify
+  # @TODO(sgammon): HTTPify, convert to decorator
   config = property(lambda self: {})
 
   __agent__ = None  # current `agent` details
-  __status__ = 200  # keen is an optimistic bunch ;)
+  __status__ = 200  # it's a glass-half-full kind of day, why not
   __routes__ = None  # route map adapter from werkzeug
+  __context__ = None  # holds current runtime context, if any
   __logging__ = None  # internal logging slot
   __runtime__ = None  # reference up to the runtime
   __environ__ = None  # original WSGI environment
@@ -100,11 +101,11 @@ class Handler(object):
       {},  # default repsonse headers
       'text/html; charset=utf-8')  # default content type
 
-    # request & response
-    self.__request__, self.__response__ = request, response
+    # request, response & context
+    self.__request__, self.__response__, self.__context__ = (
+        request, response, context)
 
   # expose internals, but write-protect
-  runtime = property(lambda self: self.__runtime__)
   routes = property(lambda self: self.__runtime__.routes)
   status = property(lambda self: self.__status__)
   headers = property(lambda self: self.__headers__)

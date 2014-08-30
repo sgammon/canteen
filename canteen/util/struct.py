@@ -269,6 +269,7 @@ class CallbackProxy(ObjectProxy):
   _entries = None  # cached entries
   callback = None  # callback func
 
+  # noinspection PyMissingConstructor
   def __init__(self, callback, struct=None, **kwargs):
 
     """ Map the callback and fillStructure if we
@@ -312,40 +313,6 @@ class CallbackProxy(ObjectProxy):
 
   # `struct()` override
   __call__ = lambda self, *args, **kwargs: self.callback(*args, **kwargs)
-
-
-class ObjectDictBridge(UtilStruct):
-
-  """ Treat an object like a dict, or an object! Assign an object
-      with `ObjectDictBridge(<object>)`. Then access properties
-      with `bridge[item]` or `bridge.item`. """
-
-  target = None  # target object
-
-  def __init__(self, target_object):
-
-    """ constructor.
-
-        :param target_object:
-        :returns: """
-
-    super(ObjectDictBridge, self).__setattr__('target', target_object)
-
-  # `obj[item]` syntax
-  __getitem__ = lambda self, name: getattr(self.target, name)
-  __delitem__ = lambda self, name: delattr(self.target, name)
-  __setitem__ = lambda self, name, value: setattr(self.target, name, value)
-
-  # `obj.item` syntax
-  __getattr__ = lambda self, name: getattr(self.target, name)
-  __delattr__ = lambda self, name: delattr(self.target, name)
-  __setattr__ = lambda self, name, value: setattr(self.target, name, value)
-
-  # contains override
-  __contains__ = lambda self, name: bool(getattr(self.target, name, False))
-
-  # dict-style `get()`
-  get = lambda self, name, default=None: getattr(self.target, name, default)
 
 
 @decorators.singleton

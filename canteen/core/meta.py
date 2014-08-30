@@ -41,7 +41,7 @@ class MetaFactory(type):
 
   __owner__, __metachain__, __root__ = "BaseMeta", [], True
 
-  def __new__(cls, name=None, bases=None, properties=None):
+  def __new__(mcs, name=None, bases=None, properties=None):
 
     """ Construct a new ``MetaFactory`` concrete class, implementing the
         ``initialize`` protocol for bootstrapping meta-implementing classes
@@ -68,17 +68,17 @@ class MetaFactory(type):
     # get ready to construct, do so immediately for ``MetaFactory`` itself
     if '__root__' in properties and properties['__root__']:
       del properties['__root__']  # treat as a root - init directly and continue
-      return construct(cls, name, bases, properties)
+      return construct(mcs, name, bases, properties)
 
     # construct, yo. then unconditionally apply it to the meta chain and return
     # also, defer to the class' ``initialize``, or any of its bases if they have
     # ``initialize`, for constructing the actual class.
     return ((grab(properties['initialize'] if 'initialize' in properties else
                   getattr((x for x in bases if hasattr(x, 'initialize')).next(),
-                          'initialize')))(*(cls, name, bases, properties))) if (
+                          'initialize')))(*(mcs, name, bases, properties))) if (
                             'initialize' in properties or any((
                               hasattr(b, 'initialize') for b in bases))
-                                ) else metachain(cls, name, bases, properties)
+                                ) else metachain(mcs, name, bases, properties)
 
   def mro(cls):
 
@@ -250,15 +250,15 @@ class Proxy(object):
       return cls.__map__
 
     @classmethod
-    def reset_cache(cls):
+    def reset_cache(mcs):
 
       """ Reset injector caches. """
 
-      cls.__injector_cache__ = {}
-      cls.__class__.__injector_cache__ = {}
+      mcs.__injector_cache__ = {}
+      mcs.__class__.__injector_cache__ = {}
 
     @classmethod
-    def prepare(cls, target):
+    def prepare(mcs, target):
 
       """ Prepare ``target`` (usually ``cls``) for injection, possibly resolving
           a global singleton object to be returned upon matching attribute
@@ -279,11 +279,11 @@ class Proxy(object):
 
       if hasattr(target, '__singleton__') and target.__singleton__:
         # if we already have a singleton, give that
-        if alias in cls.__map__: return cls.__map__[alias]
+        if alias in mcs.__map__: return mcs.__map__[alias]
 
         # otherwise, startup a new singleton
-        cls.__map__[alias] = target()
-        return cls.__map__[alias]
+        mcs.__map__[alias] = target()
+        return mcs.__map__[alias]
       return target  # pragma: nocover
 
     @staticmethod

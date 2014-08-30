@@ -48,7 +48,7 @@ class Tool(object):
     tree = {}  # command parser tree
     parsers = {}  # all encountered parsers
 
-    def __new__(cls, name, bases, properties):
+    def __new__(mcs, name, bases, properties):
 
       """ Check to see if we're initializing a new subcommand class, and if we
           are, construct the appropriate subparser.
@@ -64,8 +64,8 @@ class Tool(object):
             provided by :py:mod:`argparse`. """
 
       # initialize `Tool` regularly to apply this metaclass downwards
-      if name == 'Tool':
-        return super(cls, cls).__new__(cls, name, bases, properties)
+      if name == 'Tool': return super(mcs, mcs).__new__(*(
+                                    mcs, name, bases, properties))
 
       _subtools, _arguments = [], []
       for key, value in properties.viewitems():
@@ -115,10 +115,10 @@ class Tool(object):
           continue  # pragma: no cover
 
       # construct class
-      klass = super(cls, cls).__new__(cls, name, bases, properties)
+      klass = super(mcs, mcs).__new__(mcs, name, bases, properties)
 
       # add to registered parsers
-      cls.parsers[name] = {
+      mcs.parsers[name] = {
         'name': (properties['name'] if 'name' in properties else name).lower(),
         'description': textwrap.dedent(properties['__doc__']) if (
           '__doc__' in properties) else None,
@@ -173,8 +173,8 @@ class Tool(object):
     # local subtools
     if config.get('objects', {}).get('subtools', []):
       commands = parser.add_subparsers(dest='subcommand', title='bundled tools')
-      for impl, callable in config.get('objects', {}).get('subtools', []):
-        subparser = callable(_root_tool, impl, commands)  # initialize subtools
+      for impl, _callable in config.get('objects', {}).get('subtools', []):
+        subparser = _callable(_root_tool, impl, commands)  # initialize subtools
         setattr(self, (impl.name if (
           hasattr(impl, 'name')) else impl.__name__).lower(), impl(subparser))
 

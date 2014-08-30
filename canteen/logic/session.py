@@ -42,7 +42,8 @@ _BUILTIN_SESSION_PROPERTIES = frozenset((
 
 class ClientSession(models.Model):
 
-  """  """
+  """ Canteen model for a user or HTTP client session. Tracks things like a
+      session ID, last-seen-time, and when the session was established. """
 
   seen = int  # when this session was last seen
   data = dict  # attached session state data
@@ -55,16 +56,26 @@ class ClientSession(models.Model):
 
 class Session(object):
 
-  """  """
+  """ Thin object representing a user session. Used at runtime until it needs
+      to be stored, which then spawns a model instance (usually a
+      ``ClientSession``). """
 
-  __id__ = None  # session ID slot
-  __session__ = None  # holds model instance for session
+  __slots__ = ('__id__', '__session__')
 
-  def __init__(self, id=None,
+  def __init__(self, key=None,
                      model=ClientSession,
                      **kwargs):
 
-    """  """
+    """ Initialize this ``Session`` object with an ID and session model.
+
+        :param key: ``str`` key to attach to the session model and pass back-
+          and-forth as the user's session ID.
+
+        :param model: Model class to use for spawning the new session and
+          persisting it.
+
+        :param **kwargs: Extra keyword arguments to pass to ``model``'s
+          constructor. """
 
     if isinstance(model, type):
       # set established timestamp if it's not there already
@@ -79,8 +90,9 @@ class Session(object):
           kwargs['data'][k] = v
 
       # it's a class
-      self.__session__ = model(key=Session.make_key(id, model), **kwargs)
-      self.__id__ = self.__session__.key.id
+      key = Session.make_key(key, model)
+      self.__id__, self.__session__ = (key.id,
+                                       model(key=key, **kwargs))
 
     elif not kwargs:
       # it's an instance, set the ID and session
@@ -90,11 +102,13 @@ class Session(object):
       raise RuntimeError('Cannot specify a session model'
                          ' instance and also additional kwargs.')
 
+  # noinspection PyMethodParameters
   @decorators.classproperty
   def config(cls):
 
     """  """
 
+    # @TODO(sgammon): convert to decorator
     return config.Config().get('Sessions', {'debug': True})
 
   ## == Accessors == ##

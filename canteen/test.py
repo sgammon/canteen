@@ -24,6 +24,7 @@ if __debug__:
   import os
   import sys
   import unittest
+  import itertools
 
   # internals
   from .core import meta
@@ -38,6 +39,13 @@ if __debug__:
   from .logic.http import semantics
 
 
+  ## Globals
+  combine = lambda *t: tuple(itertools.chain(*t))
+  _get_app = lambda s, k: k.get('app', s.dispatch_endpoint())
+  _dispatch = lambda m, s, a, k: (
+      s.dispatch(*combine((_get_app(s, k), m), a), **k))
+
+
   class BaseTest(unittest.TestCase):
 
     """  """
@@ -47,9 +55,14 @@ if __debug__:
     @classmethod
     def set_config(cls, target):
 
-      """  """
+      """ Set app configuration to a testing-compatible active set.
 
-      cls.__appconfig__ = target  # assign at class-level
+          :param target: :py:class:`canteen.util.config.Config` instance that
+            contains app/framework configuration to be used during testing.
+
+          :returns: ``cls``, for chainability. """
+
+      return setattr(cls, '__appconfig__', target) or cls
 
 
     with Library('werkzeug', strict=True) as (library, werkzeug):
@@ -60,15 +73,28 @@ if __debug__:
         'wrappers': library.load('wrappers')
       })
 
-      def _dispatch_endpoint(self):
+      def dispatch_endpoint(self):
 
-        """  """
+        """ Internal function to spawn a throwaway app instance for issuing a
+            one-shot dispatch.
 
-        return spawn(None, dev=True, config=config.Config(**self.__appconfig__))
+            :returns: Instance of :py:class:`canteen.core.Runtime`, for
+              whichever runtime is active for the target app. """
+
+        return spawn(None, config=config.Config(**self.__appconfig__))
 
       def _spawn_client(self, wsgi_target=None):
 
-        """  """
+        """ Internal function to spawn a throwaway :py:mod:`werkzeug`-based HTTP
+            :py:class:`werkzeug.test.Client` instance, for the purpose of
+            executing WSGI dispatch during testing.
+
+            :param wsgi_target: Target WSGI application to dispatch against.
+              Defaults to ``None``, indicating that a reference WSGI app (known
+              to be good) should be used in its place.
+
+            :returns: Prepared :py:class:`werkzeug.test.Client` instance, with
+              the target ``wsgi_target`` wrapped and ready to dispatch. """
 
         return self.__werkzeug__.test.Client(*(
           wsgi_target or self.__werkzeug__.testapp.test_app,
@@ -76,81 +102,35 @@ if __debug__:
 
       def dispatch(self, app, method, *args, **kwargs):
 
-        """  """
+        """ Perform a WSGI dispatch against ``app``, with HTTP ``method`` and
+            pass position ``args`` and keyword ``kwargs``.
+
+            :param app: WSGI application to dispatch against.
+
+            :param method: HTTP method to dispatch in target ``app``.
+
+            :param *args: Positional arguments to pass to the Werkzeug test
+              client dispatch method.
+
+            :param **kwargs: Keyword arguments to pass to the Werkzeug test
+              client dispatch method.
+
+            :returns: Result of dispatching ``method`` against ``app`` via
+              WSGI. """
 
         return getattr(self._spawn_client(app), method.lower())(*args, **kwargs)
 
-      def GET(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'GET'))
-
-      def POST(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'POST'))
-
-      def HEAD(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'HEAD'))
-
-      def OPTIONS(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'OPTIONS'))
-
-      def PUT(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'PUT'))
-
-      def DELETE(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'DELETE'))
-
-      def TRACE(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'TRACE'))
-
-      def PATCH(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'PATCH'))
-
-      def CONNECT(self, *args, **kwargs):
-
-        """  """
-
-        return self.dispatch(*(
-          kwargs.get('app', self._dispatch_endpoint()),
-          'CONNECT'))
+      # HTTP method aliases
+      GET = lambda self, *a, **k: _dispatch('GET', self, a, k)
+      PUT = lambda self, *a, **k: _dispatch('PUT', self, a, k)
+      POST = lambda self, *a, **k: _dispatch('POST', self, a, k)
+      HEAD = lambda self, *a, **k: _dispatch('HEAD', self, a, k)
+      TRACE = lambda self, *a, **k: _dispatch('TRACE', self, a, k)
+      PATCH = lambda self, *a, **k: _dispatch('PATCH', self, a, k)
+      PURGE = lambda self, *a, **k: _dispatch('PURGE', self, a, k)
+      DELETE = lambda self, *a, **k: _dispatch('DELETE', self, a, k)
+      OPTIONS = lambda self, *a, **k: _dispatch('OPTIONS', self, a, k)
+      CONNECT = lambda self, *a, **k: _dispatch('CONNECT', self, a, k)
 
 
   class AppTest(BaseTest):

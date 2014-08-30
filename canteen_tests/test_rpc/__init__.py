@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   RPC tests
   ~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # RPC tests
 from . import test_base
@@ -24,7 +24,5 @@ from . import test_json
 from . import test_msgpack
 
 
-__all__ = (
-  'test_json',
-  'test_msgpack'
-)
+__all__ = ('test_json',
+           'test_msgpack')

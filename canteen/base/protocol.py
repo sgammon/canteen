@@ -65,6 +65,8 @@ with runtime.Library('protorpc') as (library, protorpc):
     __content_types__ = ('',)  # default to no matched content types
 
     ## == Multi-protocol Tools == ##
+
+    # noinspection PyMethodParameters
     @decorators.classproperty
     def all(cls):
 
@@ -78,6 +80,7 @@ with runtime.Library('protorpc') as (library, protorpc):
       for protocol in cls.__protocols__.itervalues():
         yield protocol
 
+    # noinspection PyMethodParameters
     @decorators.classproperty
     def mapping(cls):
 
@@ -148,18 +151,21 @@ with runtime.Library('protorpc') as (library, protorpc):
       return _register_protocol
 
     ## == Protocol Properties == ##
+
+    # noinspection PyMethodParameters
     @decorators.classproperty
-    def name(self):
+    def name(cls):
 
       """ Class-level accessor for the 'short name' of this ``Protocol`` class.
           For example, ``jsonrpc``.
 
           :returns: ``str`` short name for this :py:class:`Protocol`. """
 
-      return self.__label__
+      return cls.__label__
 
+    # noinspection PyMethodParameters
     @decorators.classproperty
-    def content_type(self):
+    def content_type(cls):
 
       """ Class-level accessor for the primary ``Content-Type`` this
           :py:class:`Protocol` should respond to. The first entry in the
@@ -167,10 +173,11 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           :returns: Primary ``str`` ``Content-Type`` value. """
 
-      return self.__content_types__[0]
+      return cls.__content_types__[0]
 
+    # noinspection PyMethodParameters
     @decorators.classproperty
-    def alternative_content_types(self):
+    def alternative_content_types(cls):
 
       """ Class-level accessor for 'alternative' ``Content-Type``s that this
           :py:class:`Protocol` should respond to. Alternative content types
@@ -180,7 +187,7 @@ with runtime.Library('protorpc') as (library, protorpc):
           :returns: ``list`` of ``str`` ``Content-Type``s. """
 
       return [i for i in (
-        filter(lambda x: x != self.content_type, self.__content_types__))]
+        filter(lambda x: x != cls.content_type, cls.__content_types__))]
 
     ## == Abstract Methods == ##
     @abc.abstractmethod

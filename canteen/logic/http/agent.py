@@ -75,8 +75,7 @@ class AgentVersion(AgentInfo):
   __slots__ = (
     'major',  # major browser version (the `3` in 3.0)
     'minor',  # minor browser version (the `1` in 3.1)
-    'micro'  # micro browser version (the `5` in 3.1.5)
-  )
+    'micro')  # micro browser version (the `5` in 3.1.5)
 
   def __init__(self, major, minor=None, micro=None):
 
@@ -95,10 +94,9 @@ class AgentOS(AgentInfo):
       browser, found while scanning the ``User-Agent`` string. """
 
   __slots__ = (
-    'name',  # `Mac OS X` for mac, `Windows XP` for Windows, etc
+    'name',  # `Mac OS X`, `Windows XP`, etc
     'vendor',  # vendor of the OS, from above
-    'version'  # detected version of the OS
-  )
+    'version')  # detected version of the OS
 
   def __init__(self, name, vendor, version):
 

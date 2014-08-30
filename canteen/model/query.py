@@ -198,7 +198,8 @@ class QueryOptions(object):
                        ' be a string internal propery name.'
                        ' Got: "%s".' % str(name))  # pragma: no cover
 
-    name = '_' + name if name[0] != '_' else name  # build internal name
+    # build internal name
+    name = '_' + unicode(name) if name[0] != '_' else unicode(name)
 
     if name not in self.__slots__:
       raise AttributeError('`QueryOptions` object has no option by'
@@ -228,9 +229,9 @@ class QueryOptions(object):
     if not isinstance(name, basestring):  # pragma: no cover
       raise ValueError('Argument `name` of `_get_option` must'
                        ' be a string internal property name.'
-                       ' Got: "%s".' % str(name))
+                       ' Got: "%s".' % name)
 
-    name = '_' + name  # build internal name
+    name = '_%s' % name  # build internal name
 
     if name not in self.__slots__:
       raise AttributeError('`QueryOptions` object has no option by'

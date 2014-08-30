@@ -27,15 +27,16 @@ class Delegate(object):
       injection) pool. Items that mix a ``Delegate`` subclass into their MRO
       work transparently with injection. """
 
-  __bridge__ = None  # holds bridge for current class to collapsed component set
-  __target__ = None  # holds injection target for this delegate
+  __target__, __bridge__ = (
+      None,  # holds injection target for this delegate
+      None)  # holds bridge for current class to collapsed component set
 
   class __metaclass__(type):
 
     """ Metaclass to prepare new subclasses, wrapped as customized children of
         ``Delegate`` that contain their owner class for DI context. """
 
-    def __new__(cls, name_or_target, bases=None, properties=None):
+    def __new__(mcs, name_or_target, bases=None, properties=None):
 
       """ Construct a new ``Delegate`` subclass.
 
@@ -55,9 +56,10 @@ class Delegate(object):
 
       # if it only comes through with a target, it's a subdelegate
       if bases or properties:
+
         # it's `Delegate` probably - construct it as normal
         name, target = name_or_target, None
-        return type.__new__(cls, name, bases, properties)
+        return type.__new__(mcs, name, bases, properties)
 
       # otherwise, construct with an MRO attribute injection
       name, target = None, name_or_target
@@ -94,11 +96,11 @@ class Delegate(object):
                                ' on item \'%s\'.' % (key, klass))
 
       # inject properties onto MRO delegate, then construct
-      return type.__new__(cls.__class__, 'Delegate', (object,), {
+      return type.__new__(mcs.__class__, 'Delegate', (object,), {
         '__bridge__': None,
         '__getattr__': classmethod(injection_responder),
-        '__metaclass__': cls,
-        '__repr__': cls.__repr__,
+        '__metaclass__': mcs,
+        '__repr__': mcs.__repr__,
         '__target__': target
       })
 

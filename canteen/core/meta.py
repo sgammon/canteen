@@ -70,6 +70,11 @@ class MetaFactory(type):
       del properties['__root__']  # treat as a root - init directly and continue
       return construct(mcs, name, bases, properties)
 
+    # patch class name to owner if it's embedded
+    name = name if (
+        (name != '__metaclass__' or '__owner__' not in properties)) else (
+          properties['__owner__'])
+
     # construct, yo. then unconditionally apply it to the meta chain and return
     # also, defer to the class' ``initialize``, or any of its bases if they have
     # ``initialize`, for constructing the actual class.

@@ -1392,87 +1392,82 @@ class Vertex(Model):
 
     def __gt__(cls, target):
 
-      """ Syntactic sugar for creating an on-the-fly
-          :py:class:`Edge` subclass.
+      """ Syntactic sugar for creating an on-the-fly :py:class:`Edge` subclass.
 
           Overrides the syntax:
             ``class Friends(Person > Person): [...]```
 
-          :param other: Target :py:class:`Vertex` subclass
-            to factory an :py:class:`Edge` to.
+          :param other: Target :py:class:`Vertex` subclass to factory an
+            :py:class:`Edge` to.
 
-          :returns: Factoried :py:class:`Edge` subclass that
-            represents a type connecting ``self`` to ``other``. """
+          :returns: Factoried :py:class:`Edge` subclass that represents a type
+            connecting ``self`` to ``other``. """
 
       return cls.to(target, directed=False)
 
     def __lt__(cls, origin):
 
-      """ Syntactic sugar for creating an on-the-fly
-          :py:class:`Edge` subclass.
+      """ Syntactic sugar for creating an on-the-fly :py:class:`Edge` subclass.
 
           Overrides the syntax:
             ``class Supporting(Organization < Person): [...]```
 
-          :param other: Target :py:class:`Vertex` subclass
-            to factory an :py:class:`Edge` to.
+          :param other: Target :py:class:`Vertex` subclass to factory an
+            :py:class:`Edge` to.
 
-          :returns: Factoried :py:class:`Edge` subclass that
-            represents a type connecting ``self`` to ``other``. """
+          :returns: Factoried :py:class:`Edge` subclass that represents a type
+            connecting ``self`` to ``other``. """
 
       return origin.to(cls, directed=False)
 
     def __rshift__(cls, target):
 
-      """ Syntactic sugar for creating an on-the-fly
-          :py:class:`Edge` subclass. This syntactic
-          extension spawns a **directed** ``Edge``.
+      """ Syntactic sugar for creating an on-the-fly :py:class:`Edge` subclass.
+          This syntactic extension spawns a **directed** ``Edge``.
 
           Overrides the syntax:
             ``class Comment(Person >> Post): [...]```
 
-          :param other: Target :py:class:`Vertex` subclass
-            to factory an :py:class:`Edge` to.
+          :param other: Target :py:class:`Vertex` subclass to factory an
+            :py:class:`Edge` to.
 
-          :returns: Factoried :py:class:`Edge` subclass that
-            represents a type connecting ``self`` to ``other``. """
+          :returns: Factoried :py:class:`Edge` subclass that represents a type
+            connecting ``self`` to ``other``. """
 
       return cls.to(target, directed=True)
 
     def __lshift__(cls, origin):
 
-      """ Syntactic sugar for creating an on-the-fly
-          :py:class:`Edge` subclass. This syntactic
-          extension spawns a **directed** ``Edge``.
+      """ Syntactic sugar for creating an on-the-fly :py:class:`Edge` subclass.
+          This syntactic extension spawns a **directed** ``Edge``.
 
           Overrides the syntax:
             ``class Contribution(Legislator << Contributor): [...]```
 
-          :param other: Target :py:class:`Vertex` subclass
-            to factory an :py:class:`Edge` to.
+          :param other: Target :py:class:`Vertex` subclass to factory an
+            :py:class:`Edge` to.
 
-          :returns: Factoried :py:class:`Edge` subclass that
-            represents a type connecting ``self`` to ``other``. """
+          :returns: Factoried :py:class:`Edge` subclass that represents a type
+            connecting ``self`` to ``other``. """
 
       return origin.to(cls, directed=True)
 
   @classmethod
   def to(cls, *targets, **options):
 
-    """ Syntactic sugar for creating an on-the-fly
-        :py:class:`Edge` subclass.
+    """ Syntactic sugar for creating an on-the-fly :py:class:`Edge` subclass.
 
-        :param target: Target :py:class:`Vertex` subclass
-          to factory an :py:class:`Edge` to.
+        :param target: Target :py:class:`Vertex` subclass to factory
+          an :py:class:`Edge` to.
 
-        :param directed: Whether the target :py:class:`Edge`
-          subclass should be considered directional in nature.
+        :param directed: Whether the target :py:class:`Edge` subclass should be
+          considered directional in nature.
 
-        :raises TypeError: In the case that a non-``Vertex``
-          is passed for ``target``.
+        :raises TypeError: In the case that a non-``Vertex`` is passed for
+          ``target``.
 
-        :returns: Factoried :py:class:`Edge` subclass that
-          represents a type connecting ``self`` to ``other``. """
+        :returns: Factoried :py:class:`Edge` subclass that represents a type
+          connecting ``self`` to ``other``. """
 
     # classes only plz
     for target in targets:
@@ -1486,8 +1481,7 @@ class Vertex(Model):
 
 class EdgeSpec(object):
 
-  """ Specifies the peering and directed-ness
-      of an :py:class:`Edge`. """
+  """ Specifies the peering and directed-ness of an :py:class:`Edge`. """
 
   __slots__ = ('origin', 'peering', 'directed')
 
@@ -1507,21 +1501,19 @@ class EdgeSpec(object):
 
   def __init__(self, origin, peering, directed):
 
-    """ Initialize an ``EdgeSpec`` class, according
-        to the specified ``peering`` configuration.
+    """ Initialize an ``EdgeSpec`` class, according to the specified ``peering``
+        configuration.
 
         :param origin:
 
-        :param peering: An ordered iterable of ``Vertex``
-          subclasses to connect via an ``Edge``, where
-          index ``0`` is always considered the **origin**
-          and the remaining items are targets that can
-          be validly connected to **origin**.
+        :param peering: An ordered iterable of ``Vertex`` subclasses to connect
+          via an ``Edge``, where index ``0`` is always considered the **origin**
+          and the remaining items are targets that can be validly connected to
+          **origin**.
 
-        :param directed: Flag (``bool``) indicating that
-          this ``Edge`` represents a directional
-          relationship between each ``origin -> target``
-          pair. """
+        :param directed: Flag (``bool``) indicating that this ``Edge``
+          represents a directional relationship between each
+          ``origin -> target`` pair. """
 
     if not len(peering) > 0:
       raise TypeError('Cannot specify an `Edge` without at'
@@ -1532,13 +1524,11 @@ class EdgeSpec(object):
 
   def __repr__(self):
 
-    """ Generate a string representation for the
-        relationship specified by this ``EdgeSpec``
-        class.
+    """ Generate a string representation for the relationship specified by this
+        ``EdgeSpec`` class.
 
-        :returns: String, like ``(origin <-> target, ...)``
-          (if undirected), otherwise ``(origin -> target, ...)``
-          (if directed). """
+        :returns: String, like ``(origin <-> target, ...)`` (if undirected),
+          otherwise ``(origin -> target, ...)`` (if directed). """
 
     return "(%s %s %s)" % (
       self.origin.kind(), '<->' if not self.directed else '->', (
@@ -1576,8 +1566,8 @@ class Edge(Model):
   ## = Internal Methods = ##
   def __init__(self, source=None, *targets, **properties):
 
-    """ Initialize this ``Edge`` with a ``Vertex``
-        ``source`` and ``target`` pair.
+    """ Initialize this ``Edge`` with a ``Vertex`` ``source`` and ``target``
+        pair.
 
         :param pair_or_source:
         :param maybe_target:

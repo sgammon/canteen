@@ -206,6 +206,7 @@ if __debug__:
       if output is None:
         output = ".develop/tests"
       try:
+        # noinspection PyPackageRequirements
         import xmlrunner
       except ImportError:
         raise RuntimeError('Cannot generate XML output without `xmlrunner`.')

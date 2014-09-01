@@ -2,8 +2,10 @@
 
 """
 
-  canteen: setup
-  ~~~~~~~~~~~~~~
+  setup tests
+  ~~~~~~~~~~~
+
+  makes sure canteen's setup routine works properly.
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -13,6 +15,5 @@
 
 """
 
-
-if __debug__ and __name__ == '__main__':
-  from canteen import setup; setup.prepare()()  # execute setup routine
+# setup
+from canteen import setup

@@ -732,22 +732,38 @@ class GraphModelAdapter(IndexedModelAdapter):
         :param properties: Entity :py:class:`model.Model` property values to
           index.
 
+        :raises TypeError: If neither a ``key`` or ``properties`` are passed,
+          since we can't generate anything without at least one or the other.
+
         :returns: Tupled set of ``(encoded, meta, property, graph)``, where
           ``meta`` and ``property`` are indexes to be written in each category
            and ``graph`` is a bundle of special indexes for ``Vertex`` and
            ``Edge`` keys. """
 
+    _super = super(GraphModelAdapter, cls).generate_indexes
+
     # initialize graph indexes
     graph = []
 
-    # defer upwards for regular indexes
-    encoded, meta, property = super(GraphModelAdapter, cls).generate_indexes(*(
-      key, properties))
+    if not key and not properties:  # pragma: no cover
+      raise TypeError('Must pass at least `key` or `properties'
+                      ' to `generate_indexes`.')
 
-    # apply graph indexes, if any
-    import pdb; pdb.set_trace()
+    elif key and not properties:
+      # we're probably cleaning indexes
+      encoded, meta = _super(key)
+      return encoded, meta, graph
 
-    return encoded, meta, property, graph
+    else:  # properties and key
+      # defer upwards for regular indexes
+      encoded, meta, properties = _super(key, properties)
+
+      # skip edge target/source/peers
+      #import pdb; pdb.set_trace()
+      # @TODO(sgammon): don't leave this PDB here
+
+      return encoded, meta, properties, graph
+
 
   @abc.abstractmethod
   def write_indexes(cls, writes, graph, **kwargs):
@@ -765,6 +781,20 @@ class GraphModelAdapter(IndexedModelAdapter):
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
     raise NotImplementedError('`GraphModelAdapter.write_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
+
+  @abc.abstractmethod
+  def clean_indexes(cls, key, graph, **kwargs):
+
+    """ Clean indexes and index entries matching a particular
+        :py:class:`model.Key`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
+
+        :param key: Target :py:class:`model.Key` to clean indexes for.
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
+
+    raise NotImplementedError('`IndexedModelAdapter.clean_indexes`'
                               ' is abstract and may not be'
                               ' called directly.')  # pragma: no cover
 

@@ -311,7 +311,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
     global _metadata
     _write = {} if not execute else _metadata
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     # extract indexes
     encoded, meta, properties = writes
@@ -458,7 +458,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
     global _metadata
 
     # extract indexes
-    encoded, meta = writes
+    encoded, meta, graph = writes
 
     # pull reverse indexes
     reverse = _metadata[cls._reverse_prefix].get(encoded, set())

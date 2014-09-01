@@ -891,13 +891,13 @@ class RedisAdapter(DirectedGraphAdapter):
     return indexer_calls  # return calls only
 
   @classmethod
-  def clean_indexes(cls, key, pipeline=None):  # pragma: no cover
+  def clean_indexes(cls, writes, pipeline=None):  # pragma: no cover
 
     """ Clean indexes and index entries matching a particular
         :py:class:`model.Key`, and generated via the adapter method
         :py:meth:`RedisAdapter.generate_indexes`.
 
-      :param key: Target :py:class:`model.Key` to clean from ``Redis`` indexes.
+      :param writes: Writes to clean up.
 
       :returns: ``None``. """
 

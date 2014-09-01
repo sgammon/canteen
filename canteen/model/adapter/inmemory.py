@@ -60,7 +60,13 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def acquire(cls, name, bases, properties):
 
-    """ Perform first initialization. """
+    """ Perform first initialization.
+
+        :param name:
+        :param bases:
+        :param properties:
+
+        :returns: """
 
     global _init, _graph, _metadata
 
@@ -109,7 +115,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def get(cls, key, **kwargs):
 
-    """ Retrieve an entity by Key from Python RAM. """
+    """ Retrieve an entity by Key from Python RAM.
+
+        :param key:
+        :param **kwargs:
+
+        :returns: """
 
     global _metadata
 
@@ -128,7 +139,14 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def put(cls, key, entity, model, **kwargs):
 
-    """ Persist an entity to storage in Python RAM. """
+    """ Persist an entity to storage in Python RAM.
+
+        :param key:
+        :param entity:
+        :param model:
+        :param **kwargs:
+
+        :returns: """
 
     global _graph, _metadata, _datastore
 
@@ -197,7 +215,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def delete(cls, key, **kwargs):
 
-    """ Delete an entity by Key from memory. """
+    """ Delete an entity by Key from memory.
+
+        :param key:
+        :param **kwargs:
+
+        :returns: """
 
     global _metadata, _datastore
 
@@ -237,7 +260,16 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, **kwargs):
 
-    """ Allocate new Key IDs up to `count`. """
+    """ Allocate new Key IDs up to `count`.
+
+        :param key_class:
+        :param kind:
+        :param count:
+        :param **kwargs:
+
+        :raises StopIteration:
+
+        :returns: """
 
     global _metadata
 
@@ -259,12 +291,27 @@ class InMemoryAdapter(DirectedGraphAdapter):
     return pointer
 
   @classmethod
-  def write_indexes(cls, writes, execute=True, **kwargs):
+  def write_indexes(cls, writes, _graph, execute=True):
 
-    """ Write a set of generated indexes via `generate_indexes`. """
+    """ Write a set of generated indexes via `generate_indexes`.
+
+        :param writes: Index writes to commit to the ``_metadata`` ``dict``.
+
+        :param _graph: Graph writes to commit. Ignored in this adapter as those
+          are handled in ``put`` instead.
+
+        :param execute: ``bool`` flag, whether to execute and actually commit
+          the writes planned.
+
+        :raises RuntimeError: If an invalid bundle of index writes is provided.
+
+        :returns: Writes committed to the ``_metadata`` ``dict``, for
+          inspection. """
 
     global _metadata
     _write = {} if not execute else _metadata
+
+    import pdb; pdb.set_trace()
 
     # extract indexes
     encoded, meta, properties = writes
@@ -392,15 +439,21 @@ class InMemoryAdapter(DirectedGraphAdapter):
         continue
 
       else:  # pragma: no cover
-        raise ValueError("Index mapping tuples must have at least 2 entries,"
-                         " for a simple set index, or more for a hashed index.")
+        raise RuntimeError("Index mapping tuples must have at least 2 entries,"
+                           " for a simple set index, or more for"
+                           " a hashed index.")
 
     return _write
 
   @classmethod
   def clean_indexes(cls, writes, **kwargs):
 
-    """ Clean indexes for a key. """
+    """ Clean indexes for a key.
+
+        :param writes:
+        :param **kwargs:
+
+        :returns: """
 
     global _metadata
 
@@ -489,7 +542,16 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    """ Execute a query across one (or multiple) indexed properties. """
+    """ Execute a query across one (or multiple) indexed properties.
+
+        :param kind:
+        :param spec:
+        :param options:
+        :param **kwargs:
+
+        :raises RuntimeError:
+
+        :returns: """
 
     from canteen import model
     from canteen.model import query

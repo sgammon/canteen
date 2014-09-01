@@ -473,7 +473,9 @@ class RedisAdapter(DirectedGraphAdapter):
       # build key and extract group
       desired_key = model.Key.from_raw(flattened)
       root = (ancestor for ancestor in desired_key.ancestry).next()
-      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+      tail = (
+        desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+          '__root__'))
 
       result = _entity or (
         cls.execute(*(
@@ -488,7 +490,8 @@ class RedisAdapter(DirectedGraphAdapter):
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     else:  # pragma: no cover
-      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+      raise NotImplementedError("Unknown storage mode: '%s'." % (
+                                                        cls.EngineConfig.mode))
 
     # @TODO: different storage internal modes
     if isinstance(result, basestring):
@@ -621,7 +624,9 @@ class RedisAdapter(DirectedGraphAdapter):
       # build key and extract group
       desired_key = model.Key.from_raw(flattened)
       root = (ancestor for ancestor in desired_key.ancestry).next()
-      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+      tail = (
+        desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+          '__root__'))
 
       return cls.execute(*(
         cls.Operations.HASH_DELETE,
@@ -633,7 +638,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
-    raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+    raise NotImplementedError("Unknown storage mode: '%s'." % (
+                              cls.EngineConfig.mode))
 
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, pipeline=None):
@@ -683,7 +689,8 @@ class RedisAdapter(DirectedGraphAdapter):
       RedisMode.hashkey_blob):
 
       # store auto-increment for kind in kind's own hash at special field
-      tail = cls._magic_separator.join([cls._meta_prefix, 'id'])  # ends up as `__meta__::id` or so
+      # ends up as `__meta__::id` or so
+      tail = cls._magic_separator.join([cls._meta_prefix, 'id'])
 
       # delegate to redis client
       value = cls.execute(*(
@@ -699,7 +706,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
     else:  # pragma: no cover
 
-      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+      raise NotImplementedError("Unknown storage mode: '%s'." % (
+                                cls.EngineConfig.mode))
 
     if count > 1:
       def _generate_range():
@@ -740,22 +748,30 @@ class RedisAdapter(DirectedGraphAdapter):
     return joined
 
   @classmethod
-  def write_indexes(cls, writes, pipeline=None, execute=True):  # pragma: no cover
+  def write_indexes(cls, w, g, pipeline=None, execute=True):  # pragma: no cover
 
     """ Write a batch of index updates generated earlier via
         :py:meth:`RedisAdapter.generate_indexes`.
 
-        :param writes: Batch of writes to commit to ``Redis``.
+        :param w: Batch of writes to commit to ``Redis``.
+        :param g: Batch of graph writes to commit to ``Redis``.
 
-        :param pipeline:
+        :param pipeline: Current active pipeline of ``Redis`` commands to
+          collapse and execute. Defaults to ``None``, which either returns the
+          queued commands (if ``execute`` is ``False``) or a list of results
+          from those commands (if ``execute`` is ``True``). Always returned
+          if not ``None``, so that other calls can be chained.
 
-        :param execute:
+        :param execute: Whether we should actually execute the writes, or just
+          plan it and send it back. ``bool``, defaults to ``True``, which *does*
+          execute the writes.
 
-        :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented.
+        :returns: ``pipeline`` if ``pipeline`` was not ``None``, or a ``tuple``
+          of operation results if ``execute`` was ``True`` and ``pipeline`` was
+          ``None``, or a tuple of plans that *would* be executed if ``pipeline``
+           is ``None`` and ``execute`` is ``False``. """
 
-        :returns: """
-
-    origin, meta, property_map = writes
+    origin, meta, property_map = w
 
     results, indexer_calls = [], []
 
@@ -823,10 +839,11 @@ class RedisAdapter(DirectedGraphAdapter):
         if not isinstance(value, bool) and isinstance(value, _SERIES_BASETYPES):
 
           if converter is None:
-            raise RuntimeError('Illegal non-string value passed in for a `meta` index '
-                       'value. Write bundle: "%s".' % write)
+            raise RuntimeError('Illegal non-string value passed in'
+                               ' for a `meta` index value.'
+                               ' Write bundle: "%s".' % write)
 
-          # time-based or number-like values are automatically stored in sorted sets
+          # time-based or number-like values are stored in sorted sets
           handler = cls.Operations.SORTED_ADD
           sanitized_value = converter(value)
 
@@ -861,7 +878,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # build index key
         indexer_calls.append((handler, tuple([
-          None, cls._magic_separator.join(map(str, hash_c))] + args), {'target': target}))
+          None, cls._magic_separator.join(map(str, hash_c))] + args), {
+            'target': target}))
 
     if execute:
       for handler, hargs, hkwargs in indexer_calls:
@@ -876,19 +894,20 @@ class RedisAdapter(DirectedGraphAdapter):
   def clean_indexes(cls, key, pipeline=None):  # pragma: no cover
 
     """ Clean indexes and index entries matching a particular
-      :py:class:`model.Key`, and generated via the adapter method
-      :py:meth:`RedisAdapter.generate_indexes`.
+        :py:class:`model.Key`, and generated via the adapter method
+        :py:meth:`RedisAdapter.generate_indexes`.
 
       :param key: Target :py:class:`model.Key` to clean from ``Redis`` indexes.
-      :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented. """
+
+      :returns: ``None``. """
 
     return  # not currently implemented
 
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    """ Execute a :py:class:`model.Query` across one (or multiple)
-        indexed properties.
+    """ Execute a :py:class:`model.Query` across one (or multiple) indexed
+        properties.
 
         :param kind: Kind name (``str``) for which we are querying across, or
           ``None`` if this is a ``kindless`` query.
@@ -909,7 +928,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
         :returns: Iterable (``list``) of matching :py:class:`model.Key` yielded
           by execution of the current :py:class:`Query`. Returns
-          empty iterable (``[]``) in the case that no results could be found. """
+          empty iterable (``[]``) in the case that no results could be
+          found. """
 
     # @TODO(sgammon): desparately needs rewriting. absolute utter plebbery.
 
@@ -918,7 +938,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
     if not kind:
       # @TODO(sgammon): implement kindless queries
-      raise NotImplementedError('Kindless queries are not yet implemented in `Redis`.')
+      raise NotImplementedError('Kindless queries are not yet implemented'
+                                ' in `Redis`.')
 
     # extract filter and sort directives and build ancestor
     filters, sorts = spec
@@ -962,8 +983,13 @@ class RedisAdapter(DirectedGraphAdapter):
         _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
 
       # process sorted sets first: leads to lower cardinality
-      sorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'Z', _filters.iterkeys())])
-      unsorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'S', _filters.iterkeys())])
+      sorted_indexes = dict([
+        (index, _filters[index]) for index in (
+          filter(lambda x: x[0] == 'Z', _filters.iterkeys()))])
+
+      unsorted_indexes = dict([
+        (index, _filters[index]) for index in (
+          filter(lambda x: x[0] == 'S', _filters.iterkeys()))])
 
       if sorted_indexes:
 
@@ -987,8 +1013,11 @@ class RedisAdapter(DirectedGraphAdapter):
             _, prop = prop
 
             # special case: maybe we can do a sorted range request
-            if (query.GREATER_THAN in _operators) or (query.GREATER_THAN_EQUAL_TO in _operators):
-              if (query.LESS_THAN in _operators) or (query.LESS_THAN_EQUAL_TO in _operators):
+            if (query.GREATER_THAN in _operators) or (
+                    query.GREATER_THAN_EQUAL_TO in _operators):
+
+              if (query.LESS_THAN in _operators) or (
+                    query.LESS_THAN_EQUAL_TO in _operators):
 
                 # range value query over sorted index
                 greater, lesser = max(_values), min(_values)
@@ -1047,7 +1076,8 @@ class RedisAdapter(DirectedGraphAdapter):
           _flag, index = prop
           _intersections.add(index)
 
-        # special case: only one unsorted set - pull content instead of a intersection merge
+        # special case: only one unsorted set - pull content instead
+        # of an intersection merge
         if _intersections and len(_intersections) == 1:
           _data_frame.append(cls.execute(*(
             cls.Operations.SET_MEMBERS,
@@ -1080,12 +1110,16 @@ class RedisAdapter(DirectedGraphAdapter):
       if not sorts:
 
         # grab all entities of this kind
-        prefix = model.Key(kind, 0, parent=ancestry_parent).urlsafe().replace('=', '')[0:-3]
-        matching_keys = cls.execute(cls.Operations.KEYS, kind.kind(), prefix + '*')  # regex search it. why not
+        prefix = model.Key(kind, 0, parent=ancestry_parent)
+        prefix = prefix.urlsafe().replace('=', '')[0:-3]
+        matching_keys = cls.execute(*(cls.Operations.KEYS,
+                                      kind.kind(),
+                                      prefix + '*'))  # regex search it. why not
 
         # if we're doing keys only, we're done
         if options.keys_only and not (_and_filters or _or_filters):
-          return [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys]
+          return (
+            [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys])
 
     # otherwise, build entities and return
     result_entities = []
@@ -1106,7 +1140,9 @@ class RedisAdapter(DirectedGraphAdapter):
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results
-      for key, entity in zip([model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], _blob_results):
+      for key, entity in zip([
+        model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], (
+            _blob_results)):
 
         _seen_results = 0
 
@@ -1124,10 +1160,12 @@ class RedisAdapter(DirectedGraphAdapter):
 
         if _and_filters or _or_filters:
 
-          if _and_filters and not all((filter.match(decoded) for filter in _and_filters)):
+          if _and_filters and not all((
+                  (filter.match(decoded) for filter in _and_filters))):
             continue  # doesn't match one of the filters
 
-          if _or_filters and not any((filter.match(decoded) for filter in _or_filters)):
+          if _or_filters and not any((
+                  (filter.match(decoded) for filter in _or_filters))):
             continue  # doesn't match any of the `or` filters
 
         # matches, by the grace of god

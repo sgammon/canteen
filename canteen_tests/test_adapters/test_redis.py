@@ -16,11 +16,17 @@
 """
 
 # abstract test bases
-from .test_abstract import IndexedModelAdapterTests
+from .test_abstract import DirectedGraphAdapterTests
+
+# redis adapter
+from canteen.model.adapter import redis as rapi
 
 
-## RedisAdapterTests
-# Tests the `Redis` model adapter.
-class RedisAdapterTests(IndexedModelAdapterTests):
+class RedisAdapterTests(DirectedGraphAdapterTests):
 
     """ Tests `model.adapter.redis.Redis` """
+
+    # @TODO(sgammon): mock redis testing
+
+    #__abstract__ = False
+    #subject = rapi.RedisAdapter

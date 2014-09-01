@@ -241,6 +241,7 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
     """ Test `GraphModelAdapter` `Edge` put with a keyname """
 
     if not self.test_abstract():
+
       bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
                             name="Bob")
       k = bob.put(adapter=self.subject())

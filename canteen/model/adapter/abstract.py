@@ -654,6 +654,7 @@ class GraphModelAdapter(IndexedModelAdapter):
 
   _graph_prefix = '__graph__'
 
+
   class Indexer(IndexedModelAdapter.Indexer):
 
     """ Adds Graph-specific ``Indexer`` routines and constants. """
@@ -689,6 +690,83 @@ class GraphModelAdapter(IndexedModelAdapter):
           'vertex' if isinstance(key, model.Vertex.__keyclass__) else (
             'edge' if isinstance(key, model.Vertex.__keyclass__) else None))
         )], sanitized
+
+  def _put(self, entity, **kwargs):
+
+    """ Override to enable ``graph``-specific indexes (for stored ``Vertex`` and
+        ``Edge`` objects/keys).
+
+        :param entity: Entity :py:class:`model.Model` to persist.
+
+        :returns: Resulting :py:class:`model.Key` from write operation. """
+
+    # small optimization - with a deterministic key, we can parrellelize
+    # index writes (assuming async is supported in the underlying driver)
+
+    _indexed_properties = self._pluck_indexed(entity)
+
+    # delegate write up the chain
+    written_key = super(IndexedModelAdapter, self)._put(entity, **kwargs)
+
+    # proxy to `generate_indexes` and write indexes
+    if not _indexed_properties:  # pragma: no cover
+      origin, meta, graph = self.generate_indexes(entity.key)
+      properties = {}
+    else:
+      origin, meta, properties, graph = (
+        self.generate_indexes(entity.key, _indexed_properties))
+
+    self.write_indexes((origin, meta, properties), graph, **kwargs)
+    return written_key  # delegate up the chain for entity write
+
+  @classmethod
+  def generate_indexes(cls, key, properties=None):
+
+    """ Generate a set of indexes that should be written to with associated
+        values, considering that some ``key`` values may be ``VertexKey`` or
+        ``EdgeKey`` instances.
+
+        :param key: Target :py:class:`model.Key`, :py:class:`VertexKey` or
+          :py:class:`EdgeKey` to index.
+
+        :param properties: Entity :py:class:`model.Model` property values to
+          index.
+
+        :returns: Tupled set of ``(encoded, meta, property, graph)``, where
+          ``meta`` and ``property`` are indexes to be written in each category
+           and ``graph`` is a bundle of special indexes for ``Vertex`` and
+           ``Edge`` keys. """
+
+    # initialize graph indexes
+    graph = []
+
+    # defer upwards for regular indexes
+    encoded, meta, property = super(GraphModelAdapter, cls).generate_indexes(*(
+      key, properties))
+
+    # apply graph indexes, if any
+    import pdb; pdb.set_trace()
+
+    return encoded, meta, property, graph
+
+  @abc.abstractmethod
+  def write_indexes(cls, writes, graph, **kwargs):
+
+    """ Write a batch of index updates generated earlier via
+        :py:meth:`generate_indexes`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
+
+        :param writes: Batch of index writes to commit, generated via
+          :py:meth:`generate_indexes`.
+
+        :param graph: Batch of graph-related storage updates for indexes related
+          to ``Edge`` and ``Vertex`` objects.
+
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
+
+    raise NotImplementedError('`GraphModelAdapter.write_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
 
 class DirectedGraphAdapter(GraphModelAdapter):

@@ -22,23 +22,35 @@ from .test_abstract import DirectedGraphAdapterTests
 from canteen.model.adapter import redis as rapi
 
 
-class RedisAdapterTests(DirectedGraphAdapterTests):
+try:
+  import redis
+except ImportError:
+  redis = None
 
-    """ Tests `model.adapter.redis.Redis` """
 
-    # @TODO(sgammon): mock redis testing
+if redis:
 
-    __abstract__ = False
-    subject = rapi.RedisAdapter
 
-    def setUp(self):
+  class RedisAdapterTests(DirectedGraphAdapterTests):
 
-      """ Set Redis into testing mode. """
+      """ Tests `model.adapter.redis.Redis` """
 
-      rapi.RedisAdapter.__testing__ = True
+      # @TODO(sgammon): mock redis testing
 
-    def tearDown(self):
+      __abstract__ = False
+      subject = rapi.RedisAdapter
 
-      """ Set Redis back into non-testing mode. """
+      def setUp(self):
 
-      rapi.RedisAdapter.__testing__ = False
+        """ Set Redis into testing mode. """
+
+        rapi.RedisAdapter.__testing__ = True
+
+      def tearDown(self):
+
+        """ Set Redis back into non-testing mode. """
+
+        rapi.RedisAdapter.__testing__ = False
+
+else:
+  print("Warning! Redis not found, skipping Redis testsuite.")

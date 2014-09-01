@@ -117,3 +117,10 @@ class ModelAdapterTests(FrameworkTest):
 
     assert 'Mixin' in repr(core.AdaptedModel)
     assert 'AdaptedModel' in repr(core.AdaptedModel)
+
+
+__all__ = (
+    'test_abstract',
+    'test_inmemory',
+    'test_protorpc',
+    'test_redis')

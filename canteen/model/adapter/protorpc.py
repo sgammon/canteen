@@ -131,7 +131,7 @@ else:
         explicit = prop._options.get(_field_kwarg, datastructures.EMPTY)
 
         # explcitly setting `False` or `None` means skip this field
-        if (explicit is False or explicit is None):
+        if (explicit is False or explicit is None):  # pragma: no cover
           continue  # continue without incrementing: skipped field
 
         # if it's a tuple, it's a name/args/kwargs pattern

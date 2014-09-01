@@ -391,6 +391,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
           :returns: Suitable HTTP response for an ``HTTP OPTIONS`` request. """
 
+      # @TODO(sgammon): HTTP OPTIONS integration testing for services
       return self.response('OPTIONS, POST')
 
     def POST(self, version, service, method):
@@ -405,6 +406,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
           :returns: Suitable HTTP response for an ``HTTP POST`` request.  """
 
+      # @TODO(sgammon): HTTP POST integration testing for services
       _status, _headers = None, None
 
       def _respond(status, headers):
@@ -428,47 +430,45 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
 
   class Exception(premote.ApplicationError):
-      """ Base RPC exception class, used to indicate an
-          application-level error. Backed by ProtoRPC's
-          :py:class:`remote.ApplicationError`. """
+
+      """ Base RPC exception class, used to indicate an application-level error.
+          Backed by ProtoRPC's :py:class:`remote.ApplicationError`. """
 
 
   class ServerException(premote.ServerError):
-      """ Base RPC exception class, used to indicate a
-          server-side error. Backed by ProtoRPC's
-          :py:class:`remote.ServerError`. """
+
+      """ Base RPC exception class, used to indicate a server-side error.
+          Backed by ProtoRPC's :py:class:`remote.ServerError`. """
 
 
   class ClientException(premote.RequestError):
-      """ Base RPC exception class, used to indicate a
-          client-side error. Backed by ProtoRPC's
-          :py:class:`remote.RequestError`. """
+
+      """ Base RPC exception class, used to indicate a client-side error. Backed
+          by ProtoRPC's :py:class:`remote.RequestError`. """
 
 
   class Exceptions(datastructures.ObjectProxy):
-      """ Datastructure used to house remote-capable
-          RPC exceptions, and for expression of error
-          types in meta APIs. """
+
+      """ Datastructure used to house remote-capable RPC exceptions, and for
+          expression of error types in meta APIs. """
 
 
   class AbstractService(premote.Service):
 
-    """ Abstract class that provides basic Canteen
-        integration for remote services. Handles
-        MRO injection and ABC enforcement."""
+    """ Abstract class that provides basic Canteen integration for remote
+        services. Handles MRO injection and ABC enforcement."""
 
     class __metaclass__(premote.Service.__metaclass__):
 
-      """ Inline metaclass for `AbstractService`
-          that injects a DI delegate into the MRO
-          chain. """
+      """ Inline metaclass for `AbstractService` that injects a DI delegate into
+          the MRO chain. """
 
       __delegate__ = None  # dependency injection delegate class
 
       def mro(cls):
 
-        """ Inject a DI delegate (generated at `cls.delegate`)
-            to enable MRO-based injection.
+        """ Inject a DI delegate (generated at `cls.delegate`) to enable
+            MRO-based injection.
 
             :returns: Assembled MRO chain (a ``list``). """
 
@@ -483,8 +483,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       def delegate(cls):
 
-        """ Generate a DI delegate suitable for use as a window
-            into Canteen's DI pool from ``AbstractService``.
+        """ Generate a DI delegate suitable for use as a window into the main
+            DI pool from ``AbstractService``.
 
             :returns: Bound :py:class:`injection.Delegate`. """
 
@@ -494,11 +494,10 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @abc.abstractproperty
     def exceptions(self):  # pragma: no cover
 
-      """ Abstract property requiring the specification of
-          expected exceptions from a remote service.
+      """ Abstract property requiring the specification of expected exceptions
+          from a remote service.
 
-          :raises NotImplementedError: Always, as this property
-          is abstract. """
+          :raises NotImplementedError: Always, as this property is abstract. """
 
       raise NotImplementedError('Property `AbstractService.exceptions`'
                                 ' requires implementation by a concrete'
@@ -507,21 +506,21 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class Service(AbstractService):
 
-    """ Base remote service class, used as an extension
-        point for Canteen application developers to create
-        their own remotely-accessible RPC services. """
+    """ Base remote service class, used as an extension point for Canteen
+        application developers to create their own remotely-accessible RPC
+        services. """
 
     __state__ = None  # local state
     __config__ = None  # local configuration
 
     def __init__(self, config=None, **kwargs):
 
-      """ Initialize a new ``Service`` instance, optionally
-          overlaying configuration with ``config`` or ``kwargs``,
-          which override items in ``config``.
+      """ Initialize a new ``Service`` instance, optionally overlaying
+          configuration with ``config`` or ``kwargs``, which override items in
+          ``config``.
 
-          :param config: Positional opportunity to specify
-          service configuration. """
+          :param config: Positional opportunity to specify service
+            configuration. """
 
       config = config or {}
       config.update(kwargs)
@@ -535,10 +534,9 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def new_factory(cls, *args, **kwargs):
 
-      """ Classmethod for constructing a new ``ServiceFactory``
-          to wrap this ``Service`` class. Passes positional
-          and keyword arguments for later use in ``Service``
-          __init__.
+      """ Classmethod for constructing a new ``ServiceFactory`` to wrap this
+          ``Service`` class. Passes positional and keyword arguments for later
+          use in ``Service.__init__``.
 
           :returns: Constructed ``ServiceFactory`` instance. """
 
@@ -546,17 +544,17 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def initialize_request_state(self, state):
 
-      """ Initialize this service with ``state`` handed-in by
-          ProtoRPC's underlying plumbing.
+      """ Initialize this service with ``state`` handed-in by ProtoRPC's
+          underlying plumbing.
 
-          :param state: State to attach locally. Always a
-          descendent of :py:class:`remote.RequestState`, and
-          is *usually* an instance of the builtin class
-          :py:class:`remote.HttpRequestState` (which is used
-          when running over HTTP, obviously).
+          :param state: State to attach locally. Always a descendent of
+            :py:class:`remote.RequestState`, and usually an instance of
+            :py:class:`remote.HttpRequestState` (which is used when running over
+            HTTP, obviously).
 
           :returns: Nothing. """
 
+      # @TODO(sgammon): full-cycle HTTP RPC testing
       self.__state__ = state
       if hasattr(self, 'initialize'):
         try:  # @TODO(sgammon): better logging here
@@ -568,9 +566,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class ServiceFactory(object):
 
-    """ Specifies an object that wraps an ``rpc.Service``
-        class and encapsulates a static set of ``args``
-        and ``kwargs`` to construct instaces of that
+    """ Specifies an object that wraps an ``rpc.Service`` class and encapsulates
+        a static set of ``args`` and ``kwargs`` to construct instaces of that
         wrapped ``Service``. """
 
     service = Service  # service class to factory
@@ -578,13 +575,11 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def __new__(cls, **kwargs):
 
-      """ New instances requested of this ``cls`` are
-          redirected to the constructor for the locally
-          encapsulated ``Service`` class.
+      """ New instances requested of this ``cls`` are redirected to the
+          constructor for the locally encapsulated ``Service`` class.
 
-          Updated ``kwargs`` can be passed via this
-          constructor, to be overlayed on ``cls``-level
-          ``kwargs`` before being handed to the target's
+          Updated ``kwargs`` can be passed via this constructor, to be overlayed
+          on ``cls``-level ``kwargs`` before being handed to the target's
           constructor.
 
           :returns: Constructed ``Service`` object. """
@@ -597,17 +592,15 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def construct(cls, service, *args, **kwargs):
 
-      """ Construct a new, dynamic ``ServiceFactory``
-          subclass dedicated to wrapping ``service``,
-          optionally specifying positional ``args``
-          and keyword ``kwargs``.
+      """ Construct a new, dynamic ``ServiceFactory`` subclass dedicated to
+          wrapping ``service``, optionally specifying positional ``args`` and
+          keyword ``kwargs``.
 
-          :param service: ``Service`` class to wrap
-          with the newly-constructed ``ServiceFactory``
-          subclass.
+          :param service: ``Service`` class to wrap with the newly-constructed
+            ``ServiceFactory`` subclass.
 
-          :returns: Dynamically-generated ``ServiceFactory``
-          class wrapping given ``service`` class. """
+          :returns: Dynamically-generated ``ServiceFactory`` class wrapping
+            given ``service`` class. """
 
       return type(service.__name__ + 'Factory', (cls,), {
         'args': args,
@@ -624,9 +617,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
   class remote(object):
 
-    """ Utility class that provides utilities for
-        registering and mounting ``remote`` methods,
-        services, and configuration. """
+    """ Utility class that provides utilities for registering and mounting
+        ``remote`` methods, services, and configuration. """
 
     name = None  # string name for target
     config = None  # config items for target
@@ -634,10 +626,8 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def __init__(self, name, expose='public', **config):
 
-      """ Initialize this instance of ``remote``
-          with a string ``name`` and exposure
-          policy (at ``expose``, which defaults
-          to 'public').
+      """ Initialize this instance of ``remote`` with a string ``name`` and
+          exposure policy (at ``expose``, which defaults to 'public').
 
           Configuration can be passed as kwargs. """
 
@@ -646,16 +636,14 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
     @classmethod
     def register(cls, name_or_message, response=None, **config):
 
-      """ Internal function used to register this
-          remote object, bound to either a ``name``
-          (if the target is a ``Service``) or a
-          ``request`` and ``response`` message pair.
+      """ Internal function used to register this remote object, bound to either
+          a ``name`` (if the target is a ``Service``) or a ``request`` and
+          ``response`` message pair.
 
           Configuration can be passed as kwargs.
 
-          :returns: Closured function designed to
-          wrap the target callable with a routine
-          to register it before construction. """
+          :returns: Closured function designed to wrap the target callable with
+            a routine to register it before construction. """
 
       if isinstance(name_or_message, basestring):
         name, request = name_or_message, None
@@ -679,40 +667,32 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
         def _remote_method(method):
 
-          """ Closure to wrap the target ``method``
-              at construction time with appropriate
-              tooling to execute remote RPCs.
+          """ Closure to wrap the target ``method`` at construction time with
+              appropriate tooling to execute remote RPCs.
 
-              :param method: Remote-capable method
-              to be wrapped.
+              :param method: Remote-capable method to be wrapped.
 
-              :returns: Wrapped closure ``_respond``
-              that, when called, dispatches the
-              target ``method``. """
+              :returns: Wrapped closure ``_respond`` that, when called,
+                dispatches the target ``method``. """
 
           def _respond(self, _request_message):
 
-            """ Inner closure designed to wrap the
-                raw remote ``method`` and enforce
-                validation/conversion of ProtoRPC
-                types to native Python ones.
+            """ Inner closure designed to wrap the raw remote ``method`` and
+                enforce validation/conversion of ProtoRPC types to native Python
+                ones.
 
-                Also handles conversion in/out of
-                Canteen models, if the remote
-                method so chooses, by binding to
-                ``canteen.Model`` subclasses instead
-                of ProtoRPC ``message.Message``s.
+                Also handles conversion in/out of Canteen models, if the remote
+                method so chooses, by binding to ``canteen.Model`` subclasses
+                instead of ProtoRPC ``message.Message``s.
 
-                :param _request_message: Remotely-
-                submitted ``request`` to (potentially)
-                be converted and submitted to inner
-                service ``method``.
+                :param _request_message: Remotely-submitted ``request`` to
+                (potentially) be converted and submitted to inner service
+                ``method``.
 
-                :returns: Result of calling ``method``
-                with ``_request_message`` as the
-                originating request, so long as the
-                request was successfully executed and
-                passed all client-related constraints. """
+                :returns: Result of calling ``method`` with ``_request_message``
+                  as the originating request, so long as the request was
+                  successfully executed and passed all client-related
+                  constraints. """
 
             if isinstance(request, type) and issubclass(request, model.Model):
               # convert incoming message to model
@@ -734,9 +714,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           wrapped.__name__, wrapped.__doc__, wrapped.__inner__ = (
             method.__name__,
             method.__doc__,
-            method
-          )
-
+            method)
 
           _respond.__inner__ = wrapped
 
@@ -744,8 +722,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           _respond.__name__, _respond.__doc__, _respond.remote = (
             method.__name__,
             method.__doc__,
-            wrapped.remote
-          )
+            wrapped.remote)
 
           # just for backup
           wrapped.__remote_name__, wrapped.__remote_doc__ = (
@@ -775,16 +752,13 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
     def __call__(self, target):
 
-      """ Callable wrapped for ``Service`` classes that is
-          dispatched as part of the construction/decorator
-          flow. Adds hooks to local ``ServiceHandler`` for
-          the locally-bound ``target`` ``Service`` class.
+      """ Callable wrapped for ``Service`` classes that is dispatched as part of
+          the construction/decorator flow. Adds hooks to local
+          ``ServiceHandler`` for the locally-bound ``target`` ``Service`` class.
 
-          :param target: ``Service`` class to be registered
-          and bound.
+          :param target: ``Service`` class to be registered and bound.
 
-          :returns: ``target``, after executing hooks and
-          registering. """
+          :returns: ``target``, after executing hooks and registering. """
 
       self.target = target
 

@@ -52,6 +52,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with a basic `Model` """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -75,6 +76,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with a property that has a default value """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -97,6 +99,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
   def test_build_message_required(self):
 
     """ Test `build_message` with a required property """
+
 
     class SimpleModel(model.Model):
 
@@ -127,6 +130,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with a repeated property """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -153,6 +157,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with a valid explicit implementation field """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -177,6 +182,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with an invalid explicit implementation field """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -190,6 +196,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
   def test_build_message_skip_field(self):
 
     """ Test `build_message` with an indication to skip a field """
+
 
     class SimpleModel(model.Model):
 
@@ -215,6 +222,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with implementation field args """
 
+
     class SimpleEnum(messages.Enum):
 
       """ Enumerates colors! """
@@ -222,6 +230,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
       RED = 0x0
       BLUE = 0x1
       GREEN = 0x2
+
 
     class SimpleModel(model.Model):
 
@@ -240,6 +249,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with an implementation of field args + kwargs """
 
+
     class SimpleEnum(messages.Enum):
 
       """ Enumerates colors! """
@@ -248,14 +258,14 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
       BLUE = 0x1
       GREEN = 0x2
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
 
       string = basestring
       color = basestring, {
-        'field': ('EnumField', (SimpleEnum,), {'default': SimpleEnum.RED})
-      }
+        'field': ('EnumField', (SimpleEnum,), {'default': SimpleEnum.RED})}
 
     message_class = protorpc.build_message(SimpleModel)
 
@@ -267,6 +277,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
   def test_build_message_bogus_explicit_field(self):
 
     """ Test `build_message` with a bogus field value """
+
 
     class SimpleModel(model.Model):
 
@@ -282,12 +293,14 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with an embedded submodel """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
 
       string = basestring
       integer = int
+
 
     class SimpleContainer(model.Model):
 
@@ -304,6 +317,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
   def test_build_message_variant(self):
 
     """ Test `build_message` with a variant property """
+
 
     class SimpleModel(model.Model):
 
@@ -330,6 +344,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
   def test_build_message_variant_vanilla_model(self):
 
     """ Test `build_message` with a variant property (by vanilla `Model`) """
+
 
     class SimpleModel(model.Model):
 
@@ -358,6 +373,7 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     """ Test `build_message` with a `Key` property """
 
+
     class SimpleModel(model.Model):
 
       """ Simple model message """
@@ -375,10 +391,13 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
 
     _model = SimpleModel(string='hi', integer=5, ref=model.Key('hi', 1))
     message = message_class(string='hi', integer=5, ref=model.Key('hi', 1).to_message())
+    _msg_from_obj = _model.to_message()
 
     assert _model.string == message.string
     assert _model.integer == message.integer
     assert _model.ref.urlsafe() == message.ref.encoded
+    assert _msg_from_obj.ref.encoded == _model.ref.urlsafe()
+    assert _msg_from_obj.ref.id == 1
 
   def test_build_message_hook(self):
 
@@ -543,8 +562,7 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
     message = message_class(
       kind='Hi',
       id='friend',
-      parent=model.Key('Sup', 'homie').to_message()
-    )
+      parent=model.Key('Sup', 'homie').to_message())
 
     assert hasattr(message_class, 'id')
     assert hasattr(message_class, 'kind')
@@ -600,6 +618,7 @@ class ProtoRPCAdaptedModelTests(test.FrameworkTest):
   def test_model_to_message(self):
 
     """ Test converting a `Model` to a `Message` """
+
 
     class SampleModel(model.Model):
 

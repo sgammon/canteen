@@ -24,5 +24,7 @@ from . import test_json
 from . import test_msgpack
 
 
-__all__ = ('test_json',
+__all__ = ('test_base',
+           'test_exceptions',
+           'test_json',
            'test_msgpack')

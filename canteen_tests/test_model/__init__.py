@@ -49,3 +49,11 @@ class ModelExportTests(FrameworkTest):
       self.assertTrue(AbstractKey)  # must export AbstractKey
       self.assertTrue(AbstractModel)  # must export AbstractModel
       self.assertIsInstance(model, type(os))  # must be a module (lol)
+
+
+__all__ = (
+    'test_graph',
+    'test_key',
+    'test_meta',
+    'test_model',
+    'test_query')

@@ -622,8 +622,6 @@ class InMemoryAdapter(DirectedGraphAdapter):
                 _graph[_graph_base]['directed'][_direction].get(*(
                     _filter_val, set())))
 
-              import pdb; pdb.set_trace()
-
             _unsorted_indexes.append((False, (_f, _target_edge_index)))
 
           else:

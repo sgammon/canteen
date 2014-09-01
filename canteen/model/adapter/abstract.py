@@ -586,7 +586,7 @@ class IndexedModelAdapter(ModelAdapter):
         _meta_indexes.append((cls._group_prefix, encoded_root_key))
 
     # add property index entries
-    if properties:
+    if properties is not None:
 
       # we're applying writes
       for k, v in properties.items():
@@ -780,7 +780,7 @@ class GraphModelAdapter(IndexedModelAdapter):
     return written_key  # delegate up the chain for entity write
 
   @classmethod
-  def generate_indexes(cls, key, entity, properties=None):
+  def generate_indexes(cls, key, entity=None, properties=None):
 
     """ Generate a set of indexes that should be written to with associated
         values, considering that some ``key`` values may be ``VertexKey`` or
@@ -789,7 +789,9 @@ class GraphModelAdapter(IndexedModelAdapter):
         :param key: Target :py:class:`model.Key`, :py:class:`VertexKey` or
           :py:class:`EdgeKey` to index.
 
-        :param entity: :py:class:`Model` entity to be stored.
+        :param entity: :py:class:`Model` entity to be stored. Defaults to
+          ``None``, in which case we're cleaning indexes and don't have access
+          to the original entity - just the key.
 
         :param properties: Entity :py:class:`model.Model` property values to
           index.
@@ -812,83 +814,85 @@ class GraphModelAdapter(IndexedModelAdapter):
     # initialize graph indexes
     graph = []
 
-    # vertex keys
-    if isinstance(key, VertexKey):
-      graph.append((cls._vertex_prefix,))
+    if key:
+      # vertex keys
+      if isinstance(key, VertexKey):
+        graph.append((cls._vertex_prefix,))
 
-    # edge keys
-    elif isinstance(key, EdgeKey):
+      # edge keys
+      elif isinstance(key, EdgeKey):
 
-      # extract spec @TODO(sgammon): make specs not suck
-      spec = entity.__class__.__spec__
+        # main edge index
+        graph.append((cls._edge_prefix,))
 
-      # main edge index
-      graph.append((cls._edge_prefix,))
+        if entity:
+          # extract spec @TODO(sgammon): make specs not suck
+          spec = entity.__class__.__spec__
 
-      # directed/undirected index
-      graph.append((cls._edge_prefix, cls._directed_token if (
-        spec.directed) else cls._undirected_token))
+          # directed/undirected index
+          graph.append((cls._edge_prefix, cls._directed_token if (
+            spec.directed) else cls._undirected_token))
 
-      # directed indexes
-      if spec.directed:
+          # directed indexes
+          if spec.directed:
 
-        for target in entity.target:
+            # trim double indexes on `source and `target`
+            if 'source' in properties: del properties['source']
+            if 'target' in properties: del properties['target']
 
-          # __graph__::<source>::out => edge
-          graph.append((entity.source, cls._out_token, entity.key))
+            for target in entity.target:
 
-          # __graph__::<target>::in => edge
-          graph.append((target, cls._in_token, entity.key))
+              # __graph__::<source>::out => edge
+              graph.append((entity.source, cls._out_token, entity.key))
 
-          # __graph__::<source>::neighbors => target
-          graph.append((entity.source, cls._neighbors_token, target))
+              # __graph__::<target>::in => edge
+              graph.append((target, cls._in_token, entity.key))
 
-          # __graph__::<target>::neighbors => source
-          graph.append((target, cls._neighbors_token, entity.source))
+              # __graph__::<source>::neighbors => target
+              graph.append((entity.source, cls._neighbors_token, target))
 
-      # undirected indexes
-      else:
+              # __graph__::<target>::neighbors => source
+              graph.append((target, cls._neighbors_token, entity.source))
 
-        _indexed_pairs = set()
-        for o, source in enumerate(entity.peers):
-          for i, target in enumerate(entity.peers):
+          # undirected indexes
+          else:
 
-            # skip if it's the same object in the pair
-            if o == i: continue
+            # trim double indexes on `peers`
+            if 'peers' in properties: del properties['peers']
 
-            # skip if we've already indexed the two, since we're undirected
-            # and one iteration past either will work for both
-            if (source, target) in _indexed_pairs or (
-                (target, source) in _indexed_pairs):
-              continue
+            _indexed_pairs = set()
+            for o, source in enumerate(entity.peers):
+              for i, target in enumerate(entity.peers):
 
-            # __graph__::<source>::peers
-            graph.append((source, cls._peers_token))
+                # skip if it's the same object in the pair
+                if o == i: continue
 
-            # __graph__::<target>::peers
-            graph.append((target, cls._peers_token))
+                # skip if we've already indexed the two, since we're undirected
+                # and one iteration past either will work for both
+                if (source, target) in _indexed_pairs or (
+                    (target, source) in _indexed_pairs):
+                  continue
 
-            # __graph__::<source>::neighbors
-            graph.append((source, cls._neighbors_token))
+                # __graph__::<source>::peers
+                graph.append((source, cls._peers_token))
 
-            # __graph__::<target>::neighbors
-            graph.append((target, cls._neighbors_token))
+                # __graph__::<target>::peers
+                graph.append((target, cls._peers_token))
 
-    if key and not properties:
+                # __graph__::<source>::neighbors
+                graph.append((source, cls._neighbors_token))
+
+                # __graph__::<target>::neighbors
+                graph.append((target, cls._neighbors_token))
+
+    if key and properties is None:
       # we're probably cleaning indexes
       encoded, meta = _super(key)
       return encoded, meta, graph
 
-    else:  # properties and key
-      # defer upwards for regular indexes
-      encoded, meta, properties = _super(key, properties)
-
-      # skip edge target/source/peers
-      import pdb; pdb.set_trace()
-      # @TODO(sgammon): don't leave this PDB here
-
-      return encoded, meta, properties, graph
-
+    # defer upwards for regular indexes
+    encoded, meta, properties = _super(key, properties)
+    return encoded, meta, properties, graph
 
   @abc.abstractmethod
   def write_indexes(cls, writes, graph, **kwargs):

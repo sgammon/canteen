@@ -23,7 +23,7 @@ from canteen import model
 from canteen.model.adapter import inmemory
 
 # abstract test bases
-from .test_abstract import GraphModelAdapterTests
+from .test_abstract import DirectedGraphAdapterTests
 
 
 class InMemoryModel(model.Model):
@@ -39,9 +39,12 @@ class InMemoryModel(model.Model):
   date = datetime.datetime
 
 
-class InMemoryAdapterTests(GraphModelAdapterTests):
+class InMemoryAdapterTests(DirectedGraphAdapterTests):
 
   """ Tests `model.adapter.inmemory` """
+
+  __abstract__ = False
+  subject = inmemory.InMemoryAdapter
 
   def test_invalid_get(self):
 

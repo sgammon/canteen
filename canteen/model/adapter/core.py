@@ -19,11 +19,11 @@ import base64
 import collections
 
 # mixin adapters
-from .abstract import KeyMixin
-from .abstract import EdgeMixin
-from .abstract import ModelMixin
-from .abstract import VertexMixin
-from .abstract import IndexedModelAdapter
+from .abstract import (KeyMixin,
+                       EdgeMixin,
+                       ModelMixin,
+                       VertexMixin,
+                       IndexedModelAdapter)
 
 
 class AdaptedKey(KeyMixin):
@@ -223,31 +223,36 @@ class AdaptedVertex(VertexMixin):
 
   __graph__ = __vertex__ = True  # mark as graph model and vertex
 
-  def edges(self, *types, **kwargs):  # pragma: no cover
+  def edges(self, tails=None, AND=None, OR=None, **kwargs):
 
     """ Retrieve edges for the current ``Vertex``.
 
-        :param types:
+        :param type:
+        :param tails:
+        :param heads:
         :param kwargs:
 
         :raises:
         :returns: """
 
-    adapter = kwargs.get('adapter', self.__class__.__adapter__)
-    return adapter._edges(self, types or None, **kwargs)
+    from canteen.model.query import EdgeFilter
+    return self.query(**kwargs).filter(EdgeFilter(self.key, tails, **{
+        'AND': AND, 'OR': OR}))
 
-  def neighbors(self, *args, **kwargs):  # pragma: no cover
+  def neighbors(self, tails=None, AND=None, OR=None, **kwargs):
 
     """ Retrieve neighbors (peered edges) for the current ``Vertex``.
 
-        :param args:
+        :param type:
+        :param tails:
         :param kwargs:
 
         :raises:
         :returns: """
 
-    adapter = kwargs.get('adapter', self.__class__.__adapter__)
-    return adapter._neighbors(self, *args, **kwargs)
+    from canteen.model.query import EdgeFilter
+    return self.query(**kwargs).filter(EdgeFilter(self.key, tails, **{
+        'AND': AND, 'OR': OR, 'type': EdgeFilter.NEIGHBORS}))
 
 
 class AdaptedEdge(EdgeMixin):

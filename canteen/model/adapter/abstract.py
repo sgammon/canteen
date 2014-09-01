@@ -370,8 +370,7 @@ class IndexedModelAdapter(ModelAdapter):
       'key': 0x1,  # magic ID for `model.Key` references
       'date': 0x2,  # magic ID for `datetime.date` instances
       'time': 0x3,  # magic ID for `datetime.time` instances
-      'datetime': 0x4  # magic ID for `datetime.datetime` instances
-    }
+      'datetime': 0x4}  # magic ID for `datetime.datetime` instances
 
     @classmethod
     def convert_key(cls, key):
@@ -665,8 +664,7 @@ class GraphModelAdapter(IndexedModelAdapter):
       'time': 0x3,  # magic ID for `datetime.time` instances
       'datetime': 0x4,  # magic ID for `datetime.datetime` instances
       'vertex': 0x5,  # magic ID for `Vertex` `model.Key` references
-      'edge': 0x6  # magic ID for `Edge` `model.Key` references
-    }
+      'edge': 0x6}  # magic ID for `Edge` `model.Key` references
 
     @classmethod
     def convert_key(cls, key):
@@ -693,137 +691,10 @@ class GraphModelAdapter(IndexedModelAdapter):
         )], sanitized
 
 
-  # noinspection PyMethodMayBeStatic
-  def _edges(self, target, types=None, **options):
-
-    """ Prepares a query to fetch the ``Edges`` for a given ``target``
-        ``Vertex``.
-
-        Internal method, usually invoked from mixin-mounted methods on
-        ``Vertex`` and ``Key`` objects themselves.
-
-        In charge of satisfying the aforementioned call with implementation
-        methods specified by compliant adapters.
-
-        :param target: ``Vertex`` key to spawn an edge query for.
-
-        :raises:
-        :returns: """
-
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()  # pragma: no cover
-
-  # noinspection PyMethodMayBeStatic
-  def _neighbors(self, source, **options):
-
-    """ Prepares a query to retrieve a ``source`` ``Vertex``'s neighbor
-        ``Vertex``es, that are connected to ``source`` via at least one
-        ``Edge``.
-
-        Internal method, usually invoked from mixin-mounted  methods on
-        ``Vertex`` and ``Key`` objects themselves.
-
-        In charge of satisfying the aforementioned call with implementation
-        methods specified by compliant adapters.
-
-        :param source: Originating ``Vertex`` for which to retrieve neighboring
-          ``Vertex``es.
-
-        :raises:
-        :returns: """
-
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()  # pragma: no cover
-
-  @abc.abstractmethod
-  def edges(cls, key1, key2=None, type=None, **kwargs):
-
-    """ Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
-        ``key1``) if no peer key is provided), optionally only of ``Edge`` type
-        ``type``.
-
-        Typically called before ``execute_query`` for ``Edge``-originating
-        queries.
-
-        :param key1:
-        :param key2:
-        :param type:
-
-        :raises:
-        :returns: """
-
-    raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
-
-  @abc.abstractmethod
-  def neighbors(cls, key, type=None, **kwargs):
-
-    """ Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
-        optionally filtered by ``Edge`` type with ``type``.
-
-        Typically called before ``execute_query`` for ``Edge``-originating
-        queries.
-
-        :param key:
-        :param type:
-
-        :raises:
-        :returns: """
-
-    raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover
-
-
 class DirectedGraphAdapter(GraphModelAdapter):
 
   """ Abstract base class for model adpaters that support directed-graph-type
       models. """
-
-  # noinspection PyMethodMayBeStatic
-  def _heads_or_tails(self, key, type, tails=False):
-
-    """ Prepares a query to retrieve directed ``Edge`` records that either
-        originate or terminate with ``key``. Defaults to ``Edge``s that
-        originate from ``key``.
-
-        :param key: ``Vertex`` ``Key`` for which to pull ``Edge`` ``tails`` or
-          ``heads``.
-
-        :param tails: Boolean flag indicating a desire for ``Edge`` records that
-          *terminate* at ``Key``, rather than *originate* at ``Key`` (which are
-          said to be ``tails``, instead of ``heads``).
-
-        :raises:
-        :returns: """
-
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()  # pragma: no cover
-
-  @abc.abstractmethod
-  def tails(cls, key, type=None, **kwargs):  # pragma: no cover
-
-    """ Retrieve all directed ``Edge``s that terminate at this node, optionally
-        filtering by ``Edge`` type ``type``.
-
-        :param key:
-        :param type:
-
-        :raises:
-        :returns: """
-
-    raise NotImplementedError()  # pragma: no cover
-
-  @abc.abstractmethod
-  def heads(cls, key, type=None, **kwargs):  # pragma: no cover
-
-    """ Retrieve all directed ``Edge``s that originate from this node,
-        optionally filtering by ``Edge`` type ``type``.
-
-        :param key:
-        :param type:
-
-        :raises:
-        :returns: """
-
-    raise NotImplementedError()  # pragma: no cover
 
 
 # noinspection PyAttributeOutsideInit

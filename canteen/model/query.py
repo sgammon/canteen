@@ -33,6 +33,8 @@ _TARGET_KEY = Sentinel('KEY')
 PROPERTY = Sentinel('PROPERTY')
 KEY_KIND = Sentinel('KEY_KIND')
 KEY_ANCESTOR = Sentinel('KEY_ANCESTOR')
+EDGES = Sentinel('EDGES')
+NEIGHBORS = Sentinel('NEIGHBORS')
 
 # Sort directions
 ASCENDING = ASC = Sentinel('ASCENDING')
@@ -171,7 +173,7 @@ class QueryOptions(object):
     )
 
   ## == Protected Methods == ##
-  def _set_option(self, name, value=EMPTY):
+  def _set_option(self, name, value=EMPTY, _setter=False):
 
     """ Set the value of an option local to this :py:class:`QueryOptions`
         object. Calling without a ``value`` (which defaults to ``None``) resets
@@ -179,6 +181,8 @@ class QueryOptions(object):
 
         :param name: Name (``str``) of the internal property we're setting.
         :param value: Value to set the property to. Defaults to ``None``.
+        :param _setter: Internal ``bool``-type param indicating we're accessing
+          this from a setter, so we should not return a value.
 
         :raises ValueError: If ``name`` is not a ``basestring`` descendent.
 
@@ -200,7 +204,8 @@ class QueryOptions(object):
                            ' the name "%s".' % name)
 
     setattr(self, name, value)  # set value and return
-    return self
+    if not _setter:
+      return self
 
   def _get_option(self, name, default=EMPTY):
 
@@ -283,11 +288,11 @@ class QueryOptions(object):
 
   # ``plan`` - cached plan to fulfill the query (optional)
   plan = property(lambda self: self._get_option('plan'),
-                  lambda self, value: self._set_option('plan', value))
+                  lambda self, v: self._set_option('plan', v, _setter=True))
 
   # ``cursor`` - result cursor, for paging or long queries (optional)
   cursor = property(lambda self: self._get_option('cursor'),
-                    lambda self, value: self._set_option('cursor', value))
+                    lambda self, v: self._set_option('cursor', v, _setter=True))
 
 
 class GraphQueryOptions(QueryOptions):
@@ -620,6 +625,8 @@ class Filter(QueryComponent):
   """ Query component specification parent for a generic filter, used to
       traverse indexes and find entities to return that match. """
 
+  generic_name = 'Property'
+
   ## == Filter State == ##
   value = None  # value to match
   chain = None  # chained AND and OR filters
@@ -687,7 +694,7 @@ class Filter(QueryComponent):
 
     return 'Filter(%s %s %s)' % (
       (self.sub_operator.name + ' ') if self.sub_operator else (
-        '' + getattr(self.target, 'name', 'Key')),
+        '' + getattr(self.target, 'name', self.generic_name)),
       _operator_strings[self.operator], str(self.value))
 
   def AND(self, filter_expression):
@@ -801,7 +808,66 @@ class KeyFilter(Filter):
           is a filter against a key's kind name. The other option is
           ``ANCESTRY``, which filters against a key's ancetry path. """
 
-    super(KeyFilter, self).__init__(None, value, type=type)
+    super(KeyFilter, self).__init__(None, value, AND=AND, OR=OR, type=type)
+
+  @property
+  def generic_name(self):
+
+    """ Return a generic string name for labels including this ``KeyFilter``.
+
+        :returns: Static string label, depending on filter type. """
+
+    return 'Key' if self.kind is self.KIND else 'Ancestor'
+
+
+class EdgeFilter(Filter):
+
+  """ Expresses a filter that applies to a ``Vertex`` objects' undirected or
+      directed ``Edge`` objects. """
+
+  # == Constants == #
+  EDGES = EDGES
+  NEIGHBORS = NEIGHBORS
+
+  # == Variables == #
+  tails = None
+
+  def __init__(self, value,
+                      tails=None,
+                      AND=None,
+                      OR=None,
+                      type=EDGES):
+
+    """ Initialize this ``EdgeFilter`` with either ``EDGES`` or ``NEIGHBORS``
+        filter modes and a ``value`` to filter against.
+
+        :param value: Value to filter relationships against.
+
+        :param tails: If this is a query for directed edges, this should be
+          ``True`` or ``False`` (for whether *heads* or *tails* are desired).
+          Otherwise, if it is ``None`` (the default), this implies a query for
+          undirected edges.
+
+        :param AND: Subfilters to chain with a logical ``AND``.
+
+        :param OR: Subfilters to chain with a logical ``OR``.
+
+        :param type: Type of filter to create, defaults to ``KIND``, meaning it
+          is a filter against a key's kind name. The other option is
+          ``ANCESTRY``, which filters against a key's ancetry path. """
+
+    self.tails = tails
+    super(EdgeFilter, self).__init__(None, value, type=type, operator=CONTAINS)
+
+  @property
+  def generic_name(self):
+
+    """ Return a generic string name for labels including this ``EdgeFilter``.
+
+        :returns: Static string label, depending on filter type. """
+
+    return 'Edges' if self.kind is self.EDGES else 'Neighbors'
+
 
 
 class Sort(QueryComponent):

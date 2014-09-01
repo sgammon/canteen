@@ -813,4 +813,5 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
              'Key',
              'Echo',
              'VariantField',
-             'protocol')
+             'protocol',
+             'exceptions')

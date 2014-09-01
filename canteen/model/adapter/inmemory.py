@@ -22,7 +22,7 @@ import itertools
 import collections
 
 # adapter API
-from .abstract import GraphModelAdapter
+from .abstract import DirectedGraphAdapter
 
 
 ## Globals
@@ -44,7 +44,7 @@ _sorted_types = (int,
 _to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 
-class InMemoryAdapter(GraphModelAdapter):
+class InMemoryAdapter(DirectedGraphAdapter):
 
   """ Adapt model classes to RAM. """
 
@@ -67,31 +67,40 @@ class InMemoryAdapter(GraphModelAdapter):
     # perform first init, if it hasn't been done
     if not _init:
       _init, _metadata, _graph = True, {
+
         'ops': {  # holds count of performed operations
           'get': 0,  # track # of entity get() operations
           'put': 0,  # track # of entity put() operations
-          'delete': 0  # track # of entity delete() operations
-        },
+          'delete': 0},  # track # of entity delete() operations
+
         'kinds': {},  # holds current count and ID increment
         'global': {  # holds global metadata, like entity count
           'entity_count': 0,  # holds global count of all entities
           'node_count': 0,  # holds count of known nodes
-          'edge_count': 0  # holds count of known edges
-        },
+          'edge_count': 0},  # holds count of known edges
+
         cls._key_prefix: set([]),  # full, simple indexed set of all keys
         cls._kind_prefix: {},  # maps keys to their kinds
         cls._group_prefix: {},  # maps keys to their entity groups
         cls._index_prefix: {},  # maps property values to keys
         cls._reverse_prefix: {}  # maps keys to indexes they are present in
+
       }, {
         'nodes': collections.defaultdict(lambda: set()),
+
         'edges': {
           'directed': {
             'in': collections.defaultdict(lambda: set()),
-            'out': collections.defaultdict(lambda: set())
-          },
-          'undirected': collections.defaultdict(lambda: set())
-        }
+            'out': collections.defaultdict(lambda: set())},
+
+          'undirected': collections.defaultdict(lambda: set())},
+
+        'neighbors': {
+          'directed': {
+            'in': collections.defaultdict(lambda: set()),
+            'out': collections.defaultdict(lambda: set())},
+
+          'undirected': collections.defaultdict(lambda: set())}
       }
 
     # pass up the chain to create a singleton
@@ -121,8 +130,6 @@ class InMemoryAdapter(GraphModelAdapter):
 
     """ Persist an entity to storage in Python RAM. """
 
-    from canteen import model as api
-
     global _graph, _metadata, _datastore
 
     # encode key and flatten
@@ -134,8 +141,7 @@ class InMemoryAdapter(GraphModelAdapter):
       if entity.key.kind not in _metadata['kinds']:  # pragma: no cover
         _metadata['kinds'][entity.key.kind] = {
           'id_pointer': 0,  # keep current key ID pointer
-          'entity_count': 0  # keep count of seen entities for each kind
-        }
+          'entity_count': 0}  # keep count of seen entities for each kind
 
       # update counts
       _metadata['ops']['put'] = _metadata['ops'].get('put', 0) + 1
@@ -153,26 +159,38 @@ class InMemoryAdapter(GraphModelAdapter):
       _datastore[encoded] = entity.to_dict()
 
       # store vertexes separately
-      if issubclass(model, api.Vertex):
+      if getattr(model, '__vertex__', False):
         _graph['nodes'][entity.key.kind].add(key)
 
       # store edges separately
-      elif issubclass(model, api.Edge):
+      elif getattr(model, '__edge__', False):
 
         # directed edges
         if model.__spec__.directed:
-          left, right = (
-            _graph['edges']['directed']['out'][entity['source']],
-            _graph['edges']['directed']['in'][entity['target']])
 
-          left.add(entity['target'])  # pragma: no cover
-          right.add(entity['source'])  # pragma: no cover
+          left = _graph['neighbors']['directed']['out'][entity['source']]
+          left_e = _graph['edges']['directed']['out'][entity['source']]
+
+          for _edge_target in entity['target']:
+            right = _graph['neighbors']['directed']['in'][_edge_target]
+            right_e = _graph['edges']['directed']['in'][_edge_target]
+
+            # index neighbors to each other
+            right.add(entity['source'])
+            right_e.add(entity.key)
+
+            # index edges
+            left.add(_edge_target)
+            left_e.add(entity.key)
 
         # undirected edges
         else:
           for origin in entity['peers']:
             for target in entity['peers']:
-              _graph['edges']['undirected'][origin].add(target)
+              if origin == target: continue
+              _graph['neighbors']['undirected'][origin].add(target)
+              _graph['edges']['undirected'][origin].add(entity.key)
+              _graph['edges']['undirected'][target].add(entity.key)
 
     return entity.key
 
@@ -507,7 +525,10 @@ class InMemoryAdapter(GraphModelAdapter):
 
       for _f in filters:
 
-        _filter_val = _f.value.data
+        if isinstance(_f.value, model.Model._PropertyValue):
+          _filter_val = _f.value.data
+        else:
+          _filter_val = _f.value
 
         if isinstance(_f.value.data, _sorted_types):
 
@@ -526,11 +547,31 @@ class InMemoryAdapter(GraphModelAdapter):
 
         else:
 
-          # devalued index
-          _index_key = ((kind.__name__, _f.target.name), _f.value.data)
-          if _index_key in _metadata[cls._index_prefix]:
-            _unsorted_indexes.append((False, (_f,
-                                     _metadata[cls._index_prefix][_index_key])))
+          if isinstance(_f, query.EdgeFilter):
+
+            _graph_base = 'edges' if _f.kind is _f.EDGES else 'neighbors'
+
+            if _f.tails is None:  # undirected query
+              _target_edge_index = (
+                _graph[_graph_base]['undirected'].get(_filter_val, set()))
+
+            else:  # directed queries
+
+              _direction = 'out' if _f.tails else 'in'
+              _target_edge_index = (
+                _graph[_graph_base]['directed'][_direction].get(*(
+                    _filter_val, set())))
+
+              #import pdb; pdb.set_trace()
+
+            _unsorted_indexes.append((False, (_f, _target_edge_index)))
+
+          else:
+            # devalued index
+            _index_key = ((kind.__name__, _f.target.name), _f.value.data)
+            if _index_key in _metadata[cls._index_prefix]:
+              _unsorted_indexes.append((False, (_f,
+                                       _metadata[cls._index_prefix][_index_key])))
 
       for group in _index_groups:
         for is_sorted, directive in group:
@@ -592,15 +633,22 @@ class InMemoryAdapter(GraphModelAdapter):
 
     ## inflate results (keys only)
     if options.keys_only and not _inmemory_filters:
-      return (model.Key.from_urlsafe(k, _persisted=True) for k in _data_frame)
+      _keyify = lambda k: (
+        model.Key.from_urlsafe(k, _persisted=True) if not (
+          isinstance(k, model.Key)) else k)
+
+      return (_keyify(k) for k in _data_frame)
 
     result_entities = []
 
     ## inflate results (full models)
     _seen = 0
-    for key, entity in ((
-      model.Key.from_urlsafe(k, _persisted=True), _datastore[k]) for k in (
-            _data_frame)):
+    _flatten = lambda _k: _k.urlsafe() if isinstance(_k, model.Key) else _k
+
+    for key, entity in ((k, _datastore[_flatten(k)]) for k in _data_frame):
+
+      if not isinstance(key, model.Key):
+        key = model.Key.from_urlsafe(key, _persisted=True)
 
       if not entity: continue
       if options.limit and _seen >= options.limit:
@@ -608,7 +656,14 @@ class InMemoryAdapter(GraphModelAdapter):
 
       # attach key, decode entity and construct
       entity['key'] = key
-      obj = kind(_persisted=True, **entity)
+
+      # resolve kind class for key and inflate
+      if key.kind not in cls.registry and kind.kind() != key.kind:
+        raise RuntimeError('Unknown or unregistered key kind: "%s".' % key.kind)
+      elif key.kind == kind.kind():
+        obj = kind(_persisted=True, **entity)
+      else:
+        obj = cls.registry.get(key.kind, kind)(_persisted=True, **entity)
 
       # collapse in-memory filters
       for _inner_f in _inmemory_filters:
@@ -681,20 +736,3 @@ class InMemoryAdapter(GraphModelAdapter):
         return _sort_base
 
     return result_entities
-
-  @classmethod
-  def edges(cls, key1, key2=None, type=None, **kwargs):
-
-    """ Retrieve all ``Edges`` between ``key1`` and ``key2`` (or just for
-        ``key1``) if no peer key is provided), optionally only of ``Edge``
-        type ``type``. """
-
-    raise NotImplementedError('`edges` is abstract.')  # pragma: no cover
-
-  @classmethod
-  def neighbors(cls, key, type=None, **kwargs):
-
-    """ Retrieve all ``Vertexes`` connected to ``key`` by at least one ``Edge``,
-        optionally filtered by ``Edge`` type @``type``. """
-
-    raise NotImplementedError('`neighbors` is abstract.')  # pragma: no cover

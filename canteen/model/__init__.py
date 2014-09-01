@@ -1554,11 +1554,11 @@ class Edge(Model):
       """ DOCSTRING """
 
       if '__spec__' in pmap and pmap['__spec__'].directed:
-        pmap['source'] = Vertex, {'indexed': True}
-        pmap['target'] = Vertex, {'indexed': True, 'repeated': True}
+        pmap['source'] = VertexKey, {'indexed': True}
+        pmap['target'] = VertexKey, {'indexed': True, 'repeated': True}
       elif '__spec__' not in pmap or (
            '__spec__' in pmap and not pmap['__spec__'].directed):
-        pmap['peers'] = Vertex, {'indexed': True, 'repeated': True}
+        pmap['peers'] = VertexKey, {'indexed': True, 'repeated': True}
       return super(mcs, mcs).initialize(name, bases, pmap)
 
   __spec_class__ = EdgeSpec
@@ -1576,6 +1576,8 @@ class Edge(Model):
         :raises:
         :returns: """
 
+    _keyify = lambda obj: obj.key if isinstance(obj, Vertex) else obj
+
     if (source is None or not targets) and not properties.get('_persisted'):
       raise TypeError('Constructing an `Edge` requires at least'
                       ' one `source` and `target`, or one pair'
@@ -1583,9 +1585,10 @@ class Edge(Model):
 
     if hasattr(self, '__spec__') and self.__spec__.directed:
       properties['source'], properties['target'] = (
-        source, targets)
+        _keyify(source), tuple((_keyify(t) for t in targets)))
     else:
-      properties['peers'] = tuple([source] + list(targets))
+      properties['peers'] = tuple([_keyify(source)] + list((
+                                        _keyify(target) for target in targets)))
 
     super(Edge, self).__init__(**properties)
 

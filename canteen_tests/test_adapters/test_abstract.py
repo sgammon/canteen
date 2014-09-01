@@ -27,6 +27,27 @@ from canteen import model
 from canteen.model.adapter import abstract
 
 
+class TestGraphPerson(model.Vertex):
+
+  """ simple test person object """
+
+  name = str, {'indexed': True}
+
+
+class TestGraphFriends(TestGraphPerson > TestGraphPerson):
+
+  """ simple test friends edge """
+
+  year_met = int, {'indexed': True}
+
+
+class TestGraphGift(TestGraphPerson >> TestGraphPerson):
+
+  """ simple directed gift edge """
+
+  price = float, {'indexed': True}
+
+
 class AbstractModelAdapterTests(FrameworkTest):
 
   """ Tests `model.adapter.abstract.ModelAdapter` """
@@ -43,6 +64,7 @@ class AbstractModelAdapterTests(FrameworkTest):
         self.subject()
     else:  # pragma: no cover
       self.subject()
+    return getattr(self, '__abstract__', False)
 
   def test_utilities(self):
 
@@ -132,7 +154,11 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
     """ Test `Indexer.convert_datetime` """
 
     indexer = self.subject.Indexer
-    sample_datetime = datetime.datetime(year=2014, month=7, day=29, hour=12, minute=30)
+    sample_datetime = datetime.datetime(year=2014,
+                                        month=7,
+                                        day=29,
+                                        hour=12,
+                                        minute=30)
     converted = indexer.convert_datetime(sample_datetime)
 
     # interrogate converted date
@@ -146,56 +172,140 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
   __abstract__ = True
   subject = abstract.GraphModelAdapter
 
-  def test_interface_compliance(self):
+  def test_make_vertex_nokeyname(self):
 
-    """ Test `GraphModelAdapter` interface compliance """
+    """ Test `GraphModelAdapter` `Vertex` put with no keyname """
 
-    assert hasattr(self.subject, 'edges')
-    assert hasattr(self.subject, 'neighbors')
+    if not self.test_abstract():
+      t = TestGraphPerson(name="Steve")
+      k = t.put(adapter=self.subject())
 
-  def test_make_vertex(self):
+      assert isinstance(t, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, (int, long))
 
-    """ Test `GraphModelAdapter` `Vertex` put """
+  def test_make_vertex_keyname(self):
 
-    pass
+    """ Test `GraphModelAdapter` `Vertex` put with a keyname """
 
-  """
+    if not self.test_abstract():
+      t = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "steve"),
+                          name="Steve")
+      k = t.put(adapter=self.subject())
+
+      assert isinstance(t, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, basestring)
+      return t
+
   def test_get_vertex(self):
 
-    ''' Test `GraphModelAdapter` `Vertex` get '''
+    """ Test `GraphModelAdapter` `Vertex` get """
 
-    pass
+    if not self.test_abstract():
+      x = self.test_make_vertex_keyname()
+      pulled = TestGraphPerson.get(x.key, adapter=self.subject())
 
-  def test_make_edge(self):
+      assert isinstance(pulled, TestGraphPerson)
+      assert pulled.key == x.key
+      assert isinstance(pulled.key, model.Key)
+      assert isinstance(pulled.key, model.VertexKey)
+      assert isinstance(pulled.key.id, basestring)
 
-    ''' Test `GraphModelAdapter` `Edge` put '''
+  def test_make_edge_nokeyname(self):
 
-    pass
+    """ Test `GraphModelAdapter` `Edge` put with no keyname """
+
+    if not self.test_abstract():
+      bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
+                          name="Bob")
+      k = bob.put(adapter=self.subject())
+
+      assert isinstance(bob, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, basestring)
+
+      steve = self.test_make_vertex_keyname()
+      f = TestGraphFriends(bob, steve)
+      ek = f.put(adapter=self.subject())
+
+      assert isinstance(ek, model.EdgeKey)
+      assert isinstance(ek.id, (int, long))
+      assert isinstance(f, TestGraphFriends)
+
+  def test_make_edge_keyname(self):
+
+    """ Test `GraphModelAdapter` `Edge` put with a keyname """
+
+    if not self.test_abstract():
+      bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
+                            name="Bob")
+      k = bob.put(adapter=self.subject())
+
+      assert isinstance(bob, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, basestring)
+
+      steve = self.test_make_vertex_keyname()
+      _orig_ek = model.EdgeKey(TestGraphFriends, "some-friendship")
+      f = TestGraphFriends(bob, steve, key=_orig_ek)
+      ek = f.put(adapter=self.subject())
+
+      assert isinstance(ek, model.EdgeKey)
+      assert isinstance(ek.id, basestring)
+      assert isinstance(f, TestGraphFriends)
+      assert ek.id == "some-friendship"
+
+      return bob, steve, f
 
   def test_get_edge(self):
 
-    ''' Test `GraphModelAdapter` `Edge` get '''
+    """ Test `GraphModelAdapter` `Edge` get """
 
-    pass
+    if not self.test_abstract():
+      bob, steve, friendship = self.test_make_edge_keyname()
 
-  def test_vertexes_connect(self):
+      # fetch by key
+      _f = TestGraphFriends.get(friendship.key, adapter=self.subject())
 
-    ''' Test connecting two `Vertex` records through an `Edge` '''
-
-    pass
+      assert isinstance(_f, TestGraphFriends)
+      assert isinstance(_f.key, model.Key)
+      assert isinstance(_f.key, model.EdgeKey)
+      assert isinstance(_f.key.id, basestring)
+      assert _f.key.id == "some-friendship"
+      assert _f.key.kind == "TestGraphFriends"
 
   def test_vertex_edges(self):
 
-    ''' Test retrieving `Edges` for a `Vertex` with `GraphModelAdapter` '''
+    """ Test retrieving `Edges` for a `Vertex` with `GraphModelAdapter` """
 
-    pass
+    if not self.test_abstract():
+      bob, steve, friendship = self.test_make_edge_keyname()
+
+      # friendship edge should appear for both vertexes
+      assert friendship.key in bob.edges(keys_only=True).fetch(limit=10)
+      assert friendship.key in steve.edges(keys_only=True).fetch(limit=10)
+      assert "Edges" in repr(steve.edges(keys_only=True))
+      assert "CONTAINS" in repr(steve.edges(keys_only=True))
 
   def test_vertex_neighbors(self):
 
-    ''' Test retrieving `Vertex` neighbors for a `Vertex` with `GraphModelAdapter` '''
+    """ Test retrieving `Vertex`es for a `Vertex` with `GraphModelAdapter` """
 
-    pass
-  """
+    if not self.test_abstract():
+      bob, steve, friendship = self.test_make_edge_keyname()
+
+      # see if we can get bob's friends, which should include steve
+      assert steve.key in bob.neighbors(keys_only=True).fetch(limit=10)
+
+      # see if we can get steve's friends, which should include bob
+      assert bob.key in steve.neighbors(keys_only=True).fetch(limit=10)
+      assert "Neighbors" in repr(steve.neighbors(keys_only=True))
+      assert "CONTAINS" in repr(steve.neighbors(keys_only=True))
 
 
 class DirectedGraphAdapterTests(GraphModelAdapterTests):
@@ -205,23 +315,129 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
   __abstract__ = True
   subject = abstract.DirectedGraphAdapter
 
-  def test_interface_compliance(self):
+  def test_make_directed_edge_nokeyname(self):
 
-    """ Test `DirectedGraphAdapter` interface compliance """
+    """ Test saving a directed `Edge` with no keyname """
 
-    assert hasattr(self.subject, 'heads')
-    assert hasattr(self.subject, 'tails')
+    if not self.test_abstract():
+      bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
+                          name="Bob")
+      k = bob.put(adapter=self.subject())
 
-  """
-  def test_vertex_heads(self):
+      assert isinstance(bob, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, basestring)
 
-    ''' Test retrieving `Edge`s ending at a particular `Vertex` '''
+      steve = self.test_make_vertex_keyname()
+      f = TestGraphGift(bob, steve)
+      ek = f.put(adapter=self.subject())
 
-    pass
+      assert bob.key == f.source
+      assert steve.key in f.target
 
-  def test_vertex_tails(self):
+      assert isinstance(ek, model.EdgeKey)
+      assert isinstance(ek.id, (int, long))
+      assert isinstance(f, TestGraphGift)
 
-    ''' Test retrieving `Edge`s originating from a particular `Vertex` '''
+  def test_make_directed_edge_keyname(self):
 
-    pass
-  """
+    """ Test saving a directed `Edge` with a keyname """
+
+    if not self.test_abstract():
+      bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
+                            name="Bob")
+      k = bob.put(adapter=self.subject())
+
+      assert isinstance(bob, TestGraphPerson)
+      assert isinstance(k, model.Key)
+      assert isinstance(k, model.VertexKey)
+      assert isinstance(k.id, basestring)
+
+      steve = self.test_make_vertex_keyname()
+      _orig_ek = model.EdgeKey(TestGraphGift, "some-gift")
+      f = TestGraphGift(bob, steve, key=_orig_ek)
+      ek = f.put(adapter=self.subject())
+
+      assert isinstance(ek, model.EdgeKey)
+      assert isinstance(ek.id, basestring)
+      assert isinstance(f, TestGraphGift)
+      assert ek.id == "some-gift"
+
+      assert bob.key == f.source
+      assert steve.key in f.target
+
+      return bob, steve, f
+
+  def test_get_directed_edge_nokeyname(self):
+
+    """ Test retrieving a directed `Edge` by keyname """
+
+    if not self.test_abstract():
+      bob, steve, gift = self.test_make_directed_edge_keyname()
+
+      # fetch by key
+      _f = TestGraphGift.get(gift.key, adapter=self.subject())
+
+      assert isinstance(_f, TestGraphGift)
+      assert isinstance(_f.key, model.Key)
+      assert isinstance(_f.key, model.EdgeKey)
+      assert isinstance(_f.key.id, basestring)
+      assert _f.key.id == "some-gift"
+      assert _f.key.kind == "TestGraphGift"
+
+  def test_edge_heads(self):
+
+    """ Test retrieving incoming `Edge`s ending at a particular `Vertex` """
+
+    if not self.test_abstract():
+      bob, steve, gift = self.test_make_directed_edge_keyname()
+
+      # friendship edge should appear for both vertexes
+      assert gift.key not in bob.edges(tails=False, keys_only=True)\
+          .fetch(limit=10)
+      assert gift.key in steve.edges(tails=False, keys_only=True)\
+          .fetch(limit=10)
+
+  def test_edge_tails(self):
+
+    """ Test retrieving outbound `Edge`s coming from a particular `Vertex` """
+
+    if not self.test_abstract():
+      bob, steve, gift = self.test_make_directed_edge_keyname()
+
+      # friendship edge should appear for both vertexes
+      assert gift.key in bob.edges(tails=True, keys_only=True)\
+          .fetch(limit=10)
+      assert gift.key not in steve.edges(tails=True, keys_only=True)\
+          .fetch(limit=10)
+
+  def test_neighbor_heads(self):
+
+    """ Test retrieving incoming `Vertex`s ending at a particular `Vertex` """
+
+    if not self.test_abstract():
+      bob, steve, gift = self.test_make_directed_edge_keyname()
+
+      # see if we can get bob's friends, which should include steve
+      assert steve.key not in bob.neighbors(tails=False, keys_only=True)\
+          .fetch(limit=10)
+
+      # see if we can get steve's friends, which should include bob
+      assert bob.key in steve.neighbors(tails=False, keys_only=True)\
+          .fetch(limit=10)
+
+  def test_neighbor_tails(self):
+
+    """ Test retrieving outbound `Vertex`s coming from a particular `Vertex` """
+
+    if not self.test_abstract():
+      bob, steve, gift = self.test_make_directed_edge_keyname()
+
+      # see if we can get bob's friends, which should include steve
+      assert steve.key in bob.neighbors(tails=True, keys_only=True)\
+          .fetch(limit=10)
+
+      # see if we can get steve's friends, which should include bob
+      assert bob.key not in steve.neighbors(tails=True, keys_only=True)\
+          .fetch(limit=10)

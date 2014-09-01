@@ -20,7 +20,7 @@ import datetime
 
 # adapter API
 from . import abstract
-from .abstract import IndexedModelAdapter
+from .abstract import DirectedGraphAdapter
 
 # canteen util
 from canteen.util import struct
@@ -99,7 +99,7 @@ class RedisMode(object):
   toplevel_blob = 'toplevel'  # SET <key>, <entity>
 
 
-class RedisAdapter(IndexedModelAdapter):
+class RedisAdapter(DirectedGraphAdapter):
 
   """ Adapt model classes to Redis. """
 

@@ -391,3 +391,150 @@ class WritableObjectProxyTests(test.FrameworkTest):
     # try deleting an invalid attr
     with self.assertRaises(AttributeError):
       del st_struct.i_was_never_here_lol
+
+
+class CallbackProxy(test.FrameworkTest):
+
+  """ Tests :py:class:`util.struct.CallbackProxy`, which dispatches a callable
+      to satisfy calls via entries based either on a known set of keys or a
+      direct call to the callable with the desired attribute. """
+
+  def test_construct_keys(self):
+
+    """ Test constructing a `CallbackProxy` with registered keys """
+
+    addone = lambda key: key + 1
+    _struct = {
+        'one': 0,
+        'two': 1}
+
+    proxy = struct.CallbackProxy(addone, _struct)
+
+    # proxies with structs can be used with `in`
+    assert 'one' in proxy
+    assert 'two' in proxy
+    assert proxy['one'] is 1
+    assert proxy['two'] is 2
+
+    return proxy
+
+  def test_construct_keys_merge(self):
+
+    """ Test merging registered keys passed to `CallbackProxy` """
+
+    addone = lambda key: key + 1
+    _struct = {
+        'one': 0,
+        'two': 1}
+
+    proxy = struct.CallbackProxy(addone, _struct, two=4, three=3)
+
+    assert proxy['one'] == 1
+    assert proxy['two'] == 5  # because we overrode it
+    assert proxy['three'] == 4  # because we added is
+
+  def test_construct_nokeys(self):
+
+    """ Test constructing a `CallbackProxy` with unregistered keys """
+
+    addhi = lambda attr: 'hi' + attr
+    proxy = struct.CallbackProxy(addhi)
+
+    assert proxy['one'] == 'hione'
+    assert proxy['two'] == 'hitwo'
+
+    return proxy
+
+  def test_valid_getattr_with_keys(self):
+
+    """ Test getting a valid attr from a `CallbackProxy` with keys """
+
+    proxy = self.test_construct_keys()
+    assert proxy.one == 1
+    assert proxy.two == 2
+
+  def test_invalid_getattr_with_keys(self):
+
+    """ Test getting an invalid attr from a `CallbackProxy` with keys """
+
+    proxy = self.test_construct_keys()
+    assert proxy.one == 1
+    assert proxy.two == 2
+    with self.assertRaises(AttributeError):
+      assert proxy.three
+
+  def test_valid_getattr_with_nokeys(self):
+
+    """ Test getting a valid attr from a `CallbackProxy` with no keys """
+
+    proxy = self.test_construct_nokeys()
+    assert proxy.one == 'hione'
+    assert proxy.two == 'hitwo'
+    assert proxy.blab == 'hiblab'
+
+  def test_invalid_getattr_with_nokeys(self):
+
+    """ Test getting an invalid attr from a `CallbackProxy` with no keys """
+
+    def _callback(request):
+
+      """ Conditionally raise an ``AttributeError``. """
+
+      if request is 'woops':
+        raise AttributeError('Don\'t ask for woops')
+      return 'blab' + request
+
+    proxy = struct.CallbackProxy(_callback)
+    assert proxy.one == 'blabone'
+    assert proxy.two == 'blabtwo'
+    assert proxy.blab == ('blab' * 2)
+
+    with self.assertRaises(AttributeError):
+      assert proxy.woops
+
+  def test_valid_getitem_with_keys(self):
+
+    """ Test getting a valid item from a `CallbackProxy` with keys """
+
+    proxy = self.test_construct_keys()
+    assert proxy['one'] == 1
+    assert proxy['two'] == 2
+
+  def test_invalid_getitem_with_keys(self):
+
+    """ Test getting an invalid item from a `CallbackProxy` with keys """
+
+    proxy = self.test_construct_keys()
+    assert proxy['one'] == 1
+    assert proxy['two'] == 2
+    with self.assertRaises(KeyError):
+      assert proxy['three']
+
+  def test_valid_getitem_with_nokeys(self):
+
+    """ Test getting a valid item from a `CallbackProxy` with no keys """
+
+    proxy = self.test_construct_nokeys()
+    assert proxy['one'] == 'hione'
+    assert proxy['two'] == 'hitwo'
+    assert proxy['blab'] == 'hiblab'
+
+  def test_invalid_getitem_with_nokeys(self):
+
+    """ Test getting an invalid item from a `CallbackProxy` with no keys """
+
+    def _callback(request):
+
+      """ Conditionally raise an ``KeyError``. """
+
+      if request is 'woops':
+        raise KeyError('Don\'t ask for woops')
+      return 'blab' + request
+
+    proxy = struct.CallbackProxy(_callback)
+    assert proxy['one'] == 'blabone'
+    assert proxy['two'] == 'blabtwo'
+    assert proxy['blab'] == ('blab' * 2)
+
+    with self.assertRaises(KeyError):
+      assert proxy['woops']

@@ -275,10 +275,23 @@ class CallbackProxy(ObjectProxy):
     """ Map the callback and fillStructure if we
         get one via `struct`.
 
-        :param callback:
-        :param struct:
-        :param kwargs:
-        :returns: """
+        :param callback: Callable to produce return values, given the ``item``
+          or ``attr`` desired. If this ``CallbackProxy`` has a set of registered
+          ``self._entries``, and the requested ``item`` or ``attr`` is valid,
+          the value at ``item`` or ``attr`` in ``self._entries`` will be passed
+          as the first and only argument to ``callback`` when looking for a
+          return value. If this ``CallbackProxy`` is unregistered, the desired
+          ``item`` or ``attr`` name is passed as the first and only argument to
+          ``callback``.
+
+        :param struct: Structure (``dict``) of items to register in this
+          ``CallbackProxy``'s local ``self._entries`` registry. If this
+          structure is provided, it will be validated against for ``item`` or
+          ``attr`` requests, and will be handed to the ``callback`` function
+          as described above.
+
+        :param **kwargs: ``key=value`` pairs to override in ``struct`` before
+          registering in ``self._entries``. """
 
     struct = struct or {}
     self.callback = callback
@@ -286,30 +299,59 @@ class CallbackProxy(ObjectProxy):
     self._entries = struct
     if kwargs: self._entries.update(kwargs)
 
-  def __getitem__(self, name):
+  def __getitem__(self, item):
 
-    """ 'x = struct[name]' override.
+    """ 'x = struct[item]' override.
 
-        :param name:
-        :raises KeyError:
-        :returns: """
+        :param item: Item to fetch via ``self.callback``. If there are
+          registered entries on the local ``CallbackProxy``, ``item`` must be
+          present as a key, and the value at ``item`` is passed to the local
+          ``self.callback`` for resolving a value.
 
-    if self._entries and name not in self._entries:
+        :raises KeyError: Raised if this ``CallbackProxy`` has registered
+          ``self._entries`` and ``item`` is not present as a key. ``KeyError``s
+          raised from ``self.callback`` are also bubbled.
+
+        :returns: Result of ``self.callback(self._entries[item])`` if this
+          ``CallbackProxy`` has registered ``self._entries``, or the result of
+           ``self.callback(item)`` if there are no registered
+           ``self._entries``. """
+
+    if self._entries and item not in self._entries:
       raise KeyError("Could not retrieve item '%s'"
-                     " from CallbackProxy '%s'." % (name, self))
-    return self.callback((self._entries.get(name) if self._entries else name))
+                     " from CallbackProxy '%s'." % (item, self))
+    return self.callback((self._entries.get(item) if self._entries else item))
 
-  def __getattr__(self, name):
+  def __getattr__(self, attr):
 
-    """ 'x = struct.name' override.
+    """ 'x = struct.attr' override.
 
-        :param name:
-        :raises AttributeError:
-        :returns: """
+        :param attr: String attribute name to fetch from this ``CallbackProxy``,
+          either via the result of ``self.callback(self._entries[attr])`` if
+          there are registered ``self._entries`` or otherwise the result of
+          ``self.callback(attr)``.
 
-    if self._entries and name not in self._entries:
-      raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
-    return self.callback((self._entries.get(name) if self._entries else name))
+        :raises AttributeError: Raised if this ``CallbackProxy`` has registered
+          ``self._entries`` and ``item`` is not present as a key.
+          ``AttributeError``s raised from ``self.callback`` are also bubbled.
+
+        :returns: Result of the ``callback`` dispatch as described above. """
+
+    if self._entries and attr not in self._entries:
+      raise AttributeError("CallbackProxy could not resolve entry '%s'." % attr)
+    return self.callback((self._entries.get(attr) if self._entries else attr))
+
+  def __contains__(self, item):
+
+    """ 'x in struct' override.
+
+       :param item: Item to check the local container for.
+
+       :return: Whether or not ``item`` is held by ``self._entries``, or
+         ``False`` if it could not be found (or if this ``CallbackProxy`` has no
+         registered ``self._entries`` table). """
+
+    return self._entries and item in self._entries
 
   # `struct()` override
   __call__ = lambda self, *args, **kwargs: self.callback(*args, **kwargs)

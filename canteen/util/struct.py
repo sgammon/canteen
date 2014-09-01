@@ -31,9 +31,7 @@ class Sentinel(object):
 
   """ Create a named sentinel object. """
 
-  name = None
-  hash = None
-  _falsy = False
+  name, hash, _falsy = None, None, False
 
   def __init__(self, name, falsy=False):
 
@@ -70,8 +68,7 @@ class Sentinel(object):
 # Sentinels
 EMPTY, _TOMBSTONE = (
   Sentinel("EMPTY", True),
-  Sentinel("TOMBSTONE", True)
-)
+  Sentinel("TOMBSTONE", True))
 
 
 class UtilStruct(object):
@@ -83,16 +80,15 @@ class UtilStruct(object):
   ## Init -- Accept structure fill
   def __new__(cls, *args, **kwargs):
 
-    """ Class constructor that enforces abstractness
-        at the root of the class tree.
+    """ Class constructor that enforces abstractness at the root of the class
+        tree.
 
         :param *args:
         :param **kwargs:
 
-        :raises NotImplementedError: If the root class
-        :py:class:`UtilStruct` is constructed directly
-        Otherwise, returns a new instance of the
-        requested class. """
+        :raises NotImplementedError: If the root class :py:class:`UtilStruct` is
+          constructed directly. Otherwise, returns a new instance of the
+          requested class. """
 
     if cls.__name__ is 'UtilStruct':
       raise NotImplementedError('Cannot construct `UtilStruct` directly as'
@@ -102,8 +98,8 @@ class UtilStruct(object):
   @abc.abstractmethod
   def fillStructure(self, struct, case_sensitive=False, **kwargs):
 
-    """ Abstract method that fills a local object with data, usually
-        from initialization.
+    """ Abstract method that fills a local object with data, usually from
+        initialization.
 
         :param struct:
         :param case_sensitive:
@@ -118,15 +114,15 @@ class UtilStruct(object):
 
 class ObjectProxy(UtilStruct):
 
-  """ Same handy object as above, but stores the entries in an
-      _entries attribute rather than the class dict.  """
+  """ Same handy object as above, but stores the entries in an _entries
+      attribute rather than the class dict.  """
 
   _entries = _case_sensitive = None
 
   def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
-    """ If handed a dictionary (or something) in init, send it to
-        fillStructure (and do the same for kwargs).
+    """ If handed a dictionary (or something) in init, send it to fillStructure
+        (and do the same for kwargs).
 
         :param struct:
         :param case_sensitive:
@@ -143,16 +139,15 @@ class ObjectProxy(UtilStruct):
 
   def fillStructure(self, fill, case_sensitive=False, **kwargs):
 
-    """ If handed a dictionary, will fill self with
-        those entries. Usually called from ``__init__``.
+    """ If handed a dictionary, will fill self with those entries. Usually
+        called from ``__init__``.
 
         :param fill: Structure to fill self with.
 
-        :param case_sensitive: Whether we should
-        initialize while ignoring case.
+        :param case_sensitive: Whether we should initialize while ignoring case.
 
-        :param kwargs: Keyword arguments to be applied
-        to ``struct`` as override.
+        :param kwargs: Keyword arguments to be applied to ``struct`` as
+          override.
 
         :returns: ``self``. """
 
@@ -212,8 +207,8 @@ class ObjectProxy(UtilStruct):
 
 class WritableObjectProxy(ObjectProxy):
 
-  """ Same handy object as `ObjectProxy`, but
-      allows appending things at runtime. """
+  """ Same handy object as `ObjectProxy`, but allows appending things at
+      runtime. """
 
   def __setitem__(self, name, value):
 
@@ -266,9 +261,8 @@ class WritableObjectProxy(ObjectProxy):
 
 class CallbackProxy(ObjectProxy):
 
-  """ Handy little object that takes a dict and makes
-      it accessible via var[item], but returns the
-      result of an invoked ``callback(item)``. """
+  """ Handy little object that takes a dict and makes it accessible via
+      var[item], but returns the result of an invoked ``callback(item)``. """
 
   _entries = None  # cached entries
   callback = None  # callback func
@@ -276,8 +270,7 @@ class CallbackProxy(ObjectProxy):
   # noinspection PyMissingConstructor
   def __init__(self, callback, struct=None, **kwargs):
 
-    """ Map the callback and fillStructure if we
-        get one via `struct`.
+    """ Map the callback and fillStructure if we get one via `struct`.
 
         :param callback: Callable to produce return values, given the ``item``
           or ``attr`` desired. If this ``CallbackProxy`` has a set of registered
@@ -387,7 +380,9 @@ class BidirectionalEnum(object):
           :returns: Constructed ``BidirectionalEnum`` subclass. """
 
       # init calculated data attributes
-      _pmap, _plookup = _map['_pmap'], _map['_plookup'] = ({}, set())
+      _pmap, _keys, _plookup = (
+          _map['_pmap'], _map['_keys'], _map['_plookup']) = (
+            {}, [], set())
 
       # set class-level enum properties
       for key, value in _map.iteritems():
@@ -400,10 +395,13 @@ class BidirectionalEnum(object):
                                ' `BidirectionalEnum` key %s.' % value)
 
           # things look good: add the value
+          _keys.append(key)
           _pmap[key] = value
+          _pmap[value] = key
           _plookup.add(key)
           _plookup.add(value)
 
+      _map['_keys'] = tuple(_keys)
       return type.__new__(mcs, name, chain, _map)
 
     def __iter__(cls):
@@ -413,18 +411,18 @@ class BidirectionalEnum(object):
          :returns: ``(k, v)`` tuples for each enumerated item and value, one at
           a time. """
 
-      for k in cls._pmap:
+      for k in cls._keys:
         yield k, getattr(cls, k)
 
     def __getitem__(cls, item):
 
       """ Fetch an item from the local ``BidirectionalEnum`` (forward resolve).
 
-         :raises KeyError: If ``item`` is not a valid item registered on the local
-           ``BidirectionalEnum``.
+          :raises KeyError: If ``item`` is not a valid item registered on the
+            local ``BidirectionalEnum``.
 
-         :returns: Bound value at the (forward-resolved) item on the local
-          ``BidirectionalEnum``. """
+          :returns: Bound value at the (forward-resolved) item on the local
+            ``BidirectionalEnum``. """
 
       return cls._pmap[item]
 
@@ -435,9 +433,10 @@ class BidirectionalEnum(object):
 
           :param item: Item to check for membership against the local enum.
 
-          :return: ``bool`` - ``True`` if ``item`` is a valid member with a bound
-            value retrievable via item or attribute syntax or a value with a bound
-            key retreivable via ``reverse_resolve``, otherwise ``False``. """
+          :return: ``bool`` - ``True`` if ``item`` is a valid member with a
+            bound value retrievable via item or attribute syntax or a value with
+            a bound key retreivable via ``reverse_resolve``, otherwise
+            ``False``. """
 
       return item in cls._plookup
 

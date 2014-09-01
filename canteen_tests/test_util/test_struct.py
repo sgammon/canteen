@@ -606,6 +606,11 @@ class BidirectionalEnumTests(test.FrameworkTest):
     assert enum['RED'] is enum['RED'] is 0x1
     assert enum['GREEN'] is enum['GREEN'] is 0x2
 
+    # reverse-resolve fallback should be supported
+    assert enum[0x0] == 'BLUE'
+    assert enum[0x1] == 'RED'
+    assert enum[0x2] == 'GREEN'
+
     with self.assertRaises(KeyError):
       assert enum['BLACK']
       assert enum['GRAY']
@@ -632,6 +637,20 @@ class BidirectionalEnumTests(test.FrameworkTest):
 
     # make sure nothing changed
     assert enum['GREEN'] is enum.GREEN is 0x2
+
+  def test_reverse_resolve(self):
+
+    """ Test reverse-resolving a key from a value with a `BidirectionalEnum` """
+
+    enum = self.test_construct()
+
+    assert enum.reverse_resolve(0x0) == 'BLUE'
+    assert enum.reverse_resolve(0x1) == 'RED'
+    assert enum.reverse_resolve(0x2) == 'GREEN'
+
+    # reverse-resolves fail softly
+    assert not enum.reverse_resolve(0x3)
+    assert not enum.reverse_resolve(0x3)
 
   def test_iter(self):
 

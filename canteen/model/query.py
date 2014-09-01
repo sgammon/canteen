@@ -454,7 +454,7 @@ class Query(AbstractQuery):
     )
 
   # @TODO(sgammon): async methods to execute
-  def _execute(self, options=None, **kwargs):
+  def _execute(self, options=None, adapter=None, **kwargs):
 
     """ Internal method to execute a query, optionally along with some override
         options.
@@ -463,6 +463,7 @@ class Query(AbstractQuery):
              which this will make use of runtime async tools under-the-hood.
 
         :param options:
+        :param adapter:
 
         :param **kwargs: Keyword arguments of query config (i.e. valid and
           registered on :py:class:`QueryOptions`) to pass to the options object
@@ -490,6 +491,9 @@ class Query(AbstractQuery):
     if options.projection:
       raise NotImplementedError('Projection queries are not'
                                 ' yet supported.')  # pragma: no cover
+
+    if adapter:
+      return adapter._execute_query(self)
 
     if self.kind:  # kinded query
 
@@ -556,7 +560,7 @@ class Query(AbstractQuery):
     # @TODO(sgammon): fill out query hinting logic
     raise NotImplementedError('Query method `hint` is currently stubbed.')
 
-  def get(self, **options):
+  def get(self, adapter=None, **options):
 
     """ Get a single result (by default, the first) matching a
         :py:class:`Query`.
@@ -564,15 +568,17 @@ class Query(AbstractQuery):
         :param **options: Accepts any valid and registered options on
           :py:class:`QueryOptions`.
 
+        :param adapter: Adapter to use for the ``get`` operation.
+
         :returns: Single result :py:class:`model.Model` (or
           :py:class:`model.Key` if ``keys_only`` is truthy) matching the current
           :py:class:`Query`, or ``None`` if no matching entities were found. """
 
     options['limit'] = 1  # always has a limit of 1
-    result = self._execute(options=QueryOptions(**options))
+    result = self._execute(QueryOptions(**options), adapter)
     return result[0] if result else result
 
-  def fetch(self, **options):
+  def fetch(self, adapter=None, **options):
 
     """ Fetch results for the currently-built :py:class:`Query`, executing it
         across the attached ``kind``'s attached model adapter.
@@ -582,7 +588,9 @@ class Query(AbstractQuery):
 
         :returns: Iterable (``list``) of matching model entities. """
 
-    return self._execute(options=QueryOptions(**options) if options else None)
+    return self._execute(
+      options=QueryOptions(**options) if options else None,
+      adapter=adapter)
 
   def fetch_page(self, **options):
 

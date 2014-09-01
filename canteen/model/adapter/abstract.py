@@ -617,11 +617,7 @@ class IndexedModelAdapter(ModelAdapter):
     else:
       # we're cleaning indexes
       return encoded_key, _meta_indexes
-
-    if key is not None:
-      # we're writing indexes
-      return encoded_key, _meta_indexes, _property_indexes
-    return _property_indexes  # pragma: no cover
+    return encoded_key, _meta_indexes, _property_indexes
 
   @abc.abstractmethod
   def write_indexes(cls, writes, **kwargs):
@@ -744,10 +740,25 @@ class GraphModelAdapter(IndexedModelAdapter):
       # -- graph key types -- #
       model.Key: self.Indexer.convert_key,
       model.EdgeKey: self.Indexer.convert_key,
-      model.VertexKey: self.Indexer.convert_key
-    })
-
+      model.VertexKey: self.Indexer.convert_key})
     return types
+
+  @staticmethod
+  def _pluck_indexed(entity):
+
+    """ Override the indexed property scanner to ignore ``Edge``-related auto-
+        injected properties.
+
+        :param entity: Target entity to produce indexes for.
+
+        :returns: Map ``dict`` of properties to index. """
+
+    _map = IndexedModelAdapter._pluck_indexed(entity)
+    if hasattr(entity.__class__, '__edge__') and entity.__class__.__edge__:
+      if 'peers' in _map: del _map['peers']
+      if 'target' in _map: del _map['target']
+      if 'source' in _map: del _map['source']
+    return _map
 
   def _put(self, entity, **kwargs):
 
@@ -767,15 +778,8 @@ class GraphModelAdapter(IndexedModelAdapter):
     written_key = super(IndexedModelAdapter, self)._put(entity, **kwargs)
 
     # proxy to `generate_indexes` and write indexes
-    if not _indexed_properties:  # pragma: no cover
-      origin, meta, graph = self.generate_indexes(entity.key, entity.__class__)
-      properties = {}
-    else:
-      origin, meta, properties, graph = (
-        self.generate_indexes(*(
-          entity.key,
-          entity,
-          _indexed_properties)))
+    origin, meta, properties, graph = (
+      self.generate_indexes(entity.key, entity, _indexed_properties))
 
     self.write_indexes((origin, meta, properties), graph, **kwargs)
     return written_key  # delegate up the chain for entity write
@@ -805,9 +809,16 @@ class GraphModelAdapter(IndexedModelAdapter):
            and ``graph`` is a bundle of special indexes for ``Vertex`` and
            ``Edge`` keys. """
 
+    from .. import Model
+
     if key is None and not properties:  # pragma: no cover
       raise TypeError('Must pass at least `key` or `properties'
                       ' to `generate_indexes`.')
+
+    if not (entity is None or isinstance(entity, Model)):
+      raise TypeError('Must pass either `None` or a `Model`'
+                      ' for the `entity` parameter to `generate_indexes`.'
+                      ' Instead, got: "%s".' % entity)
 
     from .. import VertexKey, EdgeKey
     _super = super(GraphModelAdapter, cls).generate_indexes
@@ -837,7 +848,7 @@ class GraphModelAdapter(IndexedModelAdapter):
 
         if entity:
           # extract spec @TODO(sgammon): make specs not suck
-          spec = entity.__class__.__spec__
+          spec = entity.__spec__
 
           # directed/undirected index
           graph.append((cls._edge_prefix, cls._directed_token if (

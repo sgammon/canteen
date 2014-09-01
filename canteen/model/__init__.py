@@ -1020,6 +1020,13 @@ class AbstractModel(object):
     if value and kwargs:
       raise exceptions.MultipleKeyValues(self.kind(), value, kwargs)
 
+    if issubclass(self, Vertex) and (
+        isinstance(value, Key) and not isinstance(value, VertexKey)):
+      value = VertexKey.from_raw(value.flatten())
+    elif issubclass(self, Edge) and (
+        isinstance(value, Key) and not isinstance(value, EdgeKey)):
+      value = EdgeKey.from_raw(value.flatten())
+
     # for a literal key value
     if value is not None:
       if not isinstance(value, _valid_key_classes):  # filter out invalid keys
@@ -1171,10 +1178,12 @@ class Key(AbstractKey):
 
 
 class VertexKey(Key):
+
     """ Key class for ``Vertex`` records. """
 
 
 class EdgeKey(Key):
+
     """ Key class for ``Edge`` records. """
 
 
@@ -1534,7 +1543,6 @@ class EdgeSpec(object):
       self.origin.kind(), '<->' if not self.directed else '->', (
         self.peering.kind() if issubclass(self.peering, Model) else ', '.join((
           k.kind() for k in self.peering))))
-
 
 class Edge(Model):
 

@@ -306,7 +306,7 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: Currently-configured serializer, mounted statically at
           ``cls.EngineConfig.serializer``. """
 
-    return cls.EngineConfig.serializer
+    return msgpack if _support.msgpack else json
 
   @decorators.classproperty
   def compressor(cls):
@@ -534,6 +534,22 @@ class RedisAdapter(DirectedGraphAdapter):
     serialized = entity.to_dict()
     joined, flattened = key
 
+    # clean key types
+    _cleaned = {}
+    for k, v in serialized.iteritems():
+      if hasattr(model, '__edge__') and model.__edge__ and k in frozenset((
+          'peers', 'target', 'source')):
+        continue
+      if isinstance(v, _model.Key):
+        _cleaned[k] = v.urlsafe()
+      else:
+        _cleaned[k] = v
+
+    # serialize + optionally compress
+    serialized = cls.serializer.dumps(_cleaned)
+    if cls.EngineConfig.compression:
+      serialized = cls.compressor.compress(serialized)
+
     # toplevel_blob
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
@@ -549,11 +565,6 @@ class RedisAdapter(DirectedGraphAdapter):
         raise RuntimeError('Failed to write entity to key "%s".' % key)
 
     ## need a serialized blob...
-
-    # serialize + optionally compress
-    serialized = cls.serializer.dumps(serialized)
-    if cls.EngineConfig.compression:
-      serialized = cls.compressor.compress(serialized)
 
     ## hashkind_blob
     if cls.EngineConfig.mode == RedisMode.hashkind_blob:
@@ -1036,23 +1047,61 @@ class RedisAdapter(DirectedGraphAdapter):
 
       _filters, _filter_i_lookup = {}, set()
       for _f in filters:
-        origin, meta, property_map = cls.generate_indexes(kinded_key, {
-          _f.target.name: (_f.target, _f.value.data)
-        })
 
-        for operation, index, config in cls.write_indexes((
-                origin, [], property_map), execute=False):
+        # handle graph-based edge/neighbor filters first
+        if isinstance(_f, query.EdgeFilter):
 
-          if operation == 'ZADD':
-            _flag, _index_key, value = 'Z', index[1], index[2]
-          else:
-            _flag, _index_key, value = 'S', index[1], index[2]
+          # extract property values
+          _data = _f.value.data if (
+            isinstance(_f.value, model.Model._PropertyValue)) else _f.value
 
-        if (_flag, _index_key) not in _filter_i_lookup:
-          _filters[(_flag, _index_key)] = []
-          _filter_i_lookup.add((_flag, _index_key))
+          # graph prefix and search key
+          _index_key = [
+            cls._graph_prefix,
+            cls._index_basetypes[model.VertexKey](_data)[1]]
 
-        _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
+          # edge queries
+          if _f.kind is _f.EDGES:
+
+            # undirected edge queries
+            if _f.tails is None:
+              _index_key.append(cls._peers_token)
+
+            else:
+              # directed edge queries
+              _index_key.append(cls._out_token if _f.tails else cls._in_token)
+
+          # neighbor queries
+          elif _f.kind is _f.NEIGHBORS:
+            _index_key.append(cls._neighbors_token)
+
+          else:  # pragma: no cover
+            raise RuntimeError('Invalid `EdgeFilter` kind: "%s".' % _f.kind)
+
+          # check for uniqueness and add to queued, unsorted filters
+          _filter_key = ('S', cls._magic_separator.join(_index_key))
+          if _filter_key not in _filter_i_lookup:
+            _filter_i_lookup.add(_filter_key)
+            _filters[_filter_key] = [(_f.operator, _f.value, _f.chain)]
+
+        # then handle property/meta filters, etc
+        else:
+          origin, meta, property_map = cls.generate_indexes(kinded_key, {
+            _f.target.name: (_f.target, _f.value.data)})
+
+          for operation, index, config in cls.write_indexes((
+                  origin, [], property_map), execute=False):
+
+            if operation == cls.Operations.SORTED_ADD:
+              _flag, _index_key, value = 'Z', index[1], index[2]
+            else:
+              _flag, _index_key, value = 'S', index[1], index[2]
+
+          if (_flag, _index_key) not in _filter_i_lookup:
+            _filters[(_flag, _index_key)] = []
+            _filter_i_lookup.add((_flag, _index_key))
+
+          _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
 
       # process sorted sets first: leads to lower cardinality
       sorted_indexes = dict([
@@ -1123,8 +1172,7 @@ class RedisAdapter(DirectedGraphAdapter):
                 _value,
                 _value,
                 options.offset,
-                options.limit
-              )))
+                options.limit)))
 
               continue
 
@@ -1243,6 +1291,8 @@ class RedisAdapter(DirectedGraphAdapter):
         # matches, by the grace of god
         _seen_results += 1
 
-        result_entities.append(kind(_persisted=True, **decoded))
+        _inflated = cls.registry.get(key.kind, kind)(_persisted=True, **decoded)
+        result_entities.append(_inflated.key if options.keys_only else (
+                               _inflated))
 
     return result_entities

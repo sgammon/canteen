@@ -13,9 +13,6 @@
 
 """
 
-# stdlib
-import json
-
 # canteen base & core
 from canteen.core import runtime
 from canteen.base import protocol
@@ -32,7 +29,8 @@ with runtime.Library('msgpack') as (msglib, msgpack):
   with runtime.Library('protorpc') as (protolib, protorpc):
 
     # submodules
-    protojson = protolib.load('protojson')  # used for structure
+    protojson = protolib.load('protojson')
+    messages = protolib.load('messages')
 
 
     @protocol.Protocol.register('msgpack', _content_types)
@@ -46,14 +44,21 @@ with runtime.Library('msgpack') as (msglib, msgpack):
 
         message.check_initialized()
 
-        # simple extraction
-        _packed = {}
-        for field in message.all_fields():
-          value = getattr(message, field.name)
-          if value is not None:
-            _packed[field.name] = value
+        def _walk_struct(m):
 
-        return msgpack.packb(_packed)
+          """ recursively encode msgpack """
+
+          # simple extraction
+          _packed = {}
+          for field in m.all_fields():
+            value = getattr(m, field.name)
+            if value is not None:
+              if isinstance(value, messages.Message):
+                _packed[field.name] = _walk_struct(value)
+              else:
+                _packed[field.name] = value
+          return _packed
+        return msgpack.packb(_walk_struct(message))
 
       def decode_message(self, message_type, encoded_message):
 

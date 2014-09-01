@@ -103,8 +103,7 @@ with runtime.Library('protorpc') as (library, protorpc):
           singleton,
           singleton.name,
           singleton.content_type,
-          singleton.alternative_content_types
-        ))
+          singleton.alternative_content_types))
 
       return container
 

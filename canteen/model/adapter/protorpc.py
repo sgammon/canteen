@@ -55,8 +55,7 @@ else:
     basestring: pmessages.StringField,
     datetime.time: pmessages.StringField,
     datetime.date: pmessages.StringField,
-    datetime.datetime: pmessages.StringField
-  }
+    datetime.datetime: pmessages.StringField}
 
   # build quick basetype lookup
   _builtin_basetypes = frozenset(_field_basetype_map.keys())
@@ -68,8 +67,7 @@ else:
     pmessages.FloatField.__name__: pmessages.FloatField,  # 'FloatField'
     pmessages.StringField.__name__: pmessages.StringField,  # 'StringField'
     pmessages.IntegerField.__name__: pmessages.IntegerField,  # 'IntegerField'
-    pmessages.BooleanField.__name__: pmessages.BooleanField  # 'BooleanField'
-  }
+    pmessages.BooleanField.__name__: pmessages.BooleanField}  # 'BooleanField'
 
   # build quick builtin lookup
   _builtin_fields = frozenset(_field_explicit_map.keys())
@@ -208,7 +206,7 @@ else:
         continue
 
       # check for keys (implemented with `basestring` for now)
-      elif prop._basetype == model.Key:
+      elif issubclass(prop._basetype, model.AbstractKey):
 
         # build field and advance
         _field_i += 1
@@ -322,7 +320,7 @@ else:
       for prop, value in self.to_dict(*args, **kwargs).items():
 
         # convert keys => urlsafe
-        if isinstance(value, model.Key):
+        if isinstance(value, (model.Key, model.VertexKey, model.EdgeKey)):
           values[prop] = rpc.Key(
             id=value.id,
             kind=value.kind,

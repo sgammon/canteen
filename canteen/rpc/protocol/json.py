@@ -13,9 +13,6 @@
 
 """
 
-# stdlib
-import json
-
 # canteen base & core
 from canteen.core import runtime
 from canteen.base import protocol
@@ -28,14 +25,14 @@ _content_types = (
   'text/javascript',
   'text/x-javascript',
   'text/x-json',
-  'text/json'
-)
+  'text/json')
 
 
 with runtime.Library('protorpc') as (library, protorpc):
 
   # submodules
   protojson = library.load('protojson')
+  json = __import__('json', globals(), locals(), [], 0)
 
 
   @protocol.Protocol.register('json', _content_types)

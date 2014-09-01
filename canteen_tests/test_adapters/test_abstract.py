@@ -288,8 +288,14 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       bob, steve, friendship = self.test_make_edge_keyname()
 
       # friendship edge should appear for both vertexes
-      assert friendship.key in bob.edges(keys_only=True).fetch(limit=10)
-      assert friendship.key in steve.edges(keys_only=True).fetch(limit=10)
+      _q = bob.edges(keys_only=True).fetch(adapter=self.subject(), limit=10)
+      assert friendship.key in _q, (
+        "expected friendship key but got:"
+        " '%s' with adapter '%s'" % (
+          [i for i in _q], self.subject))
+
+      assert friendship.key in (
+        steve.edges(keys_only=True).fetch(adapter=self.subject(), limit=10))
       assert "Edges" in repr(steve.edges(keys_only=True))
       assert "CONTAINS" in repr(steve.edges(keys_only=True))
 
@@ -301,10 +307,15 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       bob, steve, friendship = self.test_make_edge_keyname()
 
       # see if we can get bob's friends, which should include steve
-      assert steve.key in bob.neighbors(keys_only=True).fetch(limit=10)
+      _q = bob.neighbors(keys_only=True).fetch(adapter=self.subject(), limit=10)
+      assert steve.key in _q, (
+        "failed to find steve's key in bob's neighbors."
+        " instead, got '%s' for adapter '%s'" % (
+          [i for i in _q], self.subject))
 
       # see if we can get steve's friends, which should include bob
-      assert bob.key in steve.neighbors(keys_only=True).fetch(limit=10)
+      assert bob.key in (
+        steve.neighbors(keys_only=True).fetch(adapter=self.subject(), limit=10))
       assert "Neighbors" in repr(steve.neighbors(keys_only=True))
       assert "CONTAINS" in repr(steve.neighbors(keys_only=True))
 
@@ -346,6 +357,7 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
     """ Test saving a directed `Edge` with a keyname """
 
     if not self.test_abstract():
+
       bob = TestGraphPerson(key=model.VertexKey(TestGraphPerson, "bob"),
                             name="Bob")
       k = bob.put(adapter=self.subject())
@@ -397,10 +409,19 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
       bob, steve, gift = self.test_make_directed_edge_keyname()
 
       # friendship edge should appear for both vertexes
-      assert gift.key not in bob.edges(tails=False, keys_only=True)\
-          .fetch(limit=10)
-      assert gift.key in steve.edges(tails=False, keys_only=True)\
-          .fetch(limit=10)
+      _q = bob.edges(tails=False, keys_only=True)\
+          .fetch(adapter=self.subject(), limit=10)
+      assert gift.key not in _q, (
+            "found gift's key among bob's edges heads, but shouldn't have."
+            " instead, got: '%s' with adapter '%s'" % (
+              [i for i in _q], self.subject))
+
+      _q = steve.edges(tails=False, keys_only=True)\
+          .fetch(adapter=self.subject(), limit=10)
+      assert gift.key in _q, (
+            "couldn't find gift's key among steve's edges heads."
+            " instead, got: '%s' with adapter '%s'" % (
+              [i for i in _q], self.subject))
 
   def test_edge_tails(self):
 
@@ -411,9 +432,9 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
 
       # friendship edge should appear for both vertexes
       assert gift.key in bob.edges(tails=True, keys_only=True)\
-          .fetch(limit=10)
+          .fetch(adapter=self.subject(), limit=10)
       assert gift.key not in steve.edges(tails=True, keys_only=True)\
-          .fetch(limit=10)
+          .fetch(adapter=self.subject(), limit=10)
 
   def test_neighbor_heads(self):
 
@@ -422,13 +443,13 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
     if not self.test_abstract():
       bob, steve, gift = self.test_make_directed_edge_keyname()
 
-      # see if we can get bob's friends, which should include steve
-      assert steve.key not in bob.neighbors(tails=False, keys_only=True)\
-          .fetch(limit=10)
-
       # see if we can get steve's friends, which should include bob
-      assert bob.key in steve.neighbors(tails=False, keys_only=True)\
-          .fetch(limit=10)
+      _q = steve.neighbors(tails=False, keys_only=True)\
+          .fetch(adapter=self.subject(), limit=10)
+      assert bob.key in _q, (
+            "didn't find bob's key among steve's friends."
+            " instead, got: '%s' with adapter '%s'" % (
+              [i for i in _q], self.subject))
 
   def test_neighbor_tails(self):
 
@@ -439,8 +460,4 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
 
       # see if we can get bob's friends, which should include steve
       assert steve.key in bob.neighbors(tails=True, keys_only=True)\
-          .fetch(limit=10)
-
-      # see if we can get steve's friends, which should include bob
-      assert bob.key not in steve.neighbors(tails=True, keys_only=True)\
-          .fetch(limit=10)
+          .fetch(adapter=self.subject(), limit=10)

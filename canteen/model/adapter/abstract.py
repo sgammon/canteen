@@ -545,11 +545,19 @@ class IndexedModelAdapter(ModelAdapter):
         :returns: Tupled set of ``(encoded, meta, property)``, where ``meta``
           and ``property`` are indexes to be written in each category. """
 
+    if key is None and not properties:  # pragma: no cover
+      raise TypeError('Must pass at least `key` or `properties'
+                      ' to `generate_indexes`.')
+
     _property_indexes, _meta_indexes = [], []
 
     if key is not None:
 
       # provision vars, generate meta indexes
+      # meta indexes look like:
+      #  `__key__`, target
+      #  `__kind__`, target
+
       encoded_key = cls.encode_key(*key.flatten(True)) or key.urlsafe()
       _meta_indexes.append((cls._key_prefix,))
       _meta_indexes.append((cls._kind_prefix, key.kind))  # map kind
@@ -558,9 +566,16 @@ class IndexedModelAdapter(ModelAdapter):
       if not key.parent:
 
         # generate group indexes in the case of a nonvoid parent
+        # group indexes look like:
+        #  `<trimmed-root-key>`, target
+
         _meta_indexes.append((cls._group_prefix,))
 
       else:
+
+        # generate group prefix for root
+        # root indexes look like:
+        #  `__group__`, trimmed-target-root-key
 
         # append keyparent-based group prefix
         root_key = [i for i in key.ancestry][0]
@@ -583,6 +598,13 @@ class IndexedModelAdapter(ModelAdapter):
         if not prop._repeated or not isinstance(value, (
           tuple, list, set, frozenset)):
           value = [value]
+
+        # generate property index entries for values
+        # property value indexes look like:
+        #  `__index__::kind::property::encoded_value`, target
+
+        # and the internal representation looks like:
+        #  `(value_encoder_callable, (index_prefix, kind, propname, value))`
 
         # iterate through property values
         for x in value:
@@ -652,7 +674,22 @@ class GraphModelAdapter(IndexedModelAdapter):
   """ Abstract base class for model adapters that support Graph-style paradigms
       for data storage. """
 
+  # graph/vertex/edge prefixes
+  _edge_prefix = '__edge__'
   _graph_prefix = '__graph__'
+  _vertex_prefix = '__vertex__'
+
+  # universal tokens
+  _neighbors_token = 'neighbors'
+
+  # directed tokens
+  _in_token = 'in'
+  _out_token = 'out'
+  _directed_token = 'directed'
+
+  # undirected tokens
+  _peers_token = 'peers'
+  _undirected_token = 'undirected'
 
 
   class Indexer(IndexedModelAdapter.Indexer):
@@ -691,6 +728,26 @@ class GraphModelAdapter(IndexedModelAdapter):
             'edge' if isinstance(key, model.Vertex.__keyclass__) else None))
         )], sanitized
 
+  @decorators.classproperty
+  def _index_basetypes(self):
+
+    """ Map basetypes to indexer routines, with support for graph-specialized
+        key types (``VertexKey`` and ``EdgeKey``).
+
+        :returns: Default basetype ``dict``. """
+
+    from canteen import model
+    types = super(GraphModelAdapter, self)._index_basetypes
+
+    types.update({
+      # -- graph key types -- #
+      model.Key: self.Indexer.convert_key,
+      model.EdgeKey: self.Indexer.convert_key,
+      model.VertexKey: self.Indexer.convert_key
+    })
+
+    return types
+
   def _put(self, entity, **kwargs):
 
     """ Override to enable ``graph``-specific indexes (for stored ``Vertex`` and
@@ -710,17 +767,20 @@ class GraphModelAdapter(IndexedModelAdapter):
 
     # proxy to `generate_indexes` and write indexes
     if not _indexed_properties:  # pragma: no cover
-      origin, meta, graph = self.generate_indexes(entity.key)
+      origin, meta, graph = self.generate_indexes(entity.key, entity.__class__)
       properties = {}
     else:
       origin, meta, properties, graph = (
-        self.generate_indexes(entity.key, _indexed_properties))
+        self.generate_indexes(*(
+          entity.key,
+          entity,
+          _indexed_properties)))
 
     self.write_indexes((origin, meta, properties), graph, **kwargs)
     return written_key  # delegate up the chain for entity write
 
   @classmethod
-  def generate_indexes(cls, key, properties=None):
+  def generate_indexes(cls, key, entity, properties=None):
 
     """ Generate a set of indexes that should be written to with associated
         values, considering that some ``key`` values may be ``VertexKey`` or
@@ -728,6 +788,8 @@ class GraphModelAdapter(IndexedModelAdapter):
 
         :param key: Target :py:class:`model.Key`, :py:class:`VertexKey` or
           :py:class:`EdgeKey` to index.
+
+        :param entity: :py:class:`Model` entity to be stored.
 
         :param properties: Entity :py:class:`model.Model` property values to
           index.
@@ -740,16 +802,79 @@ class GraphModelAdapter(IndexedModelAdapter):
            and ``graph`` is a bundle of special indexes for ``Vertex`` and
            ``Edge`` keys. """
 
+    if key is None and not properties:  # pragma: no cover
+      raise TypeError('Must pass at least `key` or `properties'
+                      ' to `generate_indexes`.')
+
+    from .. import VertexKey, EdgeKey
     _super = super(GraphModelAdapter, cls).generate_indexes
 
     # initialize graph indexes
     graph = []
 
-    if not key and not properties:  # pragma: no cover
-      raise TypeError('Must pass at least `key` or `properties'
-                      ' to `generate_indexes`.')
+    # vertex keys
+    if isinstance(key, VertexKey):
+      graph.append((cls._vertex_prefix,))
 
-    elif key and not properties:
+    # edge keys
+    elif isinstance(key, EdgeKey):
+
+      # extract spec @TODO(sgammon): make specs not suck
+      spec = entity.__class__.__spec__
+
+      # main edge index
+      graph.append((cls._edge_prefix,))
+
+      # directed/undirected index
+      graph.append((cls._edge_prefix, cls._directed_token if (
+        spec.directed) else cls._undirected_token))
+
+      # directed indexes
+      if spec.directed:
+
+        for target in entity.target:
+
+          # __graph__::<source>::out => edge
+          graph.append((entity.source, cls._out_token, entity.key))
+
+          # __graph__::<target>::in => edge
+          graph.append((target, cls._in_token, entity.key))
+
+          # __graph__::<source>::neighbors => target
+          graph.append((entity.source, cls._neighbors_token, target))
+
+          # __graph__::<target>::neighbors => source
+          graph.append((target, cls._neighbors_token, entity.source))
+
+      # undirected indexes
+      else:
+
+        _indexed_pairs = set()
+        for o, source in enumerate(entity.peers):
+          for i, target in enumerate(entity.peers):
+
+            # skip if it's the same object in the pair
+            if o == i: continue
+
+            # skip if we've already indexed the two, since we're undirected
+            # and one iteration past either will work for both
+            if (source, target) in _indexed_pairs or (
+                (target, source) in _indexed_pairs):
+              continue
+
+            # __graph__::<source>::peers
+            graph.append((source, cls._peers_token))
+
+            # __graph__::<target>::peers
+            graph.append((target, cls._peers_token))
+
+            # __graph__::<source>::neighbors
+            graph.append((source, cls._neighbors_token))
+
+            # __graph__::<target>::neighbors
+            graph.append((target, cls._neighbors_token))
+
+    if key and not properties:
       # we're probably cleaning indexes
       encoded, meta = _super(key)
       return encoded, meta, graph
@@ -759,7 +884,7 @@ class GraphModelAdapter(IndexedModelAdapter):
       encoded, meta, properties = _super(key, properties)
 
       # skip edge target/source/peers
-      #import pdb; pdb.set_trace()
+      import pdb; pdb.set_trace()
       # @TODO(sgammon): don't leave this PDB here
 
       return encoded, meta, properties, graph

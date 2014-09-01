@@ -311,8 +311,6 @@ class InMemoryAdapter(DirectedGraphAdapter):
     global _metadata
     _write = {} if not execute else _metadata
 
-    #import pdb; pdb.set_trace()
-
     # extract indexes
     encoded, meta, properties = writes
 
@@ -624,7 +622,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
                 _graph[_graph_base]['directed'][_direction].get(*(
                     _filter_val, set())))
 
-              #import pdb; pdb.set_trace()
+              import pdb; pdb.set_trace()
 
             _unsorted_indexes.append((False, (_f, _target_edge_index)))
 

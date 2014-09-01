@@ -538,3 +538,115 @@ class CallbackProxy(test.FrameworkTest):
 
     with self.assertRaises(KeyError):
       assert proxy['woops']
+
+
+class BidirectionalEnumTests(test.FrameworkTest):
+
+  """ Tests the utility structure :py:class:`BidirectionalEnum`, which makes
+      enumeration structures that map keys to values and values to keys. """
+
+  def test_construct(self):
+
+    """ Test constructing a `BidirectionalEnum` """
+
+    class Colors(struct.BidirectionalEnum):
+
+      """ Enumerates pretty colors. """
+
+      BLUE = 0x0
+      RED = 0x1
+      GREEN = 0x2
+
+    return Colors
+
+  def test_abstract(self):
+
+    """ Test abstractness of `BidirectionalEnum` """
+
+    with self.assertRaises(TypeError):
+      struct.BidirectionalEnum()
+
+  def test_contains(self):
+
+    """ Test `x in y` syntax against `BidirectionalEnum` """
+
+    enum = self.test_construct()
+    assert 'BLUE' in enum
+    assert 'RED' in enum
+    assert 'GREEN' in enum
+    assert 'BLACK' not in enum
+    assert 'GRAY' not in enum
+
+    # should work in reverse too
+    assert 0x0 in enum
+    assert 0x1 in enum
+    assert 0x2 in enum
+    assert 0x3 not in enum
+    assert 0x4 not in enum
+
+  def test_getattr(self):
+
+    """ Test `x.y` syntax against `BidirectionalEnum` """
+
+    enum = self.test_construct()
+    assert enum.BLUE is enum.BLUE is 0x0
+    assert enum.RED is enum.RED is 0x1
+    assert enum.GREEN is enum.GREEN is 0x2
+
+    with self.assertRaises(AttributeError):
+      assert enum.BLACK
+      assert enum.GRAY
+
+  def test_getitem(self):
+
+    """ Test `x[y]` syntax against `BidirectionalEnum` """
+
+    enum = self.test_construct()
+    assert enum['BLUE'] is enum['BLUE'] is 0x0
+    assert enum['RED'] is enum['RED'] is 0x1
+    assert enum['GREEN'] is enum['GREEN'] is 0x2
+
+    with self.assertRaises(KeyError):
+      assert enum['BLACK']
+      assert enum['GRAY']
+
+  def test_immutable(self):
+
+    """ Test `BidirectionalEnum` for immutability """
+
+    enum = self.test_construct()
+
+    # disallow new properties
+    with self.assertRaises(NotImplementedError):
+     enum['BLACK'] = 0x5
+
+    with self.assertRaises(NotImplementedError):
+      enum.BLACK = 0x5
+
+    # disallow overwrites too
+    with self.assertRaises(NotImplementedError):
+      enum['GREEN'] = 0x5
+
+    with self.assertRaises(NotImplementedError):
+      enum.GREEN = 0x5
+
+    # make sure nothing changed
+    assert enum['GREEN'] is enum.GREEN is 0x2
+
+  def test_iter(self):
+
+    """ Test iteration against `BidirectionalEnum` """
+
+    enum = self.test_construct()
+
+    _struct = {
+        'BLUE': 0x0,
+        'RED': 0x1,
+        'GREEN': 0x2}
+
+    for key, value in enum:
+      assert key in _struct
+      assert _struct[key] is value
+      _struct[key] = True
+
+    assert all(_struct.itervalues())  # make sure all values touched

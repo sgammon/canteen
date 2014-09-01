@@ -23,6 +23,10 @@ import abc
 from . import decorators
 
 
+## Globals
+_ENUM_TYPES = int, long, float, basestring, bool
+
+
 class Sentinel(object):
 
   """ Create a named sentinel object. """
@@ -357,94 +361,127 @@ class CallbackProxy(ObjectProxy):
   __call__ = lambda self, *args, **kwargs: self.callback(*args, **kwargs)
 
 
-@decorators.singleton
 class BidirectionalEnum(object):
 
-  """ Small and simple datastructure for mapping
-      static flags to smaller values. """
+  """ Small and simple datastructure for mapping static names to symbolic
+      values. Interoperable with the RPC and model layers. """
 
-  class __metaclass__(abc.ABCMeta):
+  __singleton__, __slots__ = True, tuple()
+
+  class __metaclass__(type):
 
     """ Metaclass for property-gather-enabled classes. """
 
-    def __new__(cls, name, chain, _map):
+    def __new__(mcs, name, chain, _map):
 
-      """ Read mapped properties, store on the
-          object, along with a reverse mapping.
+      """ Read mapped properties, store on the object, along with a reverse
+          mapping.
 
-          :param name:
-          :param chain:
-          :param _map:
-          :returns: """
+          :param name: Name of the ``BidirectionalEnum`` subtype to factory.
+          :param chain: Inheritance chain for target subtype.
+          :param _map: ``dict`` map of ``key = value`` attribute pairs.
 
-      # Init calculated data attributes
-      _map['_pmap'] = {}
-      _map['_plookup'] = []
+          :raises RuntimeError: If a non-unique ``key`` or ``value`` is given
+            as part of the ``BidirectionalEnum``-to-be's ``map``.
 
-      # Define __contains__ proxy
-      def _contains(proxied_o, flag_or_value):
+          :returns: Constructed ``BidirectionalEnum`` subclass. """
 
-        """ Bidirectionally-compatible __contains__
-            replacement.
+      # init calculated data attributes
+      _pmap, _plookup = _map['_pmap'], _map['_plookup'] = ({}, set())
 
-            :param proxied_o:
-            :param flag_or_value:
-            :returns: """
+      # set class-level enum properties
+      for key, value in _map.iteritems():
+        if not key.startswith('_') and isinstance(value, _ENUM_TYPES):
+          if value in _plookup:
+            raise RuntimeError('Cannot map non-unique (double-validated)'
+                               ' `BidirectionalEnum` value %s.' % value)
+          if key in _plookup:
+            raise RuntimeError('Cannot map non-unique (double-validated)'
+                               ' `BidirectionalEnum` key %s.' % value)
 
-        return flag_or_value in proxied_o._plookup
+          # things look good: add the value
+          _pmap[key] = value
+          _plookup.add(key)
+          _plookup.add(value)
 
-      # Define __getitem__ proxy
-      def _getitem(proxied_o, fragment):
+      return type.__new__(mcs, name, chain, _map)
 
-        """ Attempt to resolve the fragment by a
-            forward, then reverse resolution chain.
+    def __iter__(cls):
 
-            :param proxied_o:
-            :param fragment:
-            :returns: """
+      """ Iterate over all enumerated values.
 
-        if proxied_o.__contains__(fragment):
-          return proxied_o._pmap.get(fragment)
+         :returns: ``(k, v)`` tuples for each enumerated item and value, one at
+          a time. """
 
-      # Define __setitem__ proxy
-      def _setitem(proxied_o, n, v):
+      for k in cls._pmap:
+        yield k, getattr(cls, k)
 
-        """ Block setitem calls, because this is a
-            complicated object that is supposed
-            to be a modelling tool only.
+    def __getitem__(cls, item):
 
-            :param proxied_o:
-            :param n:
-            :param v:
-            :raises NotImplementedError: """
+      """ Fetch an item from the local ``BidirectionalEnum`` (forward resolve).
 
-        raise NotImplementedError('Not implemented')
+         :raises KeyError: If ``item`` is not a valid item registered on the local
+           ``BidirectionalEnum``.
 
-      def _iter(proxied_cls):
+         :returns: Bound value at the (forward-resolved) item on the local
+          ``BidirectionalEnum``. """
 
-        """ Iterate over all enumerated values.
+      return cls._pmap[item]
 
-            :returns: """
+    def __contains__(cls, item):
 
-        for k, v in proxied_cls._plookup:
-          yield k, v
+      """ Check if an ``item`` is a registered member or value of the local
+          ``BidirectionalEnum``.
 
-      # Map properties into data and lookup attributes
-      map(lambda x: ([
-        _map['_pmap'].update(dict(x)),
-        _map['_plookup'].append([x[0][0], x[1][0]])]),
-        (((a, v), (v, a)) for a, v in _map.items() if not a.startswith('_')))
+          :param item: Item to check for membership against the local enum.
 
-      if '__getitem__' not in _map:
-        _map['__getitem__'] = _getitem
-      if '__setitem__' not in _map:
-        _map['__setitem__'] = _setitem
-      if '__contains__' not in _map:
-        _map['__contains__'] = _contains
-      if '__iter__' not in _map:
-        _map['__iter__'] = _iter
+          :return: ``bool`` - ``True`` if ``item`` is a valid member with a bound
+            value retrievable via item or attribute syntax or a value with a bound
+            key retreivable via ``reverse_resolve``, otherwise ``False``. """
 
-      return super(cls, cls).__new__(cls, name, chain, _map)
+      return item in cls._plookup
+
+    def __setitem__(cls, item, value):
+
+      """ Disallow writing to items registered in the ``BidirectionalEnum``,
+          as it is an immutable type.
+
+          :param item: Item to write.
+          :param value: Value to write at ``item``.
+
+          :raises NotImplementedError: Always, as ``BidirectionalEnum`` is an
+            immutable type. """
+
+      raise NotImplementedError('`%s` is an immutable type'
+                                ' and cannot be written to with item'
+                                ' syntax. ' % cls.__name__)
+
+    def __setattr__(cls, attr, value):
+
+      """ Disallow writing to attributes registered in the ``BidirectionalEnum``,
+          as it is an immutable type.
+
+          :param attr: Attribute to write.
+          :param value: Value to write at ``attr``.
+
+          :raises NotImplementedError: Always, as ``BidirectionalEnum`` is an
+            immutable type. """
+
+      raise NotImplementedError('`%s` is an immutable type'
+                                ' and cannot be written to with attribute'
+                                ' syntax. ' % cls.__name__)
+
+  def __new__(cls):
+
+    """ Disallow direct construction of ``BidirectionalEnum`` objects.
+
+        :raises TypeError: ``BidirectionalEnum`` is both an abstract class
+          (itself) and an object that is always used as its type. Thus, objects
+          of ``BidirectionalEnum`` are not allowed to be created and attempts
+          to do so always result in ``TypeError``s. """
+
+    raise TypeError('`%s` objects are abstract'
+                    ' and only usable as type objects.' % cls.__name__)
 
   # forward and reverse resolve
   reverse_resolve = (

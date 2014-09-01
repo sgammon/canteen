@@ -781,6 +781,24 @@ class RedisAdapter(DirectedGraphAdapter):
     else:
       target = cls.channel(cls._meta_prefix)
 
+    # write graph indexes
+    for bundle in g:
+
+      import pdb; pdb.set_trace()
+
+      # one- or two-element tuples are simple indexes
+      if 0 < len(bundle) < 3:
+        pass
+
+      # three-element tuples are encoded key indexes
+      elif len(bundle) == 3:
+        pass
+
+      # invalid indexer bundle
+      else:  # pragma: no cover
+        raise RuntimeError('Invalid graph index bundle: "%s".' % bundle)
+
+    # write meta and property indexes
     for btype, bundle in (('meta', meta), ('property', property_map)):
 
       # add meta indexes first

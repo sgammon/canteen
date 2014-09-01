@@ -55,15 +55,24 @@ class AbstractModelAdapterTests(FrameworkTest):
   __abstract__ = True
   subject = abstract.ModelAdapter
 
+  def _construct(self):
+
+    """ Construct a copy of the local adapter. """
+
+    # set to testing mode
+    if hasattr(self.subject, '__testing__'):
+      self.subject.__testing__ = True
+    return self.subject()
+
   def test_abstract(self):
 
     """ Test `ModelAdapter` interface abstractness """
 
     if getattr(self, '__abstract__', False):
       with self.assertRaises(TypeError):
-        self.subject()
+        self._construct()
     else:  # pragma: no cover
-      self.subject()
+      self._construct()
     return getattr(self, '__abstract__', False)
 
   def test_utilities(self):

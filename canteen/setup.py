@@ -71,8 +71,7 @@ if __debug__:
           'INFO':     'green',
           'WARNING':  'yellow',
           'ERROR':    'red',
-          'CRITICAL': 'red'
-        }))
+          'CRITICAL': 'red'}))
 
 
     ## Environment checks
@@ -132,18 +131,17 @@ if __debug__:
       url="https://github.com/sgammon/canteen",
 
       # == package tree == #
-      packages=[
-                 "canteen",
-                 "canteen.base",
-                 "canteen.core",
-                 "canteen.logic",
-                 "canteen.logic.http",
-                 "canteen.model",
-                 "canteen.model.adapter",
-                 "canteen.rpc",
-                 "canteen.rpc.protocol",
-                 "canteen.runtime",
-                 "canteen.util"] +
+      packages=["canteen",
+                "canteen.base",
+                "canteen.core",
+                "canteen.logic",
+                "canteen.logic.http",
+                "canteen.model",
+                "canteen.model.adapter",
+                "canteen.rpc",
+                "canteen.rpc.protocol",
+                "canteen.runtime",
+                "canteen.util"] +
 
                ["canteen_tests",
                 "canteen_tests.test_adapters",
@@ -161,7 +159,7 @@ if __debug__:
                           "protorpc"] + dependencies),
 
       # == test dependencies == #
-      tests_require=("nose", "coverage"),
+      tests_require=("nose", "coverage", "fakeredis"),
 
       # == dependency links == #
       dependency_links=(

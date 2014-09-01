@@ -30,3 +30,15 @@ class RedisAdapterTests(DirectedGraphAdapterTests):
 
     __abstract__ = False
     subject = rapi.RedisAdapter
+
+    def setUp(self):
+
+      """ Set Redis into testing mode. """
+
+      rapi.RedisAdapter.__testing__ = True
+
+    def tearDown(self):
+
+      """ Set Redis back into non-testing mode. """
+
+      rapi.RedisAdapter.__testing__ = False

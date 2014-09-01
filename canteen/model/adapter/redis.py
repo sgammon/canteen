@@ -103,6 +103,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
   """ Adapt model classes to Redis. """
 
+  __testing__ = False  # are we testing redis?
+
   # key encoding
   adapter = _redis_client
   connection_spec = None
@@ -364,6 +366,11 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: Acquired ``Redis`` client connection, potentially specific to
           the handed-in ``kind``. """
 
+    impl = cls.adapter.StrictRedis
+    if __debug__ and cls.__testing__:
+      import fakeredis
+      impl = fakeredis.FakeStrictRedis
+
     # convert to string kind if we got a model class
     if not isinstance(kind, basestring) and kind is not None:
       kind = kind.kind()
@@ -377,7 +384,7 @@ class RedisAdapter(DirectedGraphAdapter):
     # check kind-specific profiles
     if kind in _profiles_by_model.get('index', set()):
       client = _client_connections[kind] = (
-          cls.adapter.StrictRedis(**_profiles_by_model['map'].get(kind)))
+        impl(**_profiles_by_model['map'].get(kind)))
       return client
 
     ## @TODO(sgammon): patch client with connection/workerpool (if gevent)
@@ -392,8 +399,11 @@ class RedisAdapter(DirectedGraphAdapter):
       # if it's a string, it's a pointer to a profile
       profile = _server_profiles[default_profile]
 
-    client = _client_connections['__default__'] = (
-        cls.adapter.StrictRedis(**profile))
+    if cls.__testing__:
+      import fakeredis
+      return fakeredis.FakeStrictRedis(**profile)
+
+    client = _client_connections['__default__'] = impl(**profile)
     return client
 
   @classmethod

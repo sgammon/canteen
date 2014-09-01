@@ -16,3 +16,4 @@ canteen.sublime-workspace
 dist/
 .coverage
 canteen.iws
+.idea/workspace.xml

@@ -347,6 +347,12 @@ class RedisAdapter(DirectedGraphAdapter):
             _default_profile = name
           _server_profiles[name] = config
 
+      if not _default_profile:
+        # still no default? inject sensible defaults
+        _default_profile = '__default__'
+        _server_profiles['__default__'] = {
+          'host': '127.0.0.1', 'port': 6379}
+
   @classmethod
   def channel(cls, kind):
 
@@ -381,7 +387,7 @@ class RedisAdapter(DirectedGraphAdapter):
       return _client_connections['__default__']
 
     # otherwise, build new default
-    default_profile = _server_profiles[_default_profile]
+    default_profile = profile = _server_profiles[_default_profile]
     if isinstance(default_profile, basestring):
       # if it's a string, it's a pointer to a profile
       profile = _server_profiles[default_profile]
@@ -532,11 +538,15 @@ class RedisAdapter(DirectedGraphAdapter):
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
       # delegate to redis client
-      return cls.execute(*(
+      if cls.execute(*(
           cls.Operations.SET,
           flattened[1],
           joined,
-          serialized), target=pipeline)
+          serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:  # pragma: no cover
+        raise RuntimeError('Failed to write entity to key "%s".' % key)
 
     ## need a serialized blob...
 
@@ -553,12 +563,16 @@ class RedisAdapter(DirectedGraphAdapter):
       tail = entity.key.flatten(True)[0].replace(kinded[0], '')
 
       # delegate to redis client
-      return cls.execute(*(
+      if cls.execute(*(
         cls.Operations.HASH_SET,
         flattened[1],
         cls.encode_key(*kinded),
         cls.encode_key(tail, flattened),
-        serialized), target=pipeline)
+        serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:  # pragma: no cover
+        raise RuntimeError('Failed to write entity to key "%s".' % key)
 
     ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
@@ -567,12 +581,16 @@ class RedisAdapter(DirectedGraphAdapter):
       root = (ancestor for ancestor in entity.key.ancestry).next().flatten(True)
       tail = entity.key.flatten(True)[0].replace(root[0], '') or '__root__'
 
-      return cls.execute(*(
+      if cls.execute(*(
         cls.Operations.HASH_SET,
         flattened[1],
         cls.encode_key(*root),
         cls.encode_key(tail, flattened),
-        serialized), target=pipeline)
+        serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:
+        raise RuntimeError('Failed to write entity to key "%s".' % key)
 
     ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
@@ -766,10 +784,14 @@ class RedisAdapter(DirectedGraphAdapter):
           plan it and send it back. ``bool``, defaults to ``True``, which *does*
           execute the writes.
 
+        :raises RuntimeError:
+
         :returns: ``pipeline`` if ``pipeline`` was not ``None``, or a ``tuple``
           of operation results if ``execute`` was ``True`` and ``pipeline`` was
           ``None``, or a tuple of plans that *would* be executed if ``pipeline``
            is ``None`` and ``execute`` is ``False``. """
+
+    from .. import Vertex, Edge, VertexKey, EdgeKey
 
     origin, meta, property_map = w
 
@@ -781,22 +803,54 @@ class RedisAdapter(DirectedGraphAdapter):
     else:
       target = cls.channel(cls._meta_prefix)
 
+    handler, ekey_encoder, vkey_encoder = (
+      cls.Operations.SET_ADD,
+      cls._index_basetypes[EdgeKey],
+      cls._index_basetypes[VertexKey])
+
     # write graph indexes
     for bundle in g:
 
-      import pdb; pdb.set_trace()
+      bundle_args = []
 
-      # one- or two-element tuples are simple indexes
+      # one- or two-element tuples are simple indexes (and always edges)
       if 0 < len(bundle) < 3:
-        pass
+        bundle_args.append(Edge)
+        bundle_args.append(cls._magic_separator.join(bundle))
+        bundle_args.append(origin)
 
       # three-element tuples are encoded key indexes
       elif len(bundle) == 3:
-        pass
+
+        # encode key components
+        _components = []
+        for _item in bundle:
+          if isinstance(_item, EdgeKey):
+            _components.append(ekey_encoder(_item)[1])
+          elif isinstance(_item, VertexKey):
+            _components.append(vkey_encoder(_item)[1])
+          elif isinstance(_item, basestring):
+            _components.append(_item)
+          else:  # pragma: no cover
+            raise ValueError('Got invalid value in graph index bundle'
+                             ' that was neither a `basestring` or `VertexKey`'
+                             ' or `EdgeKey`. Instead, got: "%s".' % repr(_item))
+
+        # slice key and value into args
+        gbase, gtoken, gtarget = tuple(_components)
+
+        bundle_args.append(Vertex)
+        bundle_args.append(cls._magic_separator.join((cls._graph_prefix,
+                                                      gbase,
+                                                      gtoken)))
+        bundle_args.append(gtarget)
 
       # invalid indexer bundle
       else:  # pragma: no cover
         raise RuntimeError('Invalid graph index bundle: "%s".' % bundle)
+
+      # build index key
+      indexer_calls.append((handler, tuple(bundle_args), {'target': target}))
 
     # write meta and property indexes
     for btype, bundle in (('meta', meta), ('property', property_map)):
@@ -856,7 +910,7 @@ class RedisAdapter(DirectedGraphAdapter):
         # resolve datatype of index
         if not isinstance(value, bool) and isinstance(value, _SERIES_BASETYPES):
 
-          if converter is None:
+          if converter is None:  # pragma: no cover
             raise RuntimeError('Illegal non-string value passed in'
                                ' for a `meta` index value.'
                                ' Write bundle: "%s".' % write)

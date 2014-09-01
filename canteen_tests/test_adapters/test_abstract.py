@@ -350,14 +350,16 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
                             name="Bob")
       k = bob.put(adapter=self.subject())
 
+      assert isinstance(k, model.Key), (
+        "instead of a key, got back the object: '%s'" % k)
       assert isinstance(bob, TestGraphPerson)
-      assert isinstance(k, model.Key)
       assert isinstance(k, model.VertexKey)
       assert isinstance(k.id, basestring)
 
       steve = self.test_make_vertex_keyname()
       _orig_ek = model.EdgeKey(TestGraphGift, "some-gift")
       f = TestGraphGift(bob, steve, key=_orig_ek)
+
       ek = f.put(adapter=self.subject())
 
       assert isinstance(ek, model.EdgeKey)

@@ -722,11 +722,12 @@ class GraphModelAdapter(IndexedModelAdapter):
 
       _GRAPH_KEYS = (model.Vertex.__keyclass__, model.Edge.__keyclass__)
 
-      return cls._magic[(
-        'key' if not isinstance(key, _GRAPH_KEYS) else (
-          'vertex' if isinstance(key, model.Vertex.__keyclass__) else (
-            'edge' if isinstance(key, model.Vertex.__keyclass__) else None))
-        )], sanitized
+      _key = 'key'
+      if hasattr(key, '__vertex__') and key.__vertex__:
+        _key = 'vertex'
+      elif hasattr(key, '__edge__') and key.__edge__:
+        _key = 'edge'
+      return (cls._magic[_key], key.urlsafe())
 
   @decorators.classproperty
   def _index_basetypes(self):
@@ -814,6 +815,15 @@ class GraphModelAdapter(IndexedModelAdapter):
     # initialize graph indexes
     graph = []
 
+    if key and properties is None:
+      # we're probably cleaning indexes
+      encoded, meta = _super(key)
+
+    else:
+      # defer upwards for regular indexes
+      encoded, meta, properties = _super(key, properties)
+
+
     if key:
       # vertex keys
       if isinstance(key, VertexKey):
@@ -836,10 +846,6 @@ class GraphModelAdapter(IndexedModelAdapter):
           # directed indexes
           if spec.directed:
 
-            # trim double indexes on `source and `target`
-            if 'source' in properties: del properties['source']
-            if 'target' in properties: del properties['target']
-
             for target in entity.target:
 
               # __graph__::<source>::out => edge
@@ -857,9 +863,6 @@ class GraphModelAdapter(IndexedModelAdapter):
           # undirected indexes
           else:
 
-            # trim double indexes on `peers`
-            if 'peers' in properties: del properties['peers']
-
             _indexed_pairs = set()
             for o, source in enumerate(entity.peers):
               for i, target in enumerate(entity.peers):
@@ -873,26 +876,21 @@ class GraphModelAdapter(IndexedModelAdapter):
                     (target, source) in _indexed_pairs):
                   continue
 
-                # __graph__::<source>::peers
-                graph.append((source, cls._peers_token))
+                # __graph__::<source>::peers => edge
+                graph.append((source, cls._peers_token, entity.key))
 
-                # __graph__::<target>::peers
-                graph.append((target, cls._peers_token))
+                # __graph__::<target>::peers => edge
+                graph.append((target, cls._peers_token, entity.key))
 
-                # __graph__::<source>::neighbors
-                graph.append((source, cls._neighbors_token))
+                # __graph__::<source>::neighbors => target
+                graph.append((source, cls._neighbors_token, target))
 
-                # __graph__::<target>::neighbors
-                graph.append((target, cls._neighbors_token))
+                # __graph__::<target>::neighbors => source
+                graph.append((target, cls._neighbors_token, source))
 
     if key and properties is None:
-      # we're probably cleaning indexes
-      encoded, meta = _super(key)
-      return encoded, meta, graph
-
-    # defer upwards for regular indexes
-    encoded, meta, properties = _super(key, properties)
-    return encoded, meta, properties, graph
+      return encoded, meta, tuple(graph)
+    return encoded, meta, properties, tuple(graph)
 
   @abc.abstractmethod
   def write_indexes(cls, writes, graph, **kwargs):

@@ -28,5 +28,5 @@ class RedisAdapterTests(DirectedGraphAdapterTests):
 
     # @TODO(sgammon): mock redis testing
 
-    #__abstract__ = False
-    #subject = rapi.RedisAdapter
+    __abstract__ = False
+    subject = rapi.RedisAdapter

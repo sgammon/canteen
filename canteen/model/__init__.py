@@ -1554,8 +1554,8 @@ class Edge(Model):
       """ DOCSTRING """
 
       if '__spec__' in pmap and pmap['__spec__'].directed:
-        pmap['source'] = VertexKey, {'indexed': True}
-        pmap['target'] = VertexKey, {'indexed': True, 'repeated': True}
+        pmap['source'] = VertexKey, {'required': True}
+        pmap['target'] = VertexKey, {'repeated': True}
       elif '__spec__' not in pmap or (
            '__spec__' in pmap and not pmap['__spec__'].directed):
         pmap['peers'] = VertexKey, {'indexed': True, 'repeated': True}

@@ -363,8 +363,14 @@ class RedisAdapter(DirectedGraphAdapter):
         :param kind: String :py:class:`model.Model` kind to retrieve a channel
           for.
 
+        :raises RuntimeError:
+
         :returns: Acquired ``Redis`` client connection, potentially specific to
           the handed-in ``kind``. """
+
+    if not cls.adapter or not _support.redis:
+      raise RuntimeError('No support detected in the current environment'
+                         ' for Python Redis. Please `pip install redis`.')
 
     impl = cls.adapter.StrictRedis
     if __debug__ and cls.__testing__:

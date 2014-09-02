@@ -46,6 +46,14 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
   __abstract__ = False
   subject = inmemory.InMemoryAdapter
 
+  def test_construct(self):
+
+    """ Test basic construction of `InMemoryAdapter` """
+
+    x = inmemory.InMemoryAdapter()
+    assert x
+    assert isinstance(x, inmemory.InMemoryAdapter)
+
   def test_invalid_get(self):
 
     """ Test requesting a key that doesn't exist """
@@ -266,8 +274,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     m = [
       InMemoryModel(key=root, string='soop'),
       InMemoryModel(key=child1, string='soop'),
-      InMemoryModel(key=child2, string='soop')
-    ]
+      InMemoryModel(key=child2, string='soop')]
 
     for _m in m: _m.put()
 
@@ -301,8 +308,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
                     date=now + datetime.timedelta(days=3)),
       InMemoryModel(key=child3,
                     string="noway",
-                    date=now + datetime.timedelta(days=4))
-    ]
+                    date=now + datetime.timedelta(days=4))]
 
     for _m in m: _m.put()
 
@@ -527,8 +533,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
       InMemoryModel(key=child1, string="aardvark", date=later(1)),
       InMemoryModel(key=child2, string="blasphemy", date=later(2)),
       InMemoryModel(key=child3, string="xylophone", date=later(3)),
-      InMemoryModel(key=child4, string="yompin", date=later(4))
-    ]
+      InMemoryModel(key=child4, string="yompin", date=later(4))]
 
     for _m in m: _m.put()
 

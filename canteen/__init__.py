@@ -20,6 +20,18 @@ debug, __version__ = __debug__, (1, 0)
 # stdlib
 import __builtin__; export = None
 
+# yay modules!
+from . import (rpc,
+               core,
+               util,
+               test,
+               base,
+               logic,
+               model,
+               runtime,
+               dispatch,
+               exceptions)
+
 # canteen :)
 from .rpc import *
 from .core import *

@@ -24,12 +24,6 @@ class BaseFrameworkTests(test.FrameworkTest):
 
   """ Tests basic framework details. """
 
-  def test_exports(self):
-
-    """ Test basic exports from `canteen` """
-
-    pass
-
   def test_runscript(self):
 
     """ Test basic functionality of `canteen.__main__` """
@@ -39,7 +33,7 @@ class BaseFrameworkTests(test.FrameworkTest):
     assert hasattr(__main__, 'run')
     assert hasattr(__main__, 'app')
 
-  def test_walk(self):
+  def test_walk_and_main(self):
 
     """ Test package walking functionality from `canteen.__main__` """
 
@@ -51,14 +45,27 @@ class BaseFrameworkTests(test.FrameworkTest):
     # walk packages
     walk()
 
+    # make sure testing __main__ is at least importable
+    from canteen_tests import __main__
+
   def test_spawn(self):
 
-    """ Test spawning an instance of `core.Runtime` via `spawn` """
+    """ Test mechanics of top-level `spawn` """
 
-    pass
+    from canteen import spawn
+    from canteen.core import runtime
+
+    x = spawn(None, {})
+
+    assert isinstance(x, runtime.Runtime)
 
   def test_framework_all(self):
 
     """ Test for expected Framework-level exports """
 
-    pass
+    for attr in ('__all__',
+                  'base', 'core', 'logic', 'model', 'rpc', 'runtime', 'util',
+                  'Library', 'Logic', 'Page', 'Service', 'Model', 'Vertex',
+                  'Edge', 'Key'):
+      assert hasattr(canteen, attr), (
+        "failed to resolve expected framework export: '%s'." % attr)

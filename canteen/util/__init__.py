@@ -41,7 +41,7 @@ def say(*args):  # pragma: no cover
   print(' '.join(map(lambda x: str(x), args)))
 
 
-def walk(root=None, debug=__debug__):  # pragma: no cover
+def walk(root=None, debug=__debug__):
 
   """  """
 

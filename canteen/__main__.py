@@ -18,7 +18,7 @@
 """
 
 # utils
-from util import walk
-from dispatch import run
+from .util import walk
+from .dispatch import (run, app)
 
 walk(), run()

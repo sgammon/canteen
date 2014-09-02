@@ -15,16 +15,18 @@
 
 """
 
-# RPC tests
-from . import test_base
-from . import test_exceptions
+if __debug__:
 
-# protocol tests
-from . import test_json
-from . import test_msgpack
+  # RPC tests
+  from . import test_base
+  from . import test_exceptions
+
+  # protocol tests
+  from . import test_json
+  from . import test_msgpack
 
 
-__all__ = ('test_base',
-           'test_exceptions',
-           'test_json',
-           'test_msgpack')
+  __all__ = ('test_base',
+             'test_exceptions',
+             'test_json',
+             'test_msgpack')

@@ -50,12 +50,14 @@ if redis or fakeredis:
         """ Set Redis into testing mode. """
 
         rapi.RedisAdapter.__testing__ = True
+        super(DirectedGraphAdapterTests, self).setUp()
 
       def tearDown(self):
 
         """ Set Redis back into non-testing mode. """
 
         rapi.RedisAdapter.__testing__ = False
+        super(DirectedGraphAdapterTests, self).tearDown()
 
 
 else:  # pragma: no cover

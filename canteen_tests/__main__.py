@@ -19,9 +19,10 @@
 if __debug__:  # pragma: no cover
 
   # stdlib & canteen
-  import sys
+  import sys, os
 
 
-  if __name__ == '__main__':
+  if __name__ == '__main__' and (
+        'CANTEEN_TESTING' not in os.environ):  # pragma: no cover
     import nose
     sys.exit(int(nose.run()))

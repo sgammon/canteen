@@ -44,13 +44,19 @@ try:
   ## force absolute import to avoid infinite recursion
   redis = _redis_client = _support.redis = (
     __import__('redis', locals(), globals(), [], 0))
-except ImportError as e:  # pragma: no cover
+except ImportError:  # pragma: no cover
   _support.redis, _redis_client, redis = False, None, None
+
+# or fakeredis, for testing only
+try:
+  import fakeredis; _support.fakeredis = True
+except ImportError:  # pragma: no cover
+  fakeredis, _support.fakeredis = None, False
 
 # resolve gevent
 try:
   import gevent; _support.gevent = gevent
-except ImportError as e:  # pragma: no cover
+except ImportError:  # pragma: no cover
   gevent, _support.gevent = None, False
 else:  # pragma: no cover
   if _support.redis and (
@@ -298,6 +304,8 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: The imported ``Redis`` driver, or ``False`` if it could not
           be found. """
 
+    if cls.__testing__ and fakeredis:
+      return _support.fakeredis
     return _support.redis
 
   @decorators.classproperty

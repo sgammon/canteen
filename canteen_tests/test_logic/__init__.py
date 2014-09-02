@@ -13,8 +13,10 @@
 
 """
 
-__all__ = ('test_assets',
-           'test_cache',
-           'test_realtime',
-           'test_session',
-           'test_template')
+if __debug__:
+
+  __all__ = ('test_assets',
+             'test_cache',
+             'test_realtime',
+             'test_session',
+             'test_template')

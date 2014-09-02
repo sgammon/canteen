@@ -13,8 +13,9 @@
 
 """
 
+if __debug__:
 
-__all__ = ('test_handler',
-           'test_logic',
-           'test_page',
-           'test_protocol')
+  __all__ = ('test_handler',
+             'test_logic',
+             'test_page',
+             'test_protocol')

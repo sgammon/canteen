@@ -51,6 +51,25 @@ if __debug__:
     """  """
 
     __appconfig__ = None  # class-level assignment of app config state
+    __orig_testing__ = None  # original CANTEEN_TESTING flag from environ
+
+    @classmethod
+    def setUpClass(cls):  # pragma: no cover
+
+      """  """
+
+      if 'CANTEEN_TESTING' not in os.environ:  # pragma: no cover
+        cls.__orig_testing__ = False  # no original flag
+        os.environ['CANTEEN_TESTING'] = 'on'
+      super(BaseTest, cls).setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):  # pragma: no cover
+
+      """  """
+
+      if not cls.__orig_testing__:  # pragma: no cover
+        del os.environ['CANTEEN_TESTING']
 
     @classmethod
     def set_config(cls, target):

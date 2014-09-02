@@ -16,8 +16,9 @@
 
 """
 
+if __debug__:
 
-__all__ = ('test_runtime',
-           'test_injection',
-           'test_meta',
-           'test_hooks')
+  __all__ = ('test_runtime',
+             'test_injection',
+             'test_meta',
+             'test_hooks')

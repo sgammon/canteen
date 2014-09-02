@@ -13,9 +13,11 @@
 
 """
 
-__all__ = ('test_agent',
-           'test_caching',
-           'test_cookies',
-           'test_etags',
-           'test_redirects',
-           'test_semantics')
+if __debug__:
+
+  __all__ = ('test_agent',
+             'test_caching',
+             'test_cookies',
+             'test_etags',
+             'test_redirects',
+             'test_semantics')

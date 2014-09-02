@@ -16,8 +16,10 @@
 """
 
 
-__all__ = ('test_struct',
-           'test_decorators',
-           'test_debug',
-           'test_config',
-           'test_cli')
+if __debug__:
+
+  __all__ = ('test_struct',
+             'test_decorators',
+             'test_debug',
+             'test_config',
+             'test_cli')

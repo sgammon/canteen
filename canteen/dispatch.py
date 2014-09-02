@@ -15,6 +15,11 @@
 
 """
 
+# stdlib
+import os
+
+
+## Globals
 app = None
 
 
@@ -79,4 +84,7 @@ def run(app=None,
       :returns: Nothing useful, as this blocks to
         serve requests forever and ever. """
 
-  return spawn(app, dev, config or {}).serve(interface, port)
+  if 'CANTEEN_TESTING' in os.environ and os.environ['CANTEEN_TESTING'] in (
+    'yep', '1', 'sure', 'ofcourse', 'whynot', 'yes', 'on'):
+    return spawn(app, config or {})  # pragma: no cover
+  return spawn(app, config or {}).serve(interface, port)

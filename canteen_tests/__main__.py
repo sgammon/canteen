@@ -16,15 +16,12 @@
 """
 
 
-if __debug__:
+if __debug__:  # pragma: no cover
 
   # stdlib & canteen
-  import os
   import sys
-  import canteen
-  import canteen.test
+
 
   if __name__ == '__main__':
-
     import nose
     sys.exit(int(nose.run()))

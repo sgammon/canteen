@@ -595,7 +595,6 @@ class BidirectionalEnumTests(test.FrameworkTest):
 
     with self.assertRaises(AttributeError):
       assert enum.BLACK
-      assert enum.GRAY
 
   def test_getitem(self):
 
@@ -613,7 +612,6 @@ class BidirectionalEnumTests(test.FrameworkTest):
 
     with self.assertRaises(KeyError):
       assert enum['BLACK']
-      assert enum['GRAY']
 
   def test_immutable(self):
 

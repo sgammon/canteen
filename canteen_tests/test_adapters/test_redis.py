@@ -24,11 +24,16 @@ from canteen.model.adapter import redis as rapi
 
 try:
   import redis
-except ImportError:
+except ImportError:  # pragma: no cover
   redis = None
 
+try:
+  import fakeredis
+except ImportError:  # pragma: no cover
+  fakeredis = None
 
-if redis:
+
+if redis or fakeredis:
 
 
   class RedisAdapterTests(DirectedGraphAdapterTests):
@@ -52,5 +57,6 @@ if redis:
 
         rapi.RedisAdapter.__testing__ = False
 
-else:
+
+else:  # pragma: no cover
   print("Warning! Redis not found, skipping Redis testsuite.")

@@ -17,10 +17,15 @@
 if __debug__:
 
   # setuptools
-  import sys, logging, setuptools as tools; dependencies = []
+  import sys
+  import logging
+  import traceback
+  import setuptools as tools
 
 
-  ## Constants
+  ## Constants / Globals
+
+  dependencies = []
 
   # version of setuptools needed for a pleasant life
   SETUPTOOLS_VERSION = '4.0.1'
@@ -52,7 +57,7 @@ if __debug__:
     logging.DEBUG if __debug__ else logging.WARNING))
 
 
-  def prepare():
+  def prepare():  # pragma: no cover
 
     """ Prepare constants and tools for setting up Canteen.
 
@@ -87,8 +92,8 @@ if __debug__:
         use_setuptools()
 
         # reload module and check version
-        reload(setuptools)
-        CURRENT_SETUPTOOLS_VERSION = setuptools.__version__
+        reload(tools)
+        CURRENT_SETUPTOOLS_VERSION = tools.__version__
       except Exception as e:
         log.error('Encountered exception using `ez_setup`...')
         if __debug__:

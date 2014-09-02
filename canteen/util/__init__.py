@@ -46,7 +46,7 @@ def walk(root=None, debug=__debug__):
   """  """
 
   # make sure working directory is in path
-  if os.getcwd() not in sys.path:
+  if os.getcwd() not in sys.path:  # pragma: no cover
     sys.path.insert(0, os.getcwd())
 
   def walker(bundle):
@@ -57,12 +57,10 @@ def walk(root=None, debug=__debug__):
 
     try:
       return importlib.import_module(name).__name__ if not is_package else name
-    except ImportError as e:
-      if debug:
-        print('Failed to preload path "%s"...' % (root or '.'))
-        print(e)
-        raise
-    return (mod.__name__, is_package)
+    except ImportError as e:  # pragma: no cover
+      print('Failed to preload path "%s"...' % (root or '.'))
+      print(e)
+      if debug: raise
 
   if debug: print('Preloading path "%s"...' % (root or '.'))
   say_lambda = (lambda x: say('Preloaded:', x) if x else None) if (

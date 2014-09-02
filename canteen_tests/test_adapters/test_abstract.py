@@ -217,7 +217,6 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       x = self.test_make_vertex_keyname()
       pulled = TestGraphPerson.get(x.key, adapter=self.subject())
 
-      assert isinstance(pulled, TestGraphPerson)
       assert pulled.key == x.key
       assert isinstance(pulled.key, model.Key)
       assert isinstance(pulled.key, model.VertexKey)
@@ -282,7 +281,6 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       # fetch by key
       _f = TestGraphFriends.get(friendship.key, adapter=self.subject())
 
-      assert isinstance(_f, TestGraphFriends)
       assert isinstance(_f.key, model.Key)
       assert isinstance(_f.key, model.EdgeKey)
       assert isinstance(_f.key.id, basestring)
@@ -403,7 +401,6 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
       # fetch by key
       _f = TestGraphGift.get(gift.key, adapter=self.subject())
 
-      assert isinstance(_f, TestGraphGift)
       assert isinstance(_f.key, model.Key)
       assert isinstance(_f.key, model.EdgeKey)
       assert isinstance(_f.key.id, basestring)

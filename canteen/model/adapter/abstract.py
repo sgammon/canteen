@@ -720,9 +720,9 @@ class GraphModelAdapter(IndexedModelAdapter):
 
       _key = 'key'
       if hasattr(key, '__vertex__') and key.__vertex__:
-        _key = 'vertex'
+        _key = 'vertex'  # pragma: no cover
       elif hasattr(key, '__edge__') and key.__edge__:
-        _key = 'edge'
+        _key = 'edge'  # pragma: no cover
       return (cls._magic[_key], key.urlsafe())
 
   @decorators.classproperty

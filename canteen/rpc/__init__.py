@@ -394,7 +394,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       # @TODO(sgammon): HTTP OPTIONS integration testing for services
       return self.response('OPTIONS, POST')
 
-    def POST(self, version, service, method):
+    def POST(self, version, service, method):  # pragma: no cover
 
       """ Dispatch handler for ``HTTP POST`` requests. Main entrypoint into
           the RPC framework via HTTP, as requests are ``POST``ed in a supported
@@ -409,7 +409,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
       # @TODO(sgammon): HTTP POST integration testing for services
       _status, _headers = None, None
 
-      def _respond(status, headers):
+      def _respond(status, headers):  # pragma: no cover
 
         """ Inner response closure that overrides normal ``start_response``.
 
@@ -542,7 +542,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
 
       return ServiceFactory.construct(cls, *args, **kwargs)
 
-    def initialize_request_state(self, state):
+    def initialize_request_state(self, state):  # pragma: no cover
 
       """ Initialize this service with ``state`` handed-in by ProtoRPC's
           underlying plumbing.

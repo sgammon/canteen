@@ -1,4 +1,12 @@
+tox
+pep8
 nose
-coverage
 sphinx
+coverage
 fakeredis
+flake8
+flake8-todo
+flake8-debugger
+flake8-copyright
+flake8-docstrings
+flake8-blind-except

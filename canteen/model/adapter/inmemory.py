@@ -46,7 +46,9 @@ _to_timestamp = lambda dt: int(time.mktime(dt.timetuple()))
 
 class InMemoryAdapter(DirectedGraphAdapter):
 
-  """ Adapt model classes to RAM. """
+  """ Adapt model classes to RAM with a simple adapter. Mainly meant as a
+      reference ``DirectedGraphAdapter`` implementation. Supports querying
+      and graph storage. """
 
   # key encoding
   _key_encoder = base64.b64encode
@@ -62,11 +64,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     """ Perform first initialization.
 
-        :param name:
-        :param bases:
-        :param properties:
+        :param name: Target :py:class:`Model` subtype class name.
+        :param bases: Base classes for target subtype.
+        :param properties: Class-level property mappings for target subtype.
 
-        :returns: """
+        :returns: Prepared :py:class:`InMemoryAdapter` object for target
+          ``(name, bases, properties)`` combo. """
 
     global _init, _graph, _metadata
 
@@ -79,6 +82,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
           'put': 0,  # track # of entity put() operations
           'delete': 0},  # track # of entity delete() operations
 
+        'keys': set(),  # holds set of all known keys
         'kinds': {},  # holds current count and ID increment
         'global': {  # holds global metadata, like entity count
           'entity_count': 0,  # holds global count of all entities
@@ -92,22 +96,31 @@ class InMemoryAdapter(DirectedGraphAdapter):
         cls._reverse_prefix: {}  # maps keys to indexes they are present in
 
       }, {
+
+        # holds nodes (structurally)
         'nodes': collections.defaultdict(lambda: set()),
 
+        # holds edges (structurally)
         'edges': {
+
+          # holds directed edges
           'directed': {
             'in': collections.defaultdict(lambda: set()),
             'out': collections.defaultdict(lambda: set())},
 
+          # holds undirected edges
           'undirected': collections.defaultdict(lambda: set())},
 
+        # holds neighbor indexes
         'neighbors': {
+
+          # holds directed edge neighbor indexes
           'directed': {
             'in': collections.defaultdict(lambda: set()),
             'out': collections.defaultdict(lambda: set())},
 
-          'undirected': collections.defaultdict(lambda: set())}
-      }
+          # holds undirected neighbor indexes
+          'undirected': collections.defaultdict(lambda: set())}}
 
     # pass up the chain to create a singleton
     return super(InMemoryAdapter, cls).acquire(name, bases, properties)
@@ -117,10 +130,14 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     """ Retrieve an entity by Key from Python RAM.
 
-        :param key:
-        :param **kwargs:
+        :param key: Target :py:class:`model.Key` object at which data should be
+          fetched, if it is available.
 
-        :returns: """
+        :param kwargs: Implementation-specific flags/kwargs passed to the
+          underlying adapter from the application.
+
+        :returns: Entity at ``key``, if any, or ``None`` if no entity could
+          be found at ``key``. """
 
     global _metadata
 
@@ -133,20 +150,27 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     _metadata['ops']['get'] += 1
 
-    # construct + inflate entity
-    return entity
+    return entity  # construct + inflate entity
 
   @classmethod
   def put(cls, key, entity, model, **kwargs):
 
     """ Persist an entity to storage in Python RAM.
 
-        :param key:
-        :param entity:
-        :param model:
-        :param **kwargs:
+        :param key: Target :py:class:`model.Key` object at which data should be
+          persisted.
 
-        :returns: """
+        :param entity: Entity object to store against ``key`` in RAM.
+
+        :param model: :py:class:`model.Model` subtype kind for ``entity``. Used
+          for property/policy reference.
+
+        :param kwargs: Implementation-specific flags/kwargs to the underlying
+          adapter from the application.
+
+        :returns: ``key`` at which ``entity`` was stored in underlying storage,
+          including any elements of ``key`` which required population from
+           things like ID provisioning. """
 
     global _graph, _metadata, _datastore
 
@@ -159,7 +183,8 @@ class InMemoryAdapter(DirectedGraphAdapter):
       if entity.key.kind not in _metadata['kinds']:  # pragma: no cover
         _metadata['kinds'][entity.key.kind] = {
           'id_pointer': 0,  # keep current key ID pointer
-          'entity_count': 0}  # keep count of seen entities for each kind
+          'entity_count': 0,  # keep count of seen entities for each kind
+          'keys': set()}  # keep set of all keys for kind
 
       # update counts
       _metadata['ops']['put'] = _metadata['ops'].get('put', 0) + 1
@@ -172,6 +197,14 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
       _metadata['kinds'][entity.key.kind]['entity_count'] = (
         kinded_entity_count + 1)
+
+      # add to keys for kind
+      kinded_keys = _metadata['kinds'][entity.key.kind].get('keys', set())
+      kinded_keys.add(encoded)
+      _metadata['kinds'][entity.key.kind]['keys'] = kinded_keys
+
+      # add to main keys index
+      _metadata['keys'].add(encoded)
 
       # save to datastore
       _datastore[encoded] = entity.to_dict()
@@ -217,10 +250,14 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     """ Delete an entity by Key from memory.
 
-        :param key:
-        :param **kwargs:
+        :param key: Target :py:class:`model.Key` object at which data should be
+          deleted in underlying RAM storage.
 
-        :returns: """
+        :param kwargs: Implementation-specific flags/kwargs to the underlying
+          adapter from the application.
+
+        :returns: ``True`` if the entity at ``key`` was found and deleted,
+          ``False`` if the entity could not be found for deletion. """
 
     global _metadata, _datastore
 
@@ -262,14 +299,27 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     """ Allocate new Key IDs up to `count`.
 
-        :param key_class:
-        :param kind:
-        :param count:
-        :param **kwargs:
+        :param key_class: :py:class:`model.Key` subtype for which we are
+          allocating integer IDs from underlying RAM storage.
 
-        :raises StopIteration:
+        :param kind: ``str`` or ``unicode`` kind name for which we are
+          allocating integer IDs from underlying RAM storage. Used to resolve
+          an appropriate ``id_pointer`` index.
 
-        :returns: """
+        :param count: Number of unique key IDs we would like to provision.
+          Defaults to ``1``.
+
+        :param kwargs: Implementation-specific flags/kwargs to the underlying
+          adapter from the application.
+
+        :raises StopIteration: When all the requested IDs have been allocated
+          and yielded to the application.
+
+        :returns: If a ``count`` is given that is ``> 1``, will return a
+          generator function that will ``yield`` IDs up to ``count`` one at a
+          time. Otherwise, returns the newly-provisioned ID integer directly,
+          making the return type either ``function`` (if ``count`` is greater
+          than one) or ``int``/``long``. """
 
     global _metadata
 
@@ -446,12 +496,16 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def clean_indexes(cls, writes, **kwargs):
 
-    """ Clean indexes for a key.
+    """ Clean indexes for a key that is due to be deleted.
 
-        :param writes:
-        :param **kwargs:
+        :param writes: Index writes that would be committed if the ``key`` was
+          being written. Used to provide a directory of index items to clean
+          from underlying RAM.
 
-        :returns: """
+        :param kwargs: Implementation-specific flags/kwargs to the underlying
+          adapter from the application.
+
+        :returns: ``set`` instance containing index keys that were cleaned. """
 
     global _metadata
 
@@ -540,16 +594,27 @@ class InMemoryAdapter(DirectedGraphAdapter):
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    """ Execute a query across one (or multiple) indexed properties.
+    """ Execute a query across one (or multiple) indexed properties. Collapses
+        a symbolic :py:class:`canteen.model.query.Query` object and attempts to
+        properly satisfy any ``Filter``/``Sort`` objects attached.
 
-        :param kind:
-        :param spec:
-        :param options:
-        :param **kwargs:
+        :param kind: :py:class:`model.Model` subtype class that we're querying
+          for. Used for resolving policy/index names/storage names.
 
-        :raises RuntimeError:
+        :param spec: Tuple of ``(filters, sorts)`` to apply for this ``Query``
+          execution run.
 
-        :returns: """
+        :param options: :py:class:`canteen.model.query.QueryOptions` instance,
+          which specifies query options like a result ``offset`` or ``limit``.
+
+        :param kwargs: Implementation-specific flags/kwargs to the underlying
+          adapter from the application.
+
+        :raises RuntimeError: In the event of an unsatisfiable query or other
+          unrecoverable runtime error.
+
+        :returns: Results matching ``spec`` for ``kind`` according to
+          ``options``, or an empty ``list`` if no results could be found. """
 
     from canteen import model
     from canteen.model import query
@@ -628,8 +693,8 @@ class InMemoryAdapter(DirectedGraphAdapter):
             # devalued index
             _index_key = ((kind.__name__, _f.target.name), _f.value.data)
             if _index_key in _metadata[cls._index_prefix]:
-              _unsorted_indexes.append((False, (_f,
-                                       _metadata[cls._index_prefix][_index_key])))
+              _unsorted_indexes.append((
+                False, (_f, _metadata[cls._index_prefix][_index_key])))
 
       for group in _index_groups:
         for is_sorted, directive in group:
@@ -703,12 +768,23 @@ class InMemoryAdapter(DirectedGraphAdapter):
     _seen = 0
     _flatten = lambda _k: _k.urlsafe() if isinstance(_k, model.Key) else _k
 
-    for key, entity in ((k, _datastore[_flatten(k)]) for k in _data_frame):
+    if not _data_frame and _inmemory_filters:
+      # corner case: no initial data frame but inmemory filters
+      #  force-initialize data frame with kind index, or if we're unlucky
+      #  enough to be doing a kindless query, the index of all available
+      #  keys.
 
+      if kind: _data_frame = _metadata['kinds'].get(kind.__name__, {'keys': set()})['keys']
+      else: _data_frame = _metadata['keys']
+
+
+    for key, entity in ((k, _datastore.get(_flatten(k))) for k in _data_frame):
+
+      # @TODO(sgammon) log ghosts?
+      if not entity: continue  # skip missing entities
       if not isinstance(key, model.Key):
         key = model.Key.from_urlsafe(key, _persisted=True)
 
-      if not entity: continue
       if options.limit and _seen >= options.limit:
         break
 
@@ -739,32 +815,36 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
       def do_sort(sort, results):
 
-        """  """
+        """ Apply a ``sort`` operation to a set of query ``results``.
 
-        _sort_i = set()
-        _sort_frame = []
-        _sort_values = {}
+            :param sort: :py:class:`canteen.model.query.Sort` instance
+              describing the sort operator to be applied and the target
+              ``prop`` to apply it to.
+
+            :param results: ``list`` of datastore ``results`` that have been
+             filtered and retrieved from underlying storage.
+
+            :returns: Query results passed in as ``results``, but sorted
+              according to ``sort``. """
+
+        _sort_i, _sort_frame, _sort_values = set(), [], {}
 
         # build value index and map to keys
         for result in results:
           val = getattr(result, sort.target.name, None)
           if val is not None:
-
             if val not in _sort_values:
               _sort_i.add(val)  # add to known values
               _sort_values[val] = set()  # provision value -> obj map
             _sort_values[val].add(result)  # add to map
 
-        _rvs = lambda d: reversed(sorted(d))
-        _fwd = lambda d: sorted(d)
+        _rvs, _fwd = lambda d: reversed(sorted(d)), lambda d: sorted(d)
 
         if sort.target._basetype in (basestring, str, unicode):
-          sorter = (_rvs if (
-                    sort.operator is query.ASCENDING) else _fwd)
+          sorter = (_rvs if (sort.operator is query.ASCENDING) else _fwd)
 
         else:
-          sorter = (_fwd if (
-                    sort.operator is query.ASCENDING) else _rvs)
+          sorter = (_fwd if (sort.operator is query.ASCENDING) else _rvs)
 
         # choose iterator and start sorting
         for value in sorter(_sort_i):
@@ -778,7 +858,6 @@ class InMemoryAdapter(DirectedGraphAdapter):
           if len(sorts) > 1:
             # add sorted groups of values
             _sort_frame.append((value, _sort_values[value]))
-
         return _sort_frame
 
       if len(sorts) == 1:
@@ -792,5 +871,4 @@ class InMemoryAdapter(DirectedGraphAdapter):
           _sort_base = do_sort(*(
             sort, (_sort_base and result_entities) or _sort_base))
         return _sort_base
-
     return result_entities

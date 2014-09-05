@@ -101,8 +101,7 @@ class Delegate(object):
         '__getattr__': classmethod(injection_responder),
         '__metaclass__': mcs,
         '__repr__': mcs.__repr__,
-        '__target__': target
-      })
+        '__target__': target})
 
     def __repr__(cls):  # pragma: nocover
 

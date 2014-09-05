@@ -277,16 +277,14 @@ class Handler(object):
       iter(self.template.base_headers),
       self.config.get('http', {}).get('headers', {}).iteritems(),
       self.headers.iteritems(),
-      (headers or {}).iteritems()
-    ))
+      (headers or {}).iteritems()))
 
     # merge template context
     _merged_context = dict(itertools.chain(*(i.iteritems() for i in (
       self.template.base_context,
       self.template_context,
       context or {},
-      kwargs
-    ))))
+      kwargs))))
 
     # render template and set as response data
     self.response.response, self.response.direct_passthrough = (
@@ -294,8 +292,7 @@ class Handler(object):
         self,
         getattr(self.runtime, 'config', config.Config()),
         template,
-        _merged_context
-      )), True
+        _merged_context)), True
 
     return self.respond()
 
@@ -315,17 +312,16 @@ class Handler(object):
           ``self`` for chainability. """
 
     # run prepare hook, if specified
-    if hasattr(self, 'prepare'):
-      self.prepare(url_args, direct=direct)
+    if hasattr(self, 'prepare'): self.prepare(url_args, direct=direct)
 
     # resolve method to call - try lowercase first
     method = getattr(self, self.request.method)
     _response = method(**url_args)
-    if _response is not None:
-      self.__response__ = _response
+
+    # assign response
+    if _response is not None: self.__response__ = _response
 
     # run destroy hook, if specified
-    if hasattr(self, 'destroy'):
-      self.destroy(self.__response__)
+    if hasattr(self, 'destroy'): self.destroy(self.__response__)
 
     return self.__response__ if not direct else self

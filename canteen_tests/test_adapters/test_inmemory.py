@@ -237,6 +237,10 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     q = InMemoryModel.query().filter(InMemoryModel.string != "sploop")
     result = q.fetch(limit=50)
 
+    assert len(result) > 0, (
+      "got no results for inequality query"
+      " (got '%s' from adapter '%s')" % (result, self.subject))
+
     for r in result:
       assert r.string != "sploop"
 

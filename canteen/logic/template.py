@@ -17,22 +17,303 @@
 
 # stdlib
 import os
+import re
 import json
 import operator
 import importlib
 
-# core util & base
+# base
 from ..base import logic
+from ..base import handler
+
+# core & utils
 from ..core import runtime
 from ..util import decorators
 
 
 ## Globals
 _conditionals = []
+_DEFAULT_TPL_PATTERN = r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$'
 average = lambda x: reduce(operator.add, x) / len(x)
 
 
 with runtime.Library('jinja2', strict=True) as (library, jinja2):
+
+  # jinja internals
+  from jinja2 import nodes, compiler
+  from jinja2.nodes import EvalContext
+  from jinja2._compat import iteritems
+  from jinja2.compiler import Frame, find_undeclared
+  from jinja2.compiler import unoptimize_before_dead_code
+  from jinja2.ext import with_, autoescape, do, loopcontrols
+
+  DEFAULT_EXTENSIONS = [with_, autoescape, do, loopcontrols]
+
+
+  def template_ast(self, node, frame=None):  # pragma: no cover
+
+    """ Shim for Jinja2's default ``Jinja``-sytnax-to-Python AST converter.
+        Wraps template code in a module-level ``run`` function that binds it
+        to an instance of :py:class:`jinja2.Environment`.
+
+        :param node: Current AST node.
+        :param frame: Current code frame.
+        :return: ``None``. """
+
+    assert frame is None, 'no root frame allowed'
+    eval_ctx = EvalContext(self.environment, self.name)
+
+    from jinja2.runtime import __all__ as exported
+    self.writeline('from __future__ import division')
+    self.writeline('from jinja2.runtime import ' + ', '.join(exported))
+    if not unoptimize_before_dead_code:
+        self.writeline('dummy = lambda *x: None')
+
+    # if we want a deferred initialization we cannot move the
+    # environment into a local name
+    envenv = not self.defer_init and ', environment=environment' or ''
+
+    # do we have an extends tag at all?  If not, we can save some
+    # overhead by just not processing any inheritance code.
+    have_extends = node.find(nodes.Extends) is not None
+
+    # find all blocks
+    for block in node.find_all(nodes.Block):
+        if block.name in self.blocks:
+            self.fail('block %r defined twice' % block.name, block.lineno)
+        self.blocks[block.name] = block
+
+    # find all imports and import them
+    for import_ in node.find_all(nodes.ImportedName):
+        if import_.importname not in self.import_aliases:
+            imp = import_.importname
+            self.import_aliases[imp] = alias = self.temporary_identifier()
+            if '.' in imp:
+                module, obj = imp.rsplit('.', 1)
+                self.writeline('from %s import %s as %s' %
+                               (module, obj, alias))
+            else:
+                self.writeline('import %s as %s' % (imp, alias))
+
+    # add the load name
+    self.writeline('name = %r' % self.name)
+
+    # generate the deferred init wrapper
+    self.writeline('def run(environment):', extra=1)
+    self.indent()
+
+    # generate the root render function.
+    self.writeline('def root(context%s):' % envenv, extra=1)
+
+    # process the root
+    frame = Frame(eval_ctx)
+    frame.inspect(node.body)
+    frame.toplevel = frame.rootlevel = True
+    frame.require_output_check = have_extends and not self.has_known_extends
+    self.indent()
+    if have_extends:
+        self.writeline('parent_template = None')
+    if 'self' in find_undeclared(node.body, ('self',)):
+        frame.identifiers.add_special('self')
+        self.writeline('l_self = TemplateReference(context)')
+    self.pull_locals(frame)
+    self.pull_dependencies(node.body)
+    self.blockvisit(node.body, frame)
+    self.outdent()
+
+    # make sure that the parent root is called.
+    if have_extends:
+        if not self.has_known_extends:
+            self.indent()
+            self.writeline('if parent_template is not None:')
+        self.indent()
+        self.writeline('for event in parent_template.'
+                       'root_render_func(context):')
+        self.indent()
+        self.writeline('yield event')
+        self.outdent(2 + (not self.has_known_extends))
+
+    # at this point we now have the blocks collected and can visit them too.
+    for name, block in iteritems(self.blocks):
+        block_frame = Frame(eval_ctx)
+        block_frame.inspect(block.body)
+        block_frame.block = name
+        self.writeline('def block_%s(context%s):' % (name, envenv),
+                       block, 1)
+        self.indent()
+        undeclared = find_undeclared(block.body, ('self', 'super'))
+        if 'self' in undeclared:
+            block_frame.identifiers.add_special('self')
+            self.writeline('l_self = TemplateReference(context)')
+        if 'super' in undeclared:
+            block_frame.identifiers.add_special('super')
+            self.writeline('l_super = context.super(%r, '
+                           'block_%s)' % (name, name))
+        self.pull_locals(block_frame)
+        self.pull_dependencies(block.body)
+        self.blockvisit(block.body, block_frame)
+        self.outdent()
+
+    self.writeline('blocks = {%s}' % ', '.join('%r: block_%s' % (x, x)
+                                               for x in self.blocks),
+                   extra=1)
+
+    # add a function that returns the debug info
+    self.writeline('debug_info = %r' % '&'.join('%s=%s' % x for x
+                                                in self.debug_info))
+
+    self.writeline('return (root, blocks, debug_info)')
+    self.outdent()
+    self.writeline('')
+
+
+  class TemplateCompiler(object):
+
+    """ Compiles ``Jinja2``-format templates into raw Python for faster
+        execution, better optimization and more effective caching of template
+        routines. """
+
+    def __init__(self, module, sources, target, config):
+
+      """ Initialize this ``TemplateCompiler``.
+
+          :param module: Path to folder due to be used as the root for a new
+            Python package containing both (recursively) ``compiled`` templates
+            and ``sources``.
+
+          :param sources: Path to folder of template source files, due to be
+            (recursively) compiled into raw Python.
+
+          :param target: Path to folder that should be filled with new Python
+            files containing compiled template logic, built recursively from
+            corresponding paths in ``sources``.
+
+          :param config: Reference to application (or empty framework-level)
+            configuration. """
+
+      self.module, self.sources, self.target, self.config = (
+        module, sources, target, config)
+
+    @property
+    def environment(self):
+
+      """ Load a clean, throwaway ``Jinja2`` :py:class:`jinja2.Environment`
+          instance, for the purpose of preparing compiled templates.
+
+          :returns: Prepped instance of :py:class:`jinja2.Environment`. """
+
+      return Templates().environment(handler.Handler(), self.config)
+
+    def compile(self, source, destination,
+                              encoding='utf-8',
+                              base_dir='',
+                              as_module=False):
+
+      """ Compile an individual ``Jinja2``-formatted template into raw Python,
+          using a slightly customized version of the standard Jinja template
+          compiler.
+
+          :param source: Path to source directory that is due to be recursively
+            compiled into raw Python at ``destination``.
+
+          :param destination: Destination directory that is due to be filled
+            with compiled raw Python templates.
+
+          :param encoding: Default encoding when reading template ``source``
+            files and writing template ``destination`` files.
+
+          :param base_dir: Base directory path to be removed from the beginning
+            of compiled template names.
+
+          :param as_module: Whether to compile the ``source`` directory into
+            a valid Python package, complete with an *__init__.py* file.
+
+          :returns: ``list`` of new template import paths that should work if
+            ``destination`` is in the current interpreter's ``sys.path``. """
+
+    def compile_dir(self, source, destination,
+                                      pattern=_DEFAULT_TPL_PATTERN,
+                                      encoding='utf-8',
+                                      base_dir=None,
+                                      as_module=False,
+                                      _root_path=None,
+                                      fill_init=True):
+
+      """ Recursively compile a directory of ``Jinja2``-formatted templates to
+          raw Python source code.
+
+          :param source: Path to source directory that is due to be recursively
+            compiled into raw Python at ``destination``.
+
+          :param destination: Destination directory that is due to be filled
+            with compiled raw Python templates.
+
+          :param pattern: String regex pattern to scan files against in the
+            ``source`` directory. Matching filenames are considered to be
+            ``Jinja2``-format templates and will be marked for compilation.
+
+          :param encoding: Default encoding when reading template ``source``
+            files and writing template ``destination`` files.
+
+          :param base_dir: Base directory path to be removed from the beginning
+            of compiled template names.
+
+          :param as_module: Whether to compile the ``source`` directory into
+            a valid Python package, complete with an *__init__.py* file.
+
+          :param _root_path:
+
+          :param fill_init:
+
+          :returns: """
+
+      pass
+
+    def context(self, exception_type=None, exception=None, traceback=None):
+
+      """ Safely toggle a shim to ``Jinja2``'s internals (via monkeypatching)
+          that wraps compiled templates in a module-level function to prepare
+          (and cache) their logic against a given ``environment``.
+
+          :param exception_type: If an exception is encountered, this is handed
+            in by Python's internals and is equal to ``exception``'s type.
+
+          :param exception: If an exception is encountered, the exception
+            itself is passed in next.
+
+          :param traceback: If an exception is encountered, a traceback is
+            provided as the third parameter.
+
+          :returns: ``self``, to be used in an ``as`` block, after applying the
+            shim (if it was previously unapplied upon call, or used as if it
+            was an ``__enter__`` method). Otherwise returns ``bool`` ``True``/
+            ``False``, indicating whether to suppress any encountered exception
+            (if the shim was previously applied upon call, and this method is
+            dispatched as if it was an ``__exit__`` hook)."""
+
+      if self.shim_active:
+        compiler.CodeGenerator.visit_Template = self.original_visit_template
+        self.shim_active = False
+
+        # don't suppress exceptions
+        if exception: return False
+        return True
+
+      self.shim_active, self.original_visit_template = (
+        True, compiler.CodeGenerator.visit_Template)
+      compiler.CodeGenerator.visit_Template = template_ast
+      return self
+
+    def __call__(self, *args, **kwargs):
+
+      """ Defer calls on ``TemplateCompiler`` objects to :py:meth:`compile_dir`.
+
+          :param args: Positional arguments to pass to ``compile_dir``.
+          :param kwargs: Keyword arguments to pass to ``compile_dir``.
+          :returns: Whatever ``compile_dir`` decides to return. """
+
+      with self:
+        return self.compile_dir(*args, **kwargs)
 
 
   class ModuleLoader(jinja2.ModuleLoader):
@@ -46,15 +327,35 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
     module = None  # main module
     has_source_access = False  # from jinja's internals
 
-    def __init__(self, module='templates'):
+    def __init__(self, module='templates', strict=False):
 
       """ Initialize this ``ModuleLoader`` with a target top-level ``module``.
           Templates will be loaded under this top level module name, where
           directories are converted to packages and the template file has
           been converted to a Python module.
 
-          :param module: Top-level Python package under which templates are
-            kept. """
+          Canteen extends *Jinja2's* builtin ``ModuleLoader`` to work with a
+          slightly-customized form of compiled templates, where the compiled
+          template content is wrapped in a module-level callable that binds it
+          to the current ``environment``. This specialized compiler is shipped
+          with Canteen at :py:mod:`canteen.logic.template.Compiler`.
+
+          :param module: Top-level Python package to load from. Essentially
+            treated as a module prefix, added before any template paths are
+            converted to dotted Python module paths. Thus, a value of
+            ``templates`` (the default) paired with a later template source
+            request for `pages/about.html` would result in an import call for
+            the module path ``templates.pages.about``.
+
+          :param strict: Whether to silently or loudly fail if the given
+            ``module`` could not be loaded. ``bool`` that defaults to ``False``,
+            meaning we should fail silently and later fail all template requests
+            with a ``jinja2.TemplateNotFound`` (until the import succeeds, as it
+            will be retried each time). ``True`` will raise an ``ImportError``
+            from this function if the module is invalid.
+
+          :raises ImportError: If ``strict`` is set to ``True`` and the given
+            ``module`` is invalid or could not be loaded. """
 
       from canteen.logic.cache import Caching
 
@@ -62,7 +363,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         try:
           module = importlib.import_module(module)
         except ImportError:
-          pass
+          if strict: raise
+
       self.cache, self.module = (
         Caching.spawn('tpl_%s' % module if (
           isinstance(module, basestring)) else module.__name__),
@@ -98,7 +400,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       t = self.cache.get(filename)
       if not t:
         # Store module to avoid unnecessary repeated imports.
-        mod = self.get_module(environment, filename)
+        mod = self.get_module(filename)
 
         # initialize module
         root, blocks, debug_info = mod.run(environment)
@@ -122,13 +424,10 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         self.cache.set(filename, t)
       return t
 
-    def get_module(self, environment, template):
+    def get_module(self, template):
 
       """ Converts a template path to a package path and attempts import, or
           else raises ``Jinja2``'s :py:class:`TemplateNotFound`.
-
-          :param environment: Currently-active ``Jinja2`` rendering environemnt.
-            Instance of :py:class:`jinja2.Environment`.
 
           :param template: Full string filepath to the ``template`` desired.
             Converted to a Python-style dotted-path for import.
@@ -172,7 +471,7 @@ class Templates(logic.Logic):
 
     ## == Attributes == ##
     engine = jinja2  # we're using jinja :)
-    default_extensions = property(lambda self: None)
+    default_extensions = property(lambda self: DEFAULT_EXTENSIONS)
     default_config = property(lambda self: {
       'optimized': True, 'autoescape': True})
 
@@ -298,20 +597,34 @@ class Templates(logic.Logic):
       if not path:
         # default path to cwd, and cwd + templates/, and cwd + templates/source
         cwd = os.getcwd()
-        path = (
-          os.path.join(cwd),
-          os.path.join(cwd, 'templates'),
-          os.path.join(cwd, 'templates', 'source'))
+        path = (os.path.join(cwd),
+                os.path.join(cwd, 'templates'),
+                os.path.join(cwd, 'templates', 'source'))
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
 
         if (output.get('force_compiled', False)) or (
           isinstance(path, dict) and 'compiled' in path and (not __debug__)):
-          jinja2_cfg['loader'] = ModuleLoader(path['compiled'])
+
+          if output.get('force_compiled', False):
+            jinja2_cfg['loader'] = ModuleLoader(path['compiled'], strict=True)
+          else:
+            choices = []
+            if isinstance(path, dict) and 'compiled' in path and not __debug__:
+              choices.append(ModuleLoader(path['compiled'], strict=False))
+
+            if (isinstance(path, dict) and 'source' in path or (
+                  isinstance(path, basestring))):
+              choices.append(FileLoader(path['source'] if (
+                             isinstance(path, dict)) else path))
+
+            if not choices:
+              raise RuntimeError('No template path configured.')
+            return jinja2.ChoiceLoader(choices)
 
         else:
-          jinja2_cfg['loader'] = FileLoader((
+          file_loader = jinja2_cfg['loader'] = FileLoader((
             path['source'] if isinstance(path, dict) else path))
 
         if 'loader' not in jinja2_cfg:
@@ -358,23 +671,10 @@ class Templates(logic.Logic):
           so that content can be yielded as a generator. """
 
       # iteratively sanitize the response
-      for block in content: yield block.strip()
+      for _block in content: yield _block.strip()
 
     if _iter: return sanitize()  # return wrapped iterator
     return [block for block in sanitize()]
-
-  @decorators.bind('template.base_headers', wrap=property)
-  def base_headers(self):
-
-    """ Prepare a set of default (*base*) HTTP response headers to be included
-        by-default on any HTTP response.
-
-        :returns: ``list`` of ``tuples``, where each is a pair of ``key``-bound
-          ``value`` mappings. Because HTTP headers can be repeated, a ``dict``
-          is not usable in this instance. """
-
-    return filter(lambda x: x and x[1], [
-      ('Cache-Control', 'no-cache; no-store')])
 
   @decorators.bind('template.base_context', wrap=property)
   def base_context(self):
@@ -388,7 +688,6 @@ class Templates(logic.Logic):
     from canteen.util import config
 
     return {
-
       # Python Builtins
       'all': all, 'any': any,
       'int': int, 'str': str,
@@ -404,9 +703,7 @@ class Templates(logic.Logic):
       'getattr': getattr, 'setattr': setattr,
       'unicode': unicode, 'reversed': reversed,
       '__debug__': __debug__ and config.Config().debug,
-      'isinstance': isinstance, 'issubclass': issubclass
-
-    }
+      'isinstance': isinstance, 'issubclass': issubclass}
 
   @decorators.bind('template.base_filters', wrap=property)
   def base_filters(self):

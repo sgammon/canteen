@@ -141,6 +141,19 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       return config.Config().get('http', {'debug': True})
 
+    @staticmethod
+    def base_headers():
+
+      """ Prepare a set of default (*base*) HTTP response headers to be included
+          by-default on any HTTP response.
+
+          :returns: ``list`` of ``tuples``, where each is a pair of ``key``-bound
+            ``value`` mappings. Because HTTP headers can be repeated, a ``dict``
+            is not usable in this instance. """
+
+      return filter(lambda x: x and x[1], [
+        ('Cache-Control', 'no-cache; no-store')])
+
     #### ==== Routing ==== ####
     @classmethod
     def add_route(cls, route, target, **kwargs):

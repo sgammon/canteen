@@ -50,8 +50,7 @@ class BaseHandlerTest(test.FrameworkTest):
 
     result, environ = (
       {},
-      wtest.create_environ('/sample', 'http://localhost:8080/')
-    )
+      wtest.create_environ('/sample', 'http://localhost:8080/'))
 
     # allow environ overrides
     if _environ: environ.update(_environ)

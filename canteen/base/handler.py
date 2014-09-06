@@ -274,7 +274,7 @@ class Handler(object):
 
     # collapse and merge HTTP headers (base headers first)
     self.response.headers.extend(itertools.chain(
-      iter(self.template.base_headers),
+      iter(self.http.base_headers),
       self.config.get('http', {}).get('headers', {}).iteritems(),
       self.headers.iteritems(),
       (headers or {}).iteritems()))

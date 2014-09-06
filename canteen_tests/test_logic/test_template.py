@@ -28,8 +28,6 @@ except ImportError:
   print('Warning! Jinja2 not found. Template logic tests will be skipped.')
 
 
-
-
 if jinja2:
 
 

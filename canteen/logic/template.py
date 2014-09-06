@@ -23,8 +23,8 @@ import operator
 import importlib
 
 # base
-from ..base import logic
-from ..base import handler
+from ..base import (logic,
+                    handler)
 
 # core & utils
 from ..core import runtime
@@ -33,8 +33,9 @@ from ..util import decorators
 
 ## Globals
 _conditionals = []
-_DEFAULT_TPL_PATTERN = r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$'
 average = lambda x: reduce(operator.add, x) / len(x)
+_DEFAULT_TPL_PATTERN = re.compile(
+  r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$')
 
 
 with runtime.Library('jinja2', strict=True) as (library, jinja2):

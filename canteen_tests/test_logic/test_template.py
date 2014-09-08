@@ -72,6 +72,7 @@ if jinja2:
 
       t = self.test_construct()
       t()
+      return t
 
 
   class ModuleLoaderTests(test.FrameworkTest):
@@ -123,10 +124,22 @@ if jinja2:
       with self.assertRaises(ImportError):
         template.ModuleLoader('hahaidonotexistfuckyou', strict=True)
 
+    def test_load_builtin(self):
+
+      """ Test loading builtin Canteen templates via `ModuleLoader` """
+
+      compiler = template.TemplateCompiler(*(
+        None, None, None, config.Config(), 'canteen.templates'))
+      t = template.ModuleLoader('canteen.templates.compiled', strict=True)
+      m = t.load(compiler.environment, 'base.html')
+      assert m
+
+      n = t.load(compiler.environment, 'base.html')
+      assert n and m is n
+      assert type(n) is type(m)
 
   # @TODO(sgammon): ahahaha finish these
 
-  '''
     def test_load_valid(self):
 
       """ Test loading template sources through a `ModuleLoader` """
@@ -136,6 +149,7 @@ if jinja2:
       t = l.load(self.environment, 'base.html')
       assert t
 
+    '''
     def test_load_invalid(self):
 
       """ Test loading an invalid template file through a `ModuleLoader` """

@@ -262,7 +262,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       except OSError as e:
         if e.errno == errno.EEXIST and path.isdir(fullpath):
           pass
-        else: raise
+        else:  # pragma: no cover
+          raise
 
     def compile(self, environment, source, destination,
                                               encoding='utf-8',
@@ -305,12 +306,12 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             'raw': True,
             'defer_init': True})
 
-        except jinja2.TemplateSyntaxError:
+        except jinja2.TemplateSyntaxError:  # pragma: no cover
           print("!!! Syntax error in file '%s'. Compilation failed. !!!" % (
             str(source)))
 
         target_name, ext = path.splitext(destination)
-        if path.isdir(target_name):
+        if path.isdir(target_name):  # pragma: no cover
           raise ValueError('Template name conflict: `%s` is a directory,'
                            ' so %s%s cannot exist as an independent'
                            ' template file.' % (name, name, ext))
@@ -380,7 +381,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
               base_dir,
               encoding=encoding)
 
-        elif path.isfile(source_name) and re.match(pattern, filename):
+        elif path.isfile(source_name) and (
+            re.match(pattern, filename)):  # pragma: no cover
           new_target = _make_module_path(
             self.compile(self.environment, source_name, destination_name,
                           encoding=encoding,
@@ -392,17 +394,17 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           source_path = path.join(file_path, '.'.join((
             file_name.rsplit('.', 1)[0], 'py')))
 
-          if not __debug__:
-            precompiled_path = path.join(file_path, '.'.join((
-              file_name.rsplit('.', 1)[0], 'pyc' if (
-                sys.flags.optimize) else 'pyo')))
+          precompiled_path = path.join(file_path, '.'.join((
+            file_name.rsplit('.', 1)[0], 'pyc' if (
+              sys.flags.optimize) else 'pyo')))
 
-            try:
-              py_compile.compile(source_path, precompiled_path)
-            except Exception:
-              print("Failed to precompile: '%s'... Skipping..." % source_path)
+          try:
+            py_compile.compile(source_path, precompiled_path)
+          except Exception:
+            print("Failed to precompile: '%s'... Skipping..." % source_path)
 
-        elif path.isfile(source_name) and not re.match(pattern, filename):
+        elif path.isfile(source_name) and not (
+            re.match(pattern, filename)):  # pragma: no cover
           with open(destination_name, 'wb') as staticwrite:
             with open(source_name, 'rb') as staticread:
               staticwrite.write(staticread.read())
@@ -598,8 +600,9 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       import jinja2
 
       # Convert the path to a module name.
-      prefix, obj = (self.module.__name__ + '.' + (
-        template.replace('/', '.').replace('-', '_')).rsplit('.', 1))
+      modpath = template.replace('/', '.').replace('-', '_').rsplit('.', 1)
+      prefix, obj = (self.module.__name__,
+        modpath if not isinstance(modpath, list) else modpath[0])
       prefix, obj = str(prefix), str(obj)
 
       try:

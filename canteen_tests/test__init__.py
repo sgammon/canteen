@@ -24,41 +24,6 @@ class BaseFrameworkTests(test.FrameworkTest):
 
   """ Tests basic framework details. """
 
-  def test_runscript(self):
-
-    """ Test basic functionality of `canteen.__main__` """
-
-    from canteen import __main__
-    assert hasattr(__main__, 'walk')
-    assert hasattr(__main__, 'run')
-    assert hasattr(__main__, 'app')
-
-  def test_walk_and_main(self):
-
-    """ Test package walking functionality from `canteen.__main__` """
-
-    from canteen import __main__
-    from canteen.util import walk
-
-    assert __main__.walk is walk
-
-    # walk packages
-    walk()
-
-    # make sure testing __main__ is at least importable
-    from canteen_tests import __main__
-
-  def test_spawn(self):
-
-    """ Test mechanics of top-level `spawn` """
-
-    from canteen import spawn
-    from canteen.core import runtime
-
-    x = spawn(None, {})
-
-    assert isinstance(x, runtime.Runtime)
-
   def test_framework_all(self):
 
     """ Test for expected Framework-level exports """

@@ -15,12 +15,20 @@
 
 """
 
+from __future__ import print_function
+
 # stdlib
 import os
 import re
+import sys
 import json
+import errno
 import operator
 import importlib
+import py_compile
+
+# os
+from os import path, listdir
 
 # base
 from ..base import (logic,
@@ -34,8 +42,17 @@ from ..util import decorators
 ## Globals
 _conditionals = []
 average = lambda x: reduce(operator.add, x) / len(x)
-_DEFAULT_TPL_PATTERN = re.compile(
+_DEFAULT_MODULE_PREFIX = 'templates'
+_DEFAULT_TEMPLATE_PATTERN = re.compile(
   r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$')
+_dropext = lambda _path: path.splitext(_path)[0]
+_make_module = lambda mod, prefix=_DEFAULT_MODULE_PREFIX: (
+  '.'.join((prefix, mod)) if prefix else mod)
+_make_import_statement = lambda module: 'from %s import *' % module
+_make_module_path = lambda _path, root: (
+  '/'.join(filter(bool, _dropext(_path).replace(root, '')
+                                       .replace('.py', '')
+                                       .split('/'))).replace('/', '.'))
 
 
 with runtime.Library('jinja2', strict=True) as (library, jinja2):
@@ -174,7 +191,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         execution, better optimization and more effective caching of template
         routines. """
 
-    def __init__(self, module, sources, target, config):
+    def __init__(self, module, sources, target, config,
+                                prefix=_DEFAULT_MODULE_PREFIX):
 
       """ Initialize this ``TemplateCompiler``.
 
@@ -190,10 +208,16 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             corresponding paths in ``sources``.
 
           :param config: Reference to application (or empty framework-level)
-            configuration. """
+            configuration.
+
+          :param prefix: Module prefix to prepend to compiled template
+            imports. """
 
       self.module, self.sources, self.target, self.config = (
         module, sources, target, config)
+
+      self.shim_active, self.original_visit_template, self.prefix = (
+        False, None, prefix)
 
     @property
     def environment(self):
@@ -205,14 +229,36 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       return Templates().environment(handler.Handler(), self.config)
 
-    def compile(self, source, destination,
-                              encoding='utf-8',
-                              base_dir='',
-                              as_module=False):
+    @staticmethod
+    def mkdir_p(fullpath):
+
+      """ Recursively bring a directory path into existence. Similar to the Unix
+          command ``mkdir -p``.
+
+          :param fullpath: Path to recursively make directories for.
+
+          :raises OSError: In the event of an unexpected error (such as a
+            permissions or low-level storage error).
+
+          :returns: Nothing. """
+
+      try:
+        os.makedirs(fullpath)
+      except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(fullpath):
+          pass
+        else: raise
+
+    def compile(self, environment, source, destination,
+                                              encoding='utf-8',
+                                              base_dir=''):
 
       """ Compile an individual ``Jinja2``-formatted template into raw Python,
           using a slightly customized version of the standard Jinja template
           compiler.
+
+          :param environment: Instance of :py:class:`jinja2.Environment` to use
+            for compiling the actual template sources.
 
           :param source: Path to source directory that is due to be recursively
             compiled into raw Python at ``destination``.
@@ -226,28 +272,58 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           :param base_dir: Base directory path to be removed from the beginning
             of compiled template names.
 
-          :param as_module: Whether to compile the ``source`` directory into
-            a valid Python package, complete with an *__init__.py* file.
+          :raises ValueError: If a template name collides with a folder name
+            and so cannot be used in a compiled fashion, since they would
+            generate ambiguous import paths in Python.
 
           :returns: ``list`` of new template import paths that should work if
             ``destination`` is in the current interpreter's ``sys.path``. """
 
+      with open(source) as template:
+
+        name = source.replace(base_dir, '')  # remove base path from name
+
+        try:
+          raw = environment.compile(template.read().decode(encoding), **{
+            'name': name,
+            'filename': name,
+            'raw': True,
+            'defer_init': True})
+
+        except jinja2.TemplateSyntaxError:
+          print("!!! Syntax error in file '%s'. Compilation failed. !!!" % (
+            str(source)))
+
+        target_name, ext = path.splitext(destination)
+        if path.isdir(target_name):
+          raise ValueError('Template name conflict: `%s` is a directory,'
+                           ' so %s%s cannot exist as an independent'
+                           ' template file.' % (name, name, ext))
+
+        self.mkdir_p((
+          path.abspath(path.join(*tuple(destination.split('/')[0:-1])))))
+
+        with open('.'.join((target_name, 'py')), 'w') as target:
+          target.write(raw)
+      return destination
+
     def compile_dir(self, source, destination,
-                                      pattern=_DEFAULT_TPL_PATTERN,
-                                      encoding='utf-8',
-                                      base_dir=None,
-                                      as_module=False,
-                                      _root_path=None,
-                                      fill_init=True):
+                          base_dir='',
+                          pattern=_DEFAULT_TEMPLATE_PATTERN,
+                          encoding='utf-8',
+                          fill_init=True):
 
       """ Recursively compile a directory of ``Jinja2``-formatted templates to
           raw Python source code.
 
-          :param source: Path to source directory that is due to be recursively
-            compiled into raw Python at ``destination``.
+          :param source: Source directory to compile from.
 
-          :param destination: Destination directory that is due to be filled
-            with compiled raw Python templates.
+          :param destination: Destination directory to write compiled Python
+            template files to.
+
+          :param base_dir: Base directory that contains both ``source`` and
+            ``destination``, if any. Manages canteen-style ``__init__.py``
+            file.
 
           :param pattern: String regex pattern to scan files against in the
             ``source`` directory. Matching filenames are considered to be
@@ -256,19 +332,83 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           :param encoding: Default encoding when reading template ``source``
             files and writing template ``destination`` files.
 
-          :param base_dir: Base directory path to be removed from the beginning
-            of compiled template names.
+          :param fill_init: Fill out an proper ``__init__.py``, aggressively
+            importing submodules.
 
-          :param as_module: Whether to compile the ``source`` directory into
-            a valid Python package, complete with an *__init__.py* file.
+          :returns: Full (recursively-built) list of import paths generated
+            during the compilation routine. """
 
-          :param _root_path:
+      if not destination.replace(base_dir, '') == '':
+        destination = path.abspath(path.join(base_dir, '/'.join(
+          destination.replace(base_dir, '').replace('-', '_').split('/')[1:])))
 
-          :param fill_init:
+      _import_paths = []
 
-          :returns: """
+      if path.isdir(destination):
+        init = path.join(destination, '__init__.py')
+        if not path.exists(init):
+          open(init, 'w').close()
 
-      pass
+      for filename in listdir(source):
+        source_name, destination_name = (
+          path.join(source, filename),
+          path.join(destination, filename.replace('-', '_')))
+
+        # @TODO(sgammon): compiling file
+        print('Compiling %s...' % filename)
+
+        if path.isdir(source_name):
+          self.mkdir_p(destination_name)
+          _import_paths += self.compile_dir(
+              source_name,
+              destination_name,
+              base_dir,
+              encoding=encoding)
+
+        elif path.isfile(source_name) and re.match(pattern, filename):
+          new_target = _make_module_path(
+            self.compile(self.environment, source_name, destination_name,
+                          encoding=encoding,
+                          base_dir=base_dir), base_dir)
+
+          _import_paths.append(_make_module(new_target, self.prefix))
+
+          file_path, file_name = tuple(destination_name.rsplit('/', 1))
+          source_path = path.join(file_path, '.'.join((
+            file_name.rsplit('.', 1)[0], 'py')))
+
+          if not __debug__:
+            precompiled_path = path.join(file_path, '.'.join((
+              file_name.rsplit('.', 1)[0], 'pyc' if (
+                sys.flags.optimize) else 'pyo')))
+
+            try:
+              py_compile.compile(source_path, precompiled_path)
+            except Exception:
+              print("Failed to precompile: '%s'... Skipping..." % source_path)
+
+        elif path.isfile(source_name) and not re.match(pattern, filename):
+          with open(destination_name, 'wb') as staticwrite:
+            with open(source_name, 'rb') as staticread:
+              staticwrite.write(staticread.read())
+
+      if path.isdir(destination) and fill_init:
+        with open(path.join(destination, '__init__.py'), 'w') as init:
+          map(lambda line: init.write(line + "\n"), (
+            '# -*- coding: utf-8 -*-',
+            '',
+            '"""',
+            '',
+            '   compiled templates: %s' % _make_module_path(*(
+                                                      destination, base_dir)),
+            '',
+            '"""',
+            '',
+            '# subtemplates',
+            "\n".join(map(_make_import_statement, _import_paths)),
+            ''))
+
+      return _import_paths
 
     def context(self, exception_type=None, exception=None, traceback=None):
 
@@ -297,7 +437,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         self.shim_active = False
 
         # don't suppress exceptions
-        if exception: return False
+        if exception or exception_type or traceback:
+          return False
         return True
 
       self.shim_active, self.original_visit_template = (
@@ -305,16 +446,17 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       compiler.CodeGenerator.visit_Template = template_ast
       return self
 
-    def __call__(self, *args, **kwargs):
+    __enter__ = __exit__ = context
+
+    def __call__(self, **kw):
 
       """ Defer calls on ``TemplateCompiler`` objects to :py:meth:`compile_dir`.
 
-          :param args: Positional arguments to pass to ``compile_dir``.
-          :param kwargs: Keyword arguments to pass to ``compile_dir``.
+          :param kw: Keyword arguments to pass to ``compile_dir``.
           :returns: Whatever ``compile_dir`` decides to return. """
 
       with self:
-        return self.compile_dir(*args, **kwargs)
+        return self.compile_dir(*(self.sources, self.target, self.module), **kw)
 
 
   class ModuleLoader(jinja2.ModuleLoader):
@@ -396,7 +538,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         self.module = importlib.import_module(self.module)
 
       # Strip '/' and remove extension.
-      filename, ext = os.path.splitext(filename.strip('/'))
+      filename, ext = path.splitext(filename.strip('/'))
 
       t = self.cache.get(filename)
       if not t:
@@ -762,3 +904,4 @@ class Templates(logic.Logic):
 
     # otherwise, buffer/chain iterators to produce a streaming response
     return self.sanitize(content)
+

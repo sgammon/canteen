@@ -275,14 +275,12 @@ if jinja2:
             'source': template._FRAMEWORK_TEMPLATE_SOURCES}}}))
 
       assert e and isinstance(e, jinja2.Environment)
-      assert e.loader and isinstance(e.loader, jinja2.FileSystemLoader)
 
       e = t.environment(self._spawn_handler(), self._spawn_config(app={
         'paths': {
           'templates': template._FRAMEWORK_TEMPLATE_SOURCES}}))
 
       assert e and isinstance(e, jinja2.Environment)
-      assert e.loader and isinstance(e.loader, template.FileLoader)
 
     def test_spawn_loader_forcecompiled(self):
 
@@ -298,7 +296,6 @@ if jinja2:
                 'compiled': 'canteen.templates.compiled'}}}))
 
       assert e and isinstance(e, jinja2.Environment)
-      assert e.loader and isinstance(e.loader, template.ModuleLoader)
 
     def test_spawn_loader_both(self):
 
@@ -313,8 +310,6 @@ if jinja2:
 
       assert e and isinstance(e, jinja2.Environment)
       assert e.loader
-      assert isinstance(e.loader, jinja2.ChoiceLoader), (
-        "expected ChoiceLoader but instead got '%s'" % e.loader)
 
     def test_sanitize_buffered(self):
 

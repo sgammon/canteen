@@ -141,8 +141,8 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
       return config.Config().get('http', {'debug': True})
 
-    @staticmethod
-    def base_headers():
+    @property
+    def base_headers(self):
 
       """ Prepare a set of default (*base*) HTTP response headers to be included
           by-default on any HTTP response.

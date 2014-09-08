@@ -290,7 +290,7 @@ class Handler(object):
     self.response.response, self.response.direct_passthrough = (
       self.template.render(
         self,
-        getattr(self.runtime, 'config', config.Config()),
+        getattr(self.runtime, 'config', None) or config.Config(),
         template,
         _merged_context)), True
 

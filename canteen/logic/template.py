@@ -455,7 +455,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
         # don't suppress exceptions
         if exception or exception_type or traceback:
-          return False
+          return False  # pragma: no cover
         return True
 
       self.shim_active, self.original_visit_template = (
@@ -551,10 +551,9 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       _globals = _globals or {}
 
-      if isinstance(self.module, basestring):
+      if isinstance(self.module, basestring):  # pragma: no cover
         self.module = importlib.import_module(self.module)
 
-      # Strip '/' and remove extension.
       filename, ext = path.splitext(filename.strip('/'))
 
       t = self.cache.get(filename)
@@ -734,12 +733,12 @@ class Templates(logic.Logic):
 
       syntax = _hamlish_syntax
 
-    def environment(self, handler, config):
+    def environment(self, _handler, config):
 
       """ Prepare a new :py:class:`jinja2.Environment` object, for the purpose
           of rendering a template.
 
-          :param handler: Currently-active web handler. Always an instance of
+          :param _handler: Currently-active web handler. Always an instance of
             :py:class:`canteen.base.handler.Handler` or a subtype thereof.
 
           :param config: Reference to top-level application configuration
@@ -753,11 +752,10 @@ class Templates(logic.Logic):
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})
       jinja2_cfg = output.get('jinja2', self.default_config)
+
       _path = None
       if isinstance(config.app, dict):
-        paths = config.app.get('paths', {})
-        if paths:
-          _path = paths.get('templates')
+        _path = config.app.get('paths', {}).get('templates', None)
 
       if not _path:
         # default path to cwd, and cwd + templates/, and cwd + templates/source
@@ -769,34 +767,34 @@ class Templates(logic.Logic):
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
 
-        if (output.get('force_compiled', False)) or (
-          isinstance(_path, dict) and 'compiled' in _path and (not __debug__)):
+        if output.get('force_compiled', False) or (
+          isinstance(_path, dict) and 'compiled' in _path):
 
           if output.get('force_compiled', False):
             jinja2_cfg['loader'] = ModuleLoader(_path['compiled'], strict=True)
           else:
             choices = []
-            if isinstance(_path, dict) and 'compiled' in path and not __debug__:
-              choices.append(ModuleLoader(_path['compiled'], strict=False))
+            if isinstance(_path, dict) and 'compiled' in _path:
+              choices.append(ModuleLoader(_path['compiled']))
 
             if (isinstance(_path, dict) and 'source' in _path or (
                   isinstance(_path, basestring))):
               choices.append(FileLoader(_path['source'] if (
                              isinstance(_path, dict)) else _path))
 
-            if not choices:
+            if not choices:  # pragma: no cover
               raise RuntimeError('No template path configured.')
-            return jinja2.ChoiceLoader(choices)
+            jinja2_cfg['loader'] = jinja2.ChoiceLoader(choices)
 
         else:
-          file_loader = jinja2_cfg['loader'] = FileLoader((
+          jinja2_cfg['loader'] = FileLoader((
             _path['source'] if isinstance(_path, dict) else _path))
 
-        if 'loader' not in jinja2_cfg:
+        if 'loader' not in jinja2_cfg:  # pragma: no cover
           raise RuntimeError('No configured template source path.')
 
       # make our new environment
-      j2env = self.syntax(handler, self.engine.Environment, jinja2_cfg, config)
+      j2env = self.syntax(_handler, self.engine.Environment, jinja2_cfg, config)
 
       # allow jinja2 syntax overrides
       if 'syntax' in output:

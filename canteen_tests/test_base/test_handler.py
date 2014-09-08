@@ -16,9 +16,14 @@
 # testing
 from canteen import test
 
-# base handler
+# base, core + logic
 from canteen.base import handler
+from canteen.logic import template
+from canteen.logic.http import semantics
 from canteen.core import runtime as rtime
+
+# utils & template logic
+from canteen.util.config import Config
 
 # mock objects
 from werkzeug import test as wtest
@@ -36,9 +41,12 @@ class BaseHandlerTest(test.FrameworkTest):
     """ Mock up a quick `Handler` object. """
 
     if not valid:  # don't need valid WSGI internals?
+      _environ = wtest.EnvironBuilder().get_environ()
+      _environ['sample'] = 'hi'
       environ, callback, _runtime, request, response = (
-        {'sample': 'hi'}, lambda: True, rtime.Runtime(object()),
-        object(), object()
+        _environ, lambda: True, rtime.Runtime(object()),
+        semantics.HTTPSemantics.new_request(_environ),
+        semantics.HTTPSemantics.new_response()
       )
 
       # allow environ overrides
@@ -327,3 +335,25 @@ class BaseHandlerTest(test.FrameworkTest):
 
     with self.assertRaises(MethodNotAllowed):
       _handler({})
+
+  def test_full_render(self):
+
+    """ Test the full template render flow from `Handler`'s perspective """
+
+    h, rr, rs, rn = self._make_handler()
+
+    # make working config
+    c = Config()
+    _cfg = c.blocks.get('app', {})
+    _cfg['paths'] = _cfg.get('paths', {})
+    _cfg['paths']['templates'] = _cfg['paths'].get('templates', {})
+    _cfg['paths']['templates']['source'] = template._FRAMEWORK_TEMPLATE_SOURCES
+    _cfg['paths']['templates']['compiled'] = 'canteen.templates.compiled'
+
+    c.blocks['app'] = _cfg
+
+    h.__dict__['config'] = c
+
+    h.runtime.config = c
+    result = h.render('base.html')
+    assert result

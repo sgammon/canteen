@@ -39,12 +39,25 @@ from ..core import runtime
 from ..util import decorators
 
 
-## Globals
-_conditionals = []
-average = lambda x: reduce(operator.add, x) / len(x)
+## Constants
 _DEFAULT_MODULE_PREFIX = 'templates'
 _DEFAULT_TEMPLATE_PATTERN = re.compile(
   r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$')
+_FRAMEWORK_ROOT_PATH = (
+  path.dirname(  # /canteen
+    path.dirname(__file__)))  # /canteen/logic
+_FRAMEWORK_TEMPLATE_ROOT = (
+  path.join(_FRAMEWORK_ROOT_PATH, 'templates'))
+_FRAMEWORK_TEMPLATE_SOURCES = (
+  path.join(_FRAMEWORK_TEMPLATE_ROOT, 'source'))
+_FRAMEWORK_TEMPLATES_COMPILED = (
+  path.join(_FRAMEWORK_TEMPLATE_ROOT, 'compiled'))
+
+## Globals
+_conditionals = []
+
+## Utility Lambdas
+average = lambda x: reduce(operator.add, x) / len(x)
 _dropext = lambda _path: path.splitext(_path)[0]
 _make_module = lambda mod, prefix=_DEFAULT_MODULE_PREFIX: (
   '.'.join((prefix, mod)) if prefix else mod)
@@ -214,7 +227,9 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             imports. """
 
       self.module, self.sources, self.target, self.config = (
-        module, sources, target, config)
+        module or _FRAMEWORK_TEMPLATE_ROOT,
+        sources or _FRAMEWORK_TEMPLATE_SOURCES,
+        target or _FRAMEWORK_TEMPLATES_COMPILED, config)
 
       self.shim_active, self.original_visit_template, self.prefix = (
         False, None, prefix)
@@ -245,7 +260,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       try:
         os.makedirs(fullpath)
       except OSError as e:
-        if e.errno == errno.EEXIST and os.path.isdir(fullpath):
+        if e.errno == errno.EEXIST and path.isdir(fullpath):
           pass
         else: raise
 
@@ -734,33 +749,37 @@ class Templates(logic.Logic):
 
       # grab template path, if any
       output = config.get('TemplateAPI', {'debug': True})
-      path = config.app.get('paths', {}).get('templates')
       jinja2_cfg = output.get('jinja2', self.default_config)
+      _path = None
+      if isinstance(config.app, dict):
+        paths = config.app.get('paths', {})
+        if paths:
+          _path = paths.get('templates')
 
-      if not path:
+      if not _path:
         # default path to cwd, and cwd + templates/, and cwd + templates/source
         cwd = os.getcwd()
-        path = (os.path.join(cwd),
-                os.path.join(cwd, 'templates'),
-                os.path.join(cwd, 'templates', 'source'))
+        _path = (path.join(cwd),
+                 path.join(cwd, 'templates'),
+                 path.join(cwd, 'templates', 'source'))
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:
 
         if (output.get('force_compiled', False)) or (
-          isinstance(path, dict) and 'compiled' in path and (not __debug__)):
+          isinstance(_path, dict) and 'compiled' in _path and (not __debug__)):
 
           if output.get('force_compiled', False):
-            jinja2_cfg['loader'] = ModuleLoader(path['compiled'], strict=True)
+            jinja2_cfg['loader'] = ModuleLoader(_path['compiled'], strict=True)
           else:
             choices = []
-            if isinstance(path, dict) and 'compiled' in path and not __debug__:
-              choices.append(ModuleLoader(path['compiled'], strict=False))
+            if isinstance(_path, dict) and 'compiled' in path and not __debug__:
+              choices.append(ModuleLoader(_path['compiled'], strict=False))
 
-            if (isinstance(path, dict) and 'source' in path or (
-                  isinstance(path, basestring))):
-              choices.append(FileLoader(path['source'] if (
-                             isinstance(path, dict)) else path))
+            if (isinstance(_path, dict) and 'source' in _path or (
+                  isinstance(_path, basestring))):
+              choices.append(FileLoader(_path['source'] if (
+                             isinstance(_path, dict)) else _path))
 
             if not choices:
               raise RuntimeError('No template path configured.')
@@ -768,7 +787,7 @@ class Templates(logic.Logic):
 
         else:
           file_loader = jinja2_cfg['loader'] = FileLoader((
-            path['source'] if isinstance(path, dict) else path))
+            _path['source'] if isinstance(_path, dict) else _path))
 
         if 'loader' not in jinja2_cfg:
           raise RuntimeError('No configured template source path.')

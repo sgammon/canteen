@@ -31,6 +31,49 @@ except ImportError:
 if jinja2:
 
 
+  class TemplateCompilerTests(test.FrameworkTest):
+
+    """ Tests builtin :py:class:`canteen.logic.TemplateCompiler` class, which
+        compiles Jinja2-formatted templates to raw Python. """
+
+    def test_construct(self):
+
+      """ Test constructing a new `TemplateCompiler` """
+
+      t = template.TemplateCompiler(*(
+        None, None, None, config.Config(), 'canteen.templates'))
+      assert t.module == template._FRAMEWORK_TEMPLATE_ROOT
+      assert t.sources == template._FRAMEWORK_TEMPLATE_SOURCES
+      assert t.target == template._FRAMEWORK_TEMPLATES_COMPILED
+      return t
+
+    def test_environment(self):
+
+      """ Test constructing a throwaway environment with `TemplateCompiler` """
+
+      t = self.test_construct()
+      assert isinstance(t.environment, jinja2.Environment)
+
+    def test_context(self):
+
+      """ Test patching Jinja2's compiler internals with `TemplateCompiler` """
+
+      t = self.test_construct()
+      assert not t.shim_active
+
+      with t:
+        assert t.shim_active
+
+      assert not t.shim_active
+
+    def test_compile(self):
+
+      """ Test compiling canteen's builtin template sources """
+
+      t = self.test_construct()
+      t()
+
+
   class ModuleLoaderTests(test.FrameworkTest):
 
     """ Tests builtin :py:class:`jinja2.Loader` subtype `ModuleLoader`, which
@@ -63,7 +106,7 @@ if jinja2:
 
       """ Test constructing a template source `ModuleLoader` """
 
-      l = template.ModuleLoader('canteen.templates')
+      l = template.ModuleLoader('canteen.templates.compiled')
       assert not l.has_source_access
       return l
 

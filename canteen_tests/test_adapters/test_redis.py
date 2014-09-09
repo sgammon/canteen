@@ -16,7 +16,7 @@
 """
 
 # abstract test bases
-from .test_abstract import DirectedGraphAdapterTests
+from canteen_tests.test_adapters import test_abstract
 
 # redis adapter
 from canteen.model.adapter import redis as rapi
@@ -36,28 +36,51 @@ except ImportError:  # pragma: no cover
 if redis or fakeredis:
 
 
-  class RedisAdapterTests(DirectedGraphAdapterTests):
+  class RedisAdapterTests(test_abstract.DirectedGraphAdapterTests):
 
-      """ Tests `model.adapter.redis.Redis` """
+    """ Tests `model.adapter.redis.Redis` in the default mode of operation,
+        called ``toplevel_blob``. """
 
-      # @TODO(sgammon): mock redis testing
+    # @TODO(sgammon): mock redis testing
 
-      __abstract__ = False
-      subject = rapi.RedisAdapter
+    __abstract__ = False
+    __original_mode__ = None
+    subject = rapi.RedisAdapter
+    mode = rapi.RedisMode.toplevel_blob
 
-      def setUp(self):
+    def setUp(self):
 
-        """ Set Redis into testing mode. """
+      """ Set Redis into testing mode. """
 
-        rapi.RedisAdapter.__testing__ = True
-        super(DirectedGraphAdapterTests, self).setUp()
+      rapi.RedisAdapter.__testing__ = True
+      self.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
+      rapi.RedisAdapter.EngineConfig.mode = self.mode
+      super(test_abstract.DirectedGraphAdapterTests, self).setUp()
 
-      def tearDown(self):
+    def tearDown(self):
 
-        """ Set Redis back into non-testing mode. """
+      """ Set Redis back into non-testing mode. """
 
-        rapi.RedisAdapter.__testing__ = False
-        super(DirectedGraphAdapterTests, self).tearDown()
+      rapi.RedisAdapter.__testing__ = False
+      rapi.RedisAdapter.EngineConfig.mode = self.__original_mode__
+      super(test_abstract.DirectedGraphAdapterTests, self).tearDown()
+
+
+  class RedisAdapterHashKindBlobTests(RedisAdapterTests):
+
+    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
+
+    mode = rapi.RedisMode.hashkind_blob
+
+
+  #class RedisAdapterHashKeyBlobTests(RedisAdapterTests):
+
+  #  """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
+
+  #  mode = rapi.RedisMode.hashkey_blob
+
+
+  # @TODO(sgammon): add hashkey_hash testing when that mode is supported
 
 
 else:  # pragma: no cover

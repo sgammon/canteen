@@ -29,6 +29,7 @@ from canteen.util import decorators
 
 ## Globals
 _support = struct.WritableObjectProxy()
+_mock_redis = None  # holds global singleton for mock testing
 _server_profiles = {}  # holds globally-configured server profiles
 _default_profile = None  # holds the default redis instance mapping
 _client_connections = {}  # holds instantiated redis connection clients
@@ -304,7 +305,7 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: The imported ``Redis`` driver, or ``False`` if it could not
           be found. """
 
-    if cls.__testing__ and fakeredis:
+    if cls.__testing__ and fakeredis:  # pragma: no cover
       return _support.fakeredis
     return _support.redis
 
@@ -376,6 +377,8 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: Acquired ``Redis`` client connection, potentially specific to
           the handed-in ``kind``. """
 
+    global _mock_redis
+
     if not cls.adapter or not _support.redis:
       raise RuntimeError('No support detected in the current environment'
                          ' for Python Redis. Please `pip install redis`.')
@@ -383,7 +386,9 @@ class RedisAdapter(DirectedGraphAdapter):
     impl = cls.adapter.StrictRedis
     if __debug__ and cls.__testing__:
       import fakeredis
-      impl = fakeredis.FakeStrictRedis
+      if not _mock_redis:
+        _mock_redis = fakeredis.FakeStrictRedis()
+      return _mock_redis
 
     # convert to string kind if we got a model class
     if not isinstance(kind, basestring) and kind is not None:
@@ -396,7 +401,7 @@ class RedisAdapter(DirectedGraphAdapter):
       return _client_connections[kind]
 
     # check kind-specific profiles
-    if kind in _profiles_by_model.get('index', set()):
+    if kind in _profiles_by_model.get('index', set()):  # pragma: no cover
       client = _client_connections[kind] = (
         impl(**_profiles_by_model['map'].get(kind)))
       return client
@@ -448,17 +453,22 @@ class RedisAdapter(DirectedGraphAdapter):
     if 'target' in kwargs: del kwargs['target']
 
     try:
-      if isinstance(operation, tuple):
+      if isinstance(operation, tuple):  # pragma: no cover
         # (CLIENT, KILL) => "CLIENT KILL"
         operation = '_'.join(map(unicode, operation))
       if isinstance(target, (_redis_client.client.Pipeline,
                              _redis_client.client.StrictPipeline)):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
+      if operation == cls.Operations.HASH_SET:
+        r = getattr(target, operation.lower())(*args, **kwargs)
+        if r in (0, 1):
+          # count 0 and 1 as success, as it indicates an overwrite,
+          # not a failure
+          return 1
       return getattr(target, operation.lower())(*args, **kwargs)
-    except Exception as e:
-      if __debug__:
-        import pdb; pdb.set_trace()
+    except Exception:  # pragma: no cover
+      if __debug__: import pdb; pdb.set_trace()
       raise
 
   @classmethod
@@ -476,52 +486,56 @@ class RedisAdapter(DirectedGraphAdapter):
     if key:
       joined, flattened = key
 
-    ## toplevel_blob
-    if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+      ## toplevel_blob
+      if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
-      # execute query
-      result = _entity or (
-        cls.execute(cls.Operations.GET, flattened[1], joined, target=pipeline))
+        # execute query
+        result = _entity or (
+          cls.execute(cls.Operations.GET, flattened[1], joined,
+                        target=pipeline))
 
-    ## hashkind_blob
-    elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
+      ## hashkind_blob
+      elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
-      # generate kinded key and trim tail
-      kinded = model.Key(flattened[1]).flatten(True)
-      tail = base64.b64decode(key[0]).replace(kinded[0], '')
+        # generate kinded key and trim tail
+        kinded = model.Key(flattened[1]).flatten(True)
+        tail = base64.b64decode(key[0]).replace(kinded[0], '')
 
-      result = _entity or (
-        cls.execute(*(
-          cls.Operations.HASH_GET,
-          flattened[1],
-          cls.encode_key(*kinded),
-          cls.encode_key(tail, flattened)), target=pipeline))
+        result = _entity or (
+          cls.execute(*(
+            cls.Operations.HASH_GET,
+            flattened[1],
+            cls.encode_key(*kinded),
+            cls.encode_key(tail, flattened)), target=pipeline))
 
-    ## hashkey_blob
-    elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
+      ## hashkey_blob
+      elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
-      # build key and extract group
-      desired_key = model.Key.from_raw(flattened)
-      root = (ancestor for ancestor in desired_key.ancestry).next()
-      tail = (
-        desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
-          '__root__'))
+        # build key and extract group
+        desired_key = model.Key.from_raw(flattened)
+        root = (ancestor for ancestor in desired_key.ancestry).next()
+        tail = (
+          desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+            '__root__'))
 
-      result = _entity or (
-        cls.execute(*(
-          cls.Operations.HASH_GET,
-          flattened[1],
-          cls.encode_key(*root.flatten(True)),
-          cls.encode_key(tail, flattened)), target=pipeline))
+        result = _entity or (
+          cls.execute(*(
+            cls.Operations.HASH_GET,
+            flattened[1],
+            cls.encode_key(*root.flatten(True)),
+            cls.encode_key(tail, flattened)), target=pipeline))
 
-    ## hashkey_hash
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+      ## hashkey_hash
+      elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
 
-      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+        raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+
+      else:  # pragma: no cover
+        raise NotImplementedError("Unknown storage mode: '%s'." % (
+                                                        cls.EngineConfig.mode))
 
     else:  # pragma: no cover
-      raise NotImplementedError("Unknown storage mode: '%s'." % (
-                                                        cls.EngineConfig.mode))
+      result = _entity
 
     # @TODO: different storage internal modes
     if isinstance(result, basestring):
@@ -586,7 +600,8 @@ class RedisAdapter(DirectedGraphAdapter):
         entity._set_persisted(True)
         return entity.key
       else:  # pragma: no cover
-        raise RuntimeError('Failed to write entity to key "%s".' % key)
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## need a serialized blob...
 
@@ -607,7 +622,8 @@ class RedisAdapter(DirectedGraphAdapter):
         entity._set_persisted(True)
         return entity.key
       else:  # pragma: no cover
-        raise RuntimeError('Failed to write entity to key "%s".' % key)
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
@@ -625,7 +641,8 @@ class RedisAdapter(DirectedGraphAdapter):
         entity._set_persisted(True)
         return entity.key
       else:
-        raise RuntimeError('Failed to write entity to key "%s".' % key)
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## hashkey_hash
     elif cls.EngineConfig.mode == RedisMode.hashkey_hash:

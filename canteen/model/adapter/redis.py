@@ -615,6 +615,8 @@ class RedisAdapter(DirectedGraphAdapter):
         _cleaned[k] = v.urlsafe()
       else:
         _cleaned[k] = v
+    if not _cleaned:  # pragma: no cover
+      _cleaned['__empty__'] = True
 
     # serialize + optionally compress
     serialized = cls.serializer.dumps(_cleaned)
@@ -1360,6 +1362,9 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # decode raw entity
         decoded = cls.get(key=None, _entity=entity)
+
+        if '__empty__' in decoded:
+          del decoded['__empty__']  # trim __empty__ flag on get
 
         # attach key, decode entity and construct
         decoded['key'] = key

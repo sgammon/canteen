@@ -48,24 +48,22 @@ if redis or fakeredis:
     subject = rapi.RedisAdapter
     mode = rapi.RedisMode.toplevel_blob
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
 
       """ Set Redis into testing mode. """
 
       rapi.RedisAdapter.__testing__ = True
-      cls.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
-      rapi.RedisAdapter.EngineConfig.mode = cls.mode
-      super(test_abstract.DirectedGraphAdapterTests, cls).setUpClass()
+      self.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
+      rapi.RedisAdapter.EngineConfig.mode = self.mode
+      super(test_abstract.DirectedGraphAdapterTests, self).setUp()
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
 
       """ Set Redis back into non-testing mode. """
 
       rapi.RedisAdapter.__testing__ = False
-      rapi.RedisAdapter.EngineConfig.mode = cls.__original_mode__
-      super(test_abstract.DirectedGraphAdapterTests, cls).tearDownClass()
+      rapi.RedisAdapter.EngineConfig.mode = self.__original_mode__
+      super(test_abstract.DirectedGraphAdapterTests, self).tearDown()
 
 
   class RedisAdapterHashKindBlobTests(RedisAdapterTests):

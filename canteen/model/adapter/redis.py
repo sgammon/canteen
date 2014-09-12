@@ -605,6 +605,9 @@ class RedisAdapter(DirectedGraphAdapter):
     serialized = entity.to_dict()
     joined, flattened = key
 
+    if issubclass(model, _model.Edge):
+      pass
+
     # clean key types
     _cleaned = {}
     for k, v in serialized.iteritems():

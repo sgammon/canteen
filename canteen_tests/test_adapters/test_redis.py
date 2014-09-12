@@ -36,46 +36,50 @@ except ImportError:  # pragma: no cover
 if redis or fakeredis:
 
 
-  class RedisAdapterTests(test_abstract.DirectedGraphAdapterTests):
+  class RedisSetupTeardown(object):
 
-    """ Tests `model.adapter.redis.Redis` in the default mode of operation,
-        called ``toplevel_blob``. """
-
-    # @TODO(sgammon): mock redis testing
+    """ Packages Redis setup and teardown methods. """
 
     __abstract__ = False
-    __original_mode__ = None
     subject = rapi.RedisAdapter
-    mode = rapi.RedisMode.toplevel_blob
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
 
       """ Set Redis into testing mode. """
 
       rapi.RedisAdapter.__testing__ = True
-      self.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
-      rapi.RedisAdapter.EngineConfig.mode = self.mode
-      super(test_abstract.DirectedGraphAdapterTests, self).setUp()
+      rapi.RedisAdapter.EngineConfig.mode = cls.mode
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
 
       """ Set Redis back into non-testing mode. """
 
       rapi.RedisAdapter.__testing__ = False
-      rapi.RedisAdapter.EngineConfig.mode = self.__original_mode__
-      super(test_abstract.DirectedGraphAdapterTests, self).tearDown()
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
 
 
-  class RedisAdapterHashKindBlobTests(RedisAdapterTests):
+  class RedisAdapterTopLevelBlobTests(test_abstract.DirectedGraphAdapterTests,
+                                      RedisSetupTeardown):
 
-    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
+    """ Tests `model.adapter.redis.Redis` in ``toplevel_blob`` mode """
+
+    mode = rapi.RedisMode.toplevel_blob
+
+
+  class RedisAdapterHashKindBlobTests(test_abstract.DirectedGraphAdapterTests,
+                                      RedisSetupTeardown):
+
+    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode """
 
     mode = rapi.RedisMode.hashkind_blob
 
 
-  class RedisAdapterHashKeyBlobTests(RedisAdapterTests):
+  class RedisAdapterHashKeyBlobTests(test_abstract.DirectedGraphAdapterTests,
+                                     RedisSetupTeardown):
 
-    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
+    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode """
 
     mode = rapi.RedisMode.hashkey_blob
 

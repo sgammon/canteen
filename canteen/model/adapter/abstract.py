@@ -453,7 +453,7 @@ class IndexedModelAdapter(ModelAdapter):
 
     }
 
-  def _put(self, entity, **kwargs):
+  def _put(self, entity, **kwargs):  # pragma: no cover
 
     """ Hook to trigger index writes for a given entity. Defers up the chain to
         :py:class:`ModelAdapter` after generating (and potentially writing) a
@@ -815,7 +815,7 @@ class GraphModelAdapter(IndexedModelAdapter):
       raise TypeError('Must pass at least `key` or `properties'
                       ' to `generate_indexes`.')
 
-    if not (entity is None or isinstance(entity, Model)):
+    if not (entity is None or isinstance(entity, Model)):  # pragma: no cover
       raise TypeError('Must pass either `None` or a `Model`'
                       ' for the `entity` parameter to `generate_indexes`.'
                       ' Instead, got: "%s".' % entity)
@@ -884,7 +884,7 @@ class GraphModelAdapter(IndexedModelAdapter):
                 # skip if we've already indexed the two, since we're undirected
                 # and one iteration past either will work for both
                 if (source, target) in _indexed_pairs or (
-                    (target, source) in _indexed_pairs):
+                    (target, source) in _indexed_pairs):  # pragma: no cover
                   continue
 
                 # __graph__::<source>::peers => edge

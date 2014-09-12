@@ -437,10 +437,12 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
       bob, steve, gift = self.test_make_directed_edge_keyname()
 
       # friendship edge should appear for both vertexes
-      assert gift.key in bob.edges(tails=True, keys_only=True)\
+      _q = bob.edges(tails=True, keys_only=True)\
           .fetch(adapter=self.subject(), limit=10)
-      assert gift.key not in steve.edges(tails=True, keys_only=True)\
+      assert gift.key in _q
+      _q = steve.edges(tails=True, keys_only=True)\
           .fetch(adapter=self.subject(), limit=10)
+      assert gift.key not in _q
 
   def test_neighbor_heads(self):
 

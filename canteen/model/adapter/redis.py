@@ -298,6 +298,24 @@ class RedisAdapter(DirectedGraphAdapter):
     BACKGROUND_REWRITE = 'BGREWRITEAOF'
 
   @classmethod
+  def __repr__(cls):
+
+    """ Generate a pleasant string representation of the currently-active
+        ``RedisAdapter``.
+
+        :returns: Pretty string with config info. """
+
+    return "%s(mode=%s, serializer=%s, compression=%s)" % (
+              cls.__name__,
+              cls.EngineConfig.mode,
+              cls.EngineConfig.serializer and (
+                cls.EngineConfig.serializer.__name__),
+              cls.EngineConfig.compression and (
+                cls.EngineConfig.compression.__name__))
+
+  __unicode__ = __str__ = __repr__
+
+  @classmethod
   def is_supported(cls):
 
     """ Check whether this adapter is supported in the current environment.
@@ -457,7 +475,8 @@ class RedisAdapter(DirectedGraphAdapter):
         # (CLIENT, KILL) => "CLIENT KILL"
         operation = '_'.join(map(unicode, operation))
       if isinstance(target, (_redis_client.client.Pipeline,
-                             _redis_client.client.StrictPipeline)):
+                             _redis_client.client.StrictPipeline)) or (
+              fakeredis and isinstance(target, fakeredis.FakePipeline)):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
       if operation == cls.Operations.HASH_SET:
@@ -470,6 +489,25 @@ class RedisAdapter(DirectedGraphAdapter):
     except Exception:  # pragma: no cover
       if __debug__: import pdb; pdb.set_trace()
       raise
+
+  @classmethod
+  def inflate(cls, result):
+    """ Small closure that can inflate (and potentially decompress) a resulting
+        object for a given storage mode.
+
+        :param result: ``basestring`` result from raw Redis storage.
+
+        :returns: Inflated entity, if applicable. """
+
+    if not isinstance(result, basestring):
+      return result  # accounts for dict-like storage
+
+    # account for none, optionally decompress
+    if cls.EngineConfig.compression:
+      result = cls.compressor.decompress(result)
+
+    # deserialize structures
+    return cls.serializer.loads(result)
 
   @classmethod
   def get(cls, key, pipeline=None, _entity=None):
@@ -491,21 +529,22 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # execute query
         result = _entity or (
-          cls.execute(cls.Operations.GET, flattened[1], joined,
+          cls.execute(cls.Operations.GET, flattened[1],
+                        cls.encode_key(joined, flattened),
                         target=pipeline))
 
       ## hashkind_blob
       elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
         # generate kinded key and trim tail
-        kinded = model.Key(flattened[1]).flatten(True)
-        tail = base64.b64decode(key[0]).replace(kinded[0], '')
+        j_kinded, f_kinded = model.Key(flattened[1]).flatten(True)
+        tail = joined.replace(j_kinded, '')
 
         result = _entity or (
           cls.execute(*(
             cls.Operations.HASH_GET,
             flattened[1],
-            cls.encode_key(*kinded),
+            cls.encode_key(j_kinded, f_kinded),
             cls.encode_key(tail, flattened)), target=pipeline))
 
       ## hashkey_blob
@@ -539,13 +578,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
     # @TODO: different storage internal modes
     if isinstance(result, basestring):
-
-      # account for none, optionally decompress
-      if cls.EngineConfig.compression:
-        result = cls.compressor.decompress(result)
-
-      # deserialize structures
-      return cls.serializer.loads(result)
+      return cls.inflate(result)
     return result
 
   @classmethod
@@ -1296,7 +1329,19 @@ class RedisAdapter(DirectedGraphAdapter):
           break
         _seen_results += 1
 
-        cls.execute(cls.Operations.GET, kind.kind(), key, target=pipeline)
+        decoded_k, base_kind = model.Key(urlsafe=key), None
+        if not decoded_k.kind == kind.kind():
+          _base_kind = cls.registry.get(kind.kind())
+        if decoded_k.kind == kind.kind() or not _base_kind:
+          _base_kind = kind
+
+        if not _base_kind:
+          raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
+
+        decoded_k = _base_kind.__keyclass__(urlsafe=key)
+
+        # queue fetch of key
+        pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
 
       _blob_results = pipeline.execute()
 
@@ -1322,11 +1367,11 @@ class RedisAdapter(DirectedGraphAdapter):
         if _and_filters or _or_filters:
 
           if _and_filters and not all((
-                  (filter.match(decoded) for filter in _and_filters))):
+                  (_filter.match(decoded) for _filter in _and_filters))):
             continue  # doesn't match one of the filters
 
           if _or_filters and not any((
-                  (filter.match(decoded) for filter in _or_filters))):
+                  (_filter.match(decoded) for _filter in _or_filters))):
             continue  # doesn't match any of the `or` filters
 
         # matches, by the grace of god

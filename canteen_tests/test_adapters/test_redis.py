@@ -48,22 +48,24 @@ if redis or fakeredis:
     subject = rapi.RedisAdapter
     mode = rapi.RedisMode.toplevel_blob
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
 
       """ Set Redis into testing mode. """
 
       rapi.RedisAdapter.__testing__ = True
-      self.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
-      rapi.RedisAdapter.EngineConfig.mode = self.mode
-      super(test_abstract.DirectedGraphAdapterTests, self).setUp()
+      cls.__original_mode__ = rapi.RedisAdapter.EngineConfig.mode
+      rapi.RedisAdapter.EngineConfig.mode = cls.mode
+      super(test_abstract.DirectedGraphAdapterTests, cls).setUpClass()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
 
       """ Set Redis back into non-testing mode. """
 
       rapi.RedisAdapter.__testing__ = False
-      rapi.RedisAdapter.EngineConfig.mode = self.__original_mode__
-      super(test_abstract.DirectedGraphAdapterTests, self).tearDown()
+      rapi.RedisAdapter.EngineConfig.mode = cls.__original_mode__
+      super(test_abstract.DirectedGraphAdapterTests, cls).tearDownClass()
 
 
   class RedisAdapterHashKindBlobTests(RedisAdapterTests):
@@ -73,11 +75,11 @@ if redis or fakeredis:
     mode = rapi.RedisMode.hashkind_blob
 
 
-  #class RedisAdapterHashKeyBlobTests(RedisAdapterTests):
+  class RedisAdapterHashKeyBlobTests(RedisAdapterTests):
 
-  #  """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
+    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode. """
 
-  #  mode = rapi.RedisMode.hashkey_blob
+    mode = rapi.RedisMode.hashkey_blob
 
 
   # @TODO(sgammon): add hashkey_hash testing when that mode is supported

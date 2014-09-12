@@ -299,7 +299,7 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       assert friendship.key in _q, (
         "expected friendship key but got:"
         " '%s' with adapter '%s'" % (
-          [i for i in _q], self.subject))
+          [i for i in _q], repr(self.subject())))
 
       assert friendship.key in (
         steve.edges(keys_only=True).fetch(adapter=self.subject(), limit=10))
@@ -318,7 +318,7 @@ class GraphModelAdapterTests(IndexedModelAdapterTests):
       assert steve.key in _q, (
         "failed to find steve's key in bob's neighbors."
         " instead, got '%s' for adapter '%s'" % (
-          [i for i in _q], self.subject))
+          [i for i in _q], repr(self.subject())))
 
       # see if we can get steve's friends, which should include bob
       assert bob.key in (
@@ -420,14 +420,14 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
       assert gift.key not in _q, (
             "found gift's key among bob's edges heads, but shouldn't have."
             " instead, got: '%s' with adapter '%s'" % (
-              [i for i in _q], self.subject))
+              [i for i in _q], repr(self.subject())))
 
       _q = steve.edges(tails=False, keys_only=True)\
           .fetch(adapter=self.subject(), limit=10)
       assert gift.key in _q, (
             "couldn't find gift's key among steve's edges heads."
             " instead, got: '%s' with adapter '%s'" % (
-              [i for i in _q], self.subject))
+              [i for i in _q], repr(self.subject())))
 
   def test_edge_tails(self):
 
@@ -455,7 +455,7 @@ class DirectedGraphAdapterTests(GraphModelAdapterTests):
       assert bob.key in _q, (
             "didn't find bob's key among steve's friends."
             " instead, got: '%s' with adapter '%s'" % (
-              [i for i in _q], self.subject))
+              [i for i in _q], repr(self.subject())))
 
   def test_neighbor_tails(self):
 

@@ -1,0 +1,27 @@
+<atlassian-ide-plugin>
+  <project-configuration id="1">
+    <servers id="2">
+      <jira id="3">
+        <server-id id="4">8f07416b-548c-44f6-b50f-2e74503694fc</server-id>
+        <name>momentron (JIRA Studio)</name>
+        <url>https://momentum-labs.atlassian.net</url>
+        <shared>false</shared>
+        <useSessionCookies>false</useSessionCookies>
+      </jira>
+      <bamboo id="5">
+        <server-id id="6">4f185650-4b82-46c5-95bd-39ba5e683b1c</server-id>
+        <name>momentron</name>
+        <url>https://momentum-labs.atlassian.net/builds</url>
+        <shared>false</shared>
+        <use-favourites>false</use-favourites>
+        <show-branches>true</show-branches>
+        <my-branches-only>false</my-branches-only>
+        <bamboo2>true</bamboo2>
+        <plans id="7">
+          <plan id="8" key="FLY-PY" grouped="1" />
+        </plans>
+      </bamboo>
+    </servers>
+    <default-jira-server reference="4" />
+  </project-configuration>
+</atlassian-ide-plugin>

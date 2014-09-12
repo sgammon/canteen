@@ -64,7 +64,7 @@ define error
 endef
 
 
-all: .Python develop test package ready
+all: clean .Python develop test package ready
 
 ready:
 	@echo
@@ -90,7 +90,7 @@ test:
 	$(call warn,"Skipping tests.")
 endif
 
-build: .Python dependencies
+build: .Python dependencies templates
 	$(call say,"Building framework...")
 	@$(BINPATH)python setup.py build
 	$(call okay,"Framework built successfully.")
@@ -112,6 +112,11 @@ develop: build
 	$(call say,"Building framework for development...")
 	-@$(BINPATH)python setup.py develop
 endif
+
+templates:
+	$(call say,"Building framework templates...")
+	-@$(BINPATH)python -B -c "from canteen import template; template.TemplateCompiler.framework(run=True)"
+	$(call okay,"Templates built. Moving on.")
 
 ifeq ($(DEPS),1)
 dependencies:

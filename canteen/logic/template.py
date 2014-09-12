@@ -95,6 +95,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
     eval_ctx = EvalContext(self.environment, self.name)
 
     from jinja2.runtime import __all__ as exported
+    self.writeline('# -*- coding: utf-8 -*-')
+    self.writeline('')
     self.writeline('from __future__ import division')
     self.writeline('from jinja2.runtime import ' + ', '.join(exported))
     if not unoptimize_before_dead_code:
@@ -227,9 +229,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             imports. """
 
       self.module, self.sources, self.target, self.config = (
-        module or _FRAMEWORK_TEMPLATE_ROOT,
-        sources or _FRAMEWORK_TEMPLATE_SOURCES,
-        target or _FRAMEWORK_TEMPLATES_COMPILED, config)
+        module, sources, target, config)
 
       self.shim_active, self.original_visit_template, self.prefix = (
         False, None, prefix)
@@ -264,6 +264,34 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           pass
         else:  # pragma: no cover
           raise
+
+    @classmethod
+    def framework(cls, config=None, run=False):
+
+      """ Class-level shortcut to spawn a ``TemplateCompiler`` instance that is
+          pre-configured to build builtin framework templates.
+
+          :param config: Instance of :py:class:`canteen.util.config.Config`
+            that should be used when compiling templates.
+
+          :param run: ``bool`` flag indicating that the compiler should be run
+            automatically, instead of returned. Defaults to ``False``.
+
+          :returns: Instance of ``TemplateCompiler``. """
+
+      from canteen.util import config as configutil
+
+      # create `compiled` root folder, if necessary
+      if not path.isdir(_FRAMEWORK_TEMPLATES_COMPILED):
+        cls.mkdir_p(_FRAMEWORK_TEMPLATES_COMPILED)
+
+      compiled = cls(_FRAMEWORK_TEMPLATE_ROOT,
+                     _FRAMEWORK_TEMPLATE_SOURCES,
+                     _FRAMEWORK_TEMPLATES_COMPILED,
+                     config or configutil.Config(),
+                     'canteen.templates')
+      if run: return compiled()
+      return compiled
 
     def compile(self, environment, source, destination,
                                               encoding='utf-8',
@@ -316,8 +344,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
                            ' so %s%s cannot exist as an independent'
                            ' template file.' % (name, name, ext))
 
-        self.mkdir_p((
-          path.abspath(path.join(*tuple(destination.split('/')[0:-1])))))
+        self.mkdir_p((path.join(*tuple(destination.split('/')[0:-1]))))
 
         with open('.'.join((target_name, 'py')), 'w') as target:
           target.write(raw)
@@ -355,8 +382,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             during the compilation routine. """
 
       if not destination.replace(base_dir, '') == '':
-        destination = path.abspath(path.join(base_dir, '/'.join(
-          destination.replace(base_dir, '').replace('-', '_').split('/')[1:])))
+        destination = path.join(base_dir, '/'.join(
+          destination.replace(base_dir, '').replace('-', '_').split('/')[1:]))
 
       _import_paths = []
 
@@ -383,6 +410,11 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
         elif path.isfile(source_name) and (
             re.match(pattern, filename)):  # pragma: no cover
+
+          # make sure directories are there
+          if not path.isdir(path.dirname(source_name)):
+            self.mkdir_p(path.dirname(source_name))
+
           new_target = _make_module_path(
             self.compile(self.environment, source_name, destination_name,
                           encoding=encoding,

@@ -7,5 +7,5 @@
 """
 
 # subtemplates
-from canteen.templates.compiled.snippets.test import *
+from templates.compiled.snippets.test import *
 

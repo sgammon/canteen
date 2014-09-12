@@ -51,11 +51,13 @@ if jinja2:
 
       """ Test constructing a new `TemplateCompiler` """
 
-      t = template.TemplateCompiler(*(
-        None, None, None, config.Config(), 'canteen.templates'))
+      t = template.TemplateCompiler.framework()
       assert t.module == template._FRAMEWORK_TEMPLATE_ROOT
       assert t.sources == template._FRAMEWORK_TEMPLATE_SOURCES
-      assert t.target == template._FRAMEWORK_TEMPLATES_COMPILED
+
+      with self.assertRaises(TypeError):
+        template.TemplateCompiler()
+
       return t
 
     def test_environment(self):

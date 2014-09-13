@@ -593,11 +593,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       import jinja2
 
-      # Convert the path to a module name.
-      modpath = template.replace('/', '.').replace('-', '_').rsplit('.', 1)
-      prefix, obj = (self.module.__name__,
-        modpath if not isinstance(modpath, list) else modpath[0])
-      prefix, obj = str(prefix), str(obj)
+      fullpath = self.module.__name__.split('.') + template.split('/')
+      prefix, obj = '.'.join(fullpath[:-1]), fullpath[-1]
 
       try:
         return getattr(__import__(prefix, None, None, [obj]), obj)

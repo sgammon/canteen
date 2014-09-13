@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   model adapters
   ~~~~~~~~~~~~~~
@@ -11,11 +11,11 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # module constants
-__version__ = (0, 7)  # module version-string
-__doc__ = "Contains modules that adapt canteen models to various storage backends."
+__version__ = (0, 8)  # module version-string
+__doc__ = "Contains modules that adapt models to various storage backends."
 
 
 # abstract adapters
@@ -55,4 +55,9 @@ base_mixins = [KeyMixin, ModelMixin, VertexMixin, EdgeMixin]
 builtin_mixins = [DictMixin, JSONMixin]
 
 
-__adapters__ = tuple(abstract_adapters + modules + concrete + builtin_mixins + base_mixins)
+__adapters__ = tuple((
+  abstract_adapters +
+  modules +
+  concrete +
+  builtin_mixins +
+  base_mixins))

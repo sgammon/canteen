@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   core
   ~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # submodules
 from .meta import *
@@ -23,9 +23,7 @@ from .runtime import *
 from .injection import *
 
 
-__all__ = (
-  'meta',
-  'hooks',
-  'runtime',
-  'injection'
-)
+__all__ = ('meta',
+           'hooks',
+           'runtime',
+           'injection')

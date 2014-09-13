@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   assets logic
   ~~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import os
@@ -35,7 +35,7 @@ _default_asset_path = os.path.join(os.getcwd(), 'assets')
 @decorators.bind('assets')
 class Assets(logic.Logic):
 
-  '''  '''
+  """  """
 
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
@@ -45,25 +45,29 @@ class Assets(logic.Logic):
   ### === Internals === ###
   debug = property(lambda self: self.config.get('debug', True))
   assets = property(lambda self: config.Config().assets.get('assets', {}))
-  config = property(lambda self: config.Config().assets.get('config', {'debug': True}))
-  path = property(lambda self: config.Config().app.get('paths', {}).get('assets', _default_asset_path))
+
+  config = property(lambda self: (
+    config.Config().assets.get('config', {'debug': True})))
+
+  path = property(lambda self: (
+    config.Config().app.get('paths', {}).get('assets', _default_asset_path)))
 
   ### === Detection & Bindings === ###
-  @hooks.HookResponder('initialize', context=('runtime',))
-  def bind_urls(self, runtime):
+  @hooks.HookResponder('initialize')
+  def bind_urls(self):
 
-    '''  '''
+    """  """
 
     from canteen import url, handler
 
     ## asset handler
     def make_responder(asset_type, path_prefix=None):
 
-      '''  '''
+      """  """
 
       class AssetResponder(handler.Handler):
 
-        '''  '''
+        """  """
 
         content_types = {
           'css': 'text/css',
@@ -85,7 +89,7 @@ class Assets(logic.Logic):
 
         def GET(self, asset):
 
-          '''  '''
+          """  """
 
           fullpath = (
             os.path.join(path_prefix, asset) if path_prefix else (
@@ -93,19 +97,26 @@ class Assets(logic.Logic):
           if fullpath in self.assets.__handles__:
 
             # extract cached handle/modtime/content
-            modtime, handle, contents, fingerprint = self.assets.__handles__[fullpath]
+            modtime, handle, contents, fingerprint = (
+              self.assets.__handles__[fullpath])
 
             if os.path.getmtime(fullpath) > modtime:
-              modtime, handle, contents, fingerprint = self.open_and_serve(fullpath)  # need to refresh cache
+              modtime, handle, contents, fingerprint = (
+                self.open_and_serve(fullpath))  # need to refresh cache
 
           else:
-            modtime, handle, contents, fingerprint = self.open_and_serve(fullpath)  # need to prime cache in first place
+            modtime, handle, contents, fingerprint = (
+              self.open_and_serve(fullpath))  # need to prime cache
 
           # try to serve a 304, if possible
           if 'If-None-Match' in self.request.headers:
-            if self.request.headers['If-None-Match'] == fingerprint:  # fingerprint matches, serve a 304
+
+            # fingerprint matches, serve a 304
+            if self.request.headers['If-None-Match'] == fingerprint:
               etag_header = ('ETag', self.request.headers['If-None-Match'])
-              return self.http.new_response(status='304 Not Modified', headers=[etag_header])
+              return self.http.new_response(
+                        status='304 Not Modified',
+                        headers=[etag_header])
 
           # resolve content type by file extension, if possible
           content_type = self.content_types.get(fullpath.split('.')[-1])
@@ -116,11 +127,14 @@ class Assets(logic.Logic):
             if not content_type: content_type = 'application/octet-stream'
 
           # can return content directly
-          return self.http.new_response(contents, headers=[('ETag', fingerprint)], content_type=content_type)
+          return self.http.new_response(contents,
+                                        headers=[('ETag', fingerprint)],
+                                        content_type=content_type)
 
+        # noinspection PyBroadException
         def open_and_serve(self, filepath):
 
-          '''  '''
+          """  """
 
           if os.path.exists(filepath):
             try:
@@ -159,17 +173,19 @@ class Assets(logic.Logic):
     } if 'asset_prefix' not in self.config else self.config['asset_prefix']
 
     for category, prefix in asset_prefixes.iteritems():
-      url("%s-assets" % category, "/%s/<path:asset>" % prefix)(make_responder(asset_type=category))
+      url("%s-assets" % category, "/%s/<path:asset>" % prefix)((
+        make_responder(asset_type=category)))
 
     if 'extra_assets' in self.config:
       for name, ext_cfg in self.config['extra_assets'].iteritems():
         prefix, path = ext_cfg
-        url("%s-extra-assets" % name, "%s/<path:asset>" % prefix)(make_responder(asset_type=name, path_prefix=path))
+        url("%s-extra-assets" % name, "%s/<path:asset>" % prefix)((
+          make_responder(asset_type=name, path_prefix=path)))
 
   ### === Resolvers === ###
   def find_filepath(self, asset_type):
 
-    '''  '''
+    """  """
 
     if isinstance(self.path, dict):
       if asset_type in self.path:
@@ -178,24 +194,26 @@ class Assets(logic.Logic):
 
   def find_path(self, asset_type):
 
-    '''  '''
+    """  """
 
     if isinstance(self.__prefixes__, dict):
       # allow type-specific asset prefixes
       if asset_type in self.__prefixes__:
         return self.__prefixes__[asset_type]
-      raise ValueError("Cannot calculate asset prefix for unspecified asset type '%s'." % asset_type)
+      raise ValueError("Cannot calculate asset prefix"
+                       " for unspecified asset type '%s'." % asset_type)
     return ("assets/%s" % asset_type, asset_type)
 
   ### === URL Builders === ###
   def asset_url(self, type, fragments, arguments):
 
-    '''  '''
+    """  """
 
     assert (fragments or arguments)  # must pass at least fragments or arguments
 
     if type not in self.__static_types__:
-      raise ValueError("Cannot generate asset URL for unknown asset type '%s'." % type)
+      raise ValueError("Cannot generate asset URL"
+                       " for unknown asset type '%s'." % type)
 
     if fragments:
       url_blocks = {
@@ -203,11 +221,12 @@ class Assets(logic.Logic):
         # one fragment will be a relative URL, like "sample/app.css?v1"
         1: lambda relative: (self.find_path(type), relative),
 
-        # two fragments is a package + name, like ("sample", "app")
+        # two fragments is a package + name
         2: lambda package, name: self.find_name(type, package, name),
 
-        # three fragments is a package + name + version, like ("sample", "app", "v1")
-        3: lambda name, package, version: self.find_name(type, package, name, version=version)
+        # three fragments is a package + name + version
+        3: lambda name, package, version: self.find_name(*(
+          type, package, name), version=version)
 
       }.get(len(fragments))(*fragments)
 
@@ -223,27 +242,32 @@ class Assets(logic.Logic):
     prefix = ''
     if self.config.get('serving_mode', 'local') == 'cdn':
       prefix += random.choice(self.config.get('cdn_prefix')) if (
-        isinstance(self.config.get('cdn_prefix', None), (list, tuple))) else self.config.get('cdn_prefix')
+        isinstance(self.config.get('cdn_prefix', None), (list, tuple))) else (
+          self.config.get('cdn_prefix'))
 
-    return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if isinstance(x, tuple) else x, url_blocks))])
+    return prefix + '/'.join([''] + ['/'.join(map(lambda x: '/'.join(x) if (
+      isinstance(x, tuple)) else x, url_blocks))])
 
   @decorators.bind()  # CSS
-  def style_url(self, *fragments, **arguments): return self.asset_url('style', fragments, arguments)
+  def style_url(self, *fragments, **arguments): return (
+    self.asset_url('style', fragments, arguments))
 
   @decorators.bind()  # JS
-  def script_url(self, *fragments, **arguments): return self.asset_url('script', fragments, arguments)
+  def script_url(self, *fragments, **arguments): return (
+    self.asset_url('script', fragments, arguments))
 
   @decorators.bind()  # Fonts
-  def font_url(self, *fragments, **arguments): return self.asset_url('font', fragments, arguments)
+  def font_url(self, *fragments, **arguments): return (
+    self.asset_url('font', fragments, arguments))
 
   @decorators.bind()  # Images
-  def image_url(self, *fragments, **arguments): return self.asset_url('image', fragments, arguments)
+  def image_url(self, *fragments, **arguments): return (
+    self.asset_url('image', fragments, arguments))
 
   @decorators.bind()  # Video
-  def video_url(self, *fragments, **arguments): return self.asset_url('video', fragments, arguments)
+  def video_url(self, *fragments, **arguments): return (
+    self.asset_url('video', fragments, arguments))
 
   @decorators.bind()  # Other
-  def static_url(self, *fragments, **arguments): return self.asset_url('static', fragments, arguments)
-
-
-__all__ = ('Assets',)
+  def static_url(self, *fragments, **arguments): return (
+    self.asset_url('static', fragments, arguments))

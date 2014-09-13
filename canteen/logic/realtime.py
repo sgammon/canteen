@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   realtime logic
   ~~~~~~~~~~~~~~
@@ -11,29 +11,27 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core and utils
 from ..base import logic
 from ..util import decorators
 
 
+# noinspection PyMethodMayBeStatic
 @decorators.bind('realtime', namespace=True)
 class RealtimeSemantics(logic.Logic):
 
-  '''  '''
+  """  """
 
-  def on_connect(self, client):
+  def on_connect(self, client):  # pragma: no cover
 
-    '''  '''
-
-    pass
-
-  def on_message(self, client, message):
-
-    '''  '''
+    """  """
 
     pass
 
+  def on_message(self, client, message):  # pragma: no cover
 
-__all__ = ('RealtimeSemantics',)
+    """  """
+
+    pass

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: runscript
-  ~~~~~~~~~~~~~~~~~~
+  runscript
+  ~~~~~~~~~
 
   accepts calls to ``canteen`` as a module. can be run with
   ``python -m canteen`` or ``python -m canteen/``, the latter
@@ -15,10 +15,10 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # utils
-from util import walk
-from dispatch import run
+from .util import walk
+from .dispatch import (run, app)
 
 walk(), run()

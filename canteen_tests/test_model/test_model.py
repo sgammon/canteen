@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   model tests
   ~~~~~~~~~~~
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import abc
@@ -36,7 +36,8 @@ else:  # pragma: no cover
   if 'canteen.model' not in config.config:
     config.config['canteen.model'] = {}
   config.config['canteen.model']['debug'] = True
-  for k in filter(lambda x: x.startswith('canteen.model'), config.config.iterkeys()):
+  for k in filter(lambda x: x.startswith('canteen.model'),
+                              config.config.iterkeys()):
     config.config[k]['debug'] = True
 
 # canteen model API
@@ -53,23 +54,20 @@ from canteen.util import struct as datastructures
 
 ## == Test Models == ##
 
-## Car
-# Simple model simulating a car.
 class Car(model.Model):
 
-  ''' An automobile. '''
+  """ An automobile. """
 
   make = basestring, {'indexed': True}
   model = basestring, {'indexed': True}
   year = int, {'choices': xrange(1900, 2015)}
-  color = basestring, {'choices': ('blue', 'green', 'red', 'silver', 'white', 'black')}
+  color = basestring, {'choices': (
+                        'blue', 'green', 'red', 'silver', 'white', 'black')}
 
 
-## Person
-# Simple model simulating a person which is also a ``Vertex``.
-class Person(model.Vertex):
+class TestPerson(model.Vertex):
 
-  ''' A human being. '''
+  """ A human being. """
 
   firstname = basestring, {'indexed': True}
   lastname = basestring, {'indexed': True}
@@ -77,35 +75,33 @@ class Person(model.Vertex):
   cars = Car, {'repeated': True}
 
 
-## Friendship
-# Simple model simulating a friendship, which acts as an ``Edge`` between people.
-class Friendship(model.Edge):
+class Friendship(TestPerson > TestPerson):
 
-  ''' A friendship between people. '''
+  """ A friendship between people. """
 
-  people = Person, {'repeated': True}
+  year_met = int
 
 
 ## ModelTests
 class ModelTests(FrameworkTest):
 
-  ''' Tests `model.Model` and `model.AbstractModel`. '''
+  """ Tests `model.Model` and `model.AbstractModel`. """
 
   def test_construct_model(self):
 
-    ''' Test constructing a `Model` manually '''
+    """ Test constructing a `Model` manually """
 
     # construct our car record
     car = Car(make='BMW', model='M3', year=2013, color='white')
 
     # construct our person record
-    person = Person()
+    person = TestPerson()
     person.firstname = 'John'
     person.cars = [car]
 
     # perform tests
     self.assertIsInstance(car, Car)
-    self.assertIsInstance(person, Person)
+    self.assertIsInstance(person, TestPerson)
     self.assertEqual(person.firstname, 'John')
     self.assertIsInstance(person.cars, list)
     self.assertEqual(len(person.cars), 1)
@@ -118,7 +114,7 @@ class ModelTests(FrameworkTest):
     self.assertEqual(person.lastname, None)
 
     # test __repr__
-    cls = str(Person)
+    cls = str(TestPerson)
     obj = str(person)
 
     # test class representations
@@ -134,7 +130,7 @@ class ModelTests(FrameworkTest):
 
   def test_invalid_model_adapter(self):
 
-    ''' Test using invalid model adapter, which should raise `RuntimeError` '''
+    """ Test using invalid model adapter, which should raise `RuntimeError` """
 
     with self.assertRaises(RuntimeError):
 
@@ -148,46 +144,48 @@ class ModelTests(FrameworkTest):
 
   def test_model_inheritance(self):
 
-    ''' Test proper inheritance structure for `Model` '''
+    """ Test proper inheritance structure for `Model` """
 
     self.assertTrue(issubclass(Car, model.Model))
-    self.assertTrue(issubclass(Person, model.Model))
+    self.assertTrue(issubclass(TestPerson, model.Model))
     self.assertTrue(issubclass(model.Model, model.AbstractModel))
 
   def test_model_schema(self):
 
-    ''' Test that there's a proper schema spec on `Model` '''
+    """ Test that there's a proper schema spec on `Model` """
 
     # check lookup
-    self.assertTrue(hasattr(Person, '__lookup__'))
-    self.assertIsInstance(Person.__lookup__, frozenset)
+    self.assertTrue(hasattr(TestPerson, '__lookup__'))
+    self.assertIsInstance(TestPerson.__lookup__, frozenset)
 
     # check property descriptors
-    self.assertTrue(hasattr(Person, 'firstname'))
-    self.assertTrue(hasattr(Person, 'lastname'))
-    self.assertTrue(hasattr(Person, 'cars'))
+    self.assertTrue(hasattr(TestPerson, 'firstname'))
+    self.assertTrue(hasattr(TestPerson, 'lastname'))
+    self.assertTrue(hasattr(TestPerson, 'cars'))
 
     # check kind
-    self.assertTrue(hasattr(Person, 'kind'))
-    self.assertIsInstance(Person.kind(), basestring)
+    self.assertTrue(hasattr(TestPerson, 'kind'))
+    self.assertIsInstance(TestPerson.kind(), basestring)
 
     # check set/get
-    self.assertTrue(hasattr(Person, '_get_value'))
-    self.assertTrue(hasattr(Person, '_set_value'))
-    self.assertTrue(inspect.ismethod(Person._get_value))
-    self.assertTrue(inspect.ismethod(Person._set_value))
+    self.assertTrue(hasattr(TestPerson, '_get_value'))
+    self.assertTrue(hasattr(TestPerson, '_set_value'))
+    self.assertTrue(inspect.ismethod(TestPerson._get_value))
+    self.assertTrue(inspect.ismethod(TestPerson._set_value))
 
     # check key
-    self.assertTrue(hasattr(Person, 'key'))
-    self.assertTrue((not hasattr(Person, '__key__')))  # should not have key until instantiation
-    self.assertTrue(hasattr(Person(), '__key__'))
+    self.assertTrue(hasattr(TestPerson, 'key'))
+    self.assertTrue(hasattr(TestPerson(), '__key__'))
+
+    # should not have key until instantiation
+    self.assertTrue((not hasattr(TestPerson, '__key__')))
 
   def test_model_set_attribute(self):
 
-    ''' Test setting an unknown and known attribute on `Model` '''
+    """ Test setting an unknown and known attribute on `Model` """
 
     # try construction assignment
-    john = Person(firstname='John')
+    john = TestPerson(firstname='John')
     self.assertEqual(john.firstname, 'John')
 
     # re-assign
@@ -200,34 +198,34 @@ class ModelTests(FrameworkTest):
 
   def test_model_adapter(self):
 
-    ''' Test that adapter is attached correctly to `Model` '''
+    """ Test that adapter is attached correctly to `Model` """
 
     # make sure it's on the classlevel
-    self.assertTrue(hasattr(Person, '__adapter__'))
-    self.assertIsInstance(Person.__adapter__, adapter.ModelAdapter)
+    self.assertTrue(hasattr(TestPerson, '__adapter__'))
+    self.assertIsInstance(TestPerson.__adapter__, adapter.ModelAdapter)
 
   def test_model_stringify(self):
 
-    ''' Test the string representation of a `Model` object '''
+    """ Test the string representation of a `Model` object """
 
-    self.assertIsInstance(Person().__repr__(), basestring)
+    self.assertIsInstance(TestPerson().__repr__(), basestring)
 
   def test_model_kind(self):
 
-    ''' Test that `Model.kind` is properly set '''
+    """ Test that `Model.kind` is properly set """
 
     # test class-level kind
-    self.assertIsInstance(Person.kind(), basestring)
-    self.assertEqual(Person.kind(), "Person")
+    self.assertIsInstance(TestPerson.kind(), basestring)
+    self.assertEqual(TestPerson.kind(), "TestPerson")
 
     # test object-level kind
-    john = Person()
+    john = TestPerson()
     self.assertIsInstance(john.kind(), basestring)
-    self.assertEqual(john.kind(), "Person")
+    self.assertEqual(john.kind(), "TestPerson")
 
   def test_abstract_model(self):
 
-    ''' Test that `AbstractModel` works abstractly '''
+    """ Test that `AbstractModel` works abstractly """
 
     # make sure it's ABC-enabled
     self.assertTrue((not isinstance(model.Model, abc.ABCMeta)))
@@ -238,16 +236,16 @@ class ModelTests(FrameworkTest):
 
   def test_concrete_model(self):
 
-    ''' Test that `Model` works concretely '''
+    """ Test that `Model` works concretely """
 
     ## test simple construction
-    self.assertIsInstance(Person(), Person)
+    self.assertIsInstance(TestPerson(), TestPerson)
 
     ## SampleModel
     # Test parent model class.
     class SampleModel(model.Model):
 
-      ''' Test parent model class. '''
+      """ Test parent model class. """
 
       parent = basestring
 
@@ -255,7 +253,7 @@ class ModelTests(FrameworkTest):
     # Test child model class.
     class SampleSubModel(SampleModel):
 
-      ''' Test child model class. '''
+      """ Test child model class. """
 
       child = basestring
 
@@ -274,10 +272,10 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict(self, method='to_dict'):
 
-    ''' Test flattening a `Model` into a raw dictionary '''
+    """ Test flattening a `Model` into a raw dictionary """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     raw_dict = getattr(p, method)()
 
     if method == 'to_dict':
@@ -285,7 +283,9 @@ class ModelTests(FrameworkTest):
       self.assertEqual(len(raw_dict), 2)
       self.assertIsInstance(raw_dict, dict)
       self.assertEqual(raw_dict['firstname'], 'John')  # we set this explicitly
-      self.assertEqual(raw_dict['active'], True)  # this is defaulted, should export
+
+      # this is defaulted, should export
+      self.assertEqual(raw_dict['active'], True)
 
       with self.assertRaises(KeyError):
         raw_dict['lastname']
@@ -293,10 +293,10 @@ class ModelTests(FrameworkTest):
 
   def test_model_update_with_dict(self):
 
-    ''' Test updating a `Model` from a `dict` '''
+    """ Test updating a `Model` from a `dict` """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     update = {
       'firstname': 'Sup',
       'lastname': 'Bleebs'
@@ -309,19 +309,19 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_schema(self):
 
-    ''' Test flattening a `Model` class into a schema dictionary '''
+    """ Test flattening a `Model` class into a schema dictionary """
 
-    schema = Person.to_dict_schema()
+    schema = TestPerson.to_dict_schema()
     assert 'firstname' in schema
     assert isinstance(schema['firstname'], model.Property)
     assert schema['firstname']._basetype == basestring
 
   def test_model_to_dict_all_arguments(self, method='to_dict'):
 
-    ''' Test using `Model.to_dict` with the `all` flag '''
+    """ Test using `Model.to_dict` with the `all` flag """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     all_dict = getattr(p, method)(_all=True)
 
     if method == 'to_dict':
@@ -334,11 +334,13 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_filter(self, method='to_dict'):
 
-    ''' Test using `Model.to_dict` with a filter function '''
+    """ Test using `Model.to_dict` with a filter function """
 
     # sample person
-    p = Person(firstname='John')
-    filtered_dict = getattr(p, method)(filter=lambda x: len(x[0]) > 7)  # should filter out 'active'
+    p = TestPerson(firstname='John')
+
+    # should filter out 'active'
+    filtered_dict = getattr(p, method)(filter=lambda x: len(x[0]) > 7)
 
     if method == 'to_dict':
       # test filter
@@ -352,15 +354,15 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_include(self, method='to_dict'):
 
-    ''' Test using `Model.to_dict` with an inclusion list '''
+    """ Test using `Model.to_dict` with an inclusion list """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     included_dict = getattr(p, method)(include=('firstname', 'lastname'))
 
     if method == 'to_dict':
-      # test include
-      self.assertEqual(len(included_dict), 2)  # should still include `lastname` as 'None'
+      # should still include `lastname` as 'None'
+      self.assertEqual(len(included_dict), 2)
       self.assertIsInstance(included_dict, dict)
       self.assertEqual(included_dict['firstname'], 'John')
       self.assertEqual(included_dict['lastname'], None)
@@ -371,10 +373,10 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_exclude(self, method='to_dict'):
 
-    ''' Test using `Model.to_dict` with an exclusion list '''
+    """ Test using `Model.to_dict` with an exclusion list """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
     excluded_dict = getattr(p, method)(exclude=('active',))
 
     if method == 'to_dict':
@@ -389,11 +391,12 @@ class ModelTests(FrameworkTest):
 
   def test_model_to_dict_with_map(self, method='to_dict'):
 
-    ''' Test using `Model.to_dict` with a map function '''
+    """ Test using `Model.to_dict` with a map function """
 
     # sample person
-    p = Person(firstname='John')
-    mapped_dict = getattr(p, method)(map=lambda x: tuple([x[0] + '-cool', x[1]]))
+    p = TestPerson(firstname='John')
+    mapped_dict = getattr(p, method)(
+                             map=lambda x: tuple([x[0] + '-cool', x[1]]))
 
     if method == 'to_dict':
       # test map
@@ -405,10 +408,10 @@ class ModelTests(FrameworkTest):
 
   def test_JSON_model_format(self):
 
-    ''' Test serializing a `Model` into a JSON struct '''
+    """ Test serializing a `Model` into a JSON struct """
 
     # sample person
-    p = Person(firstname='John', lastname='Doe')
+    p = TestPerson(firstname='John', lastname='Doe')
 
     # prepare mini testsuite
     def test_json_flow(original, js=None):
@@ -453,13 +456,13 @@ class ModelTests(FrameworkTest):
 
   def test_inflate_model_from_json(self):
 
-    ''' Test inflating a `Model` object from a JSON string '''
+    """ Test inflating a `Model` object from a JSON string """
 
     obj = {'firstname': 'John', 'lastname': 'Doe'}
     json_string = json.dumps(obj)
 
     # load into object
-    p = Person.from_json(json_string)
+    p = TestPerson.from_json(json_string)
     assert p.firstname == 'John'
     assert p.lastname == 'Doe'
 
@@ -470,10 +473,10 @@ class ModelTests(FrameworkTest):
 
     def test_msgpack_model_format(self):
 
-      ''' Test serializing a `Model` into a msgpack struct '''
+      """ Test serializing a `Model` into a msgpack struct """
 
       # sample person
-      p = Person(firstname='John', lastname='Doe')
+      p = TestPerson(firstname='John', lastname='Doe')
 
       # prepare mini testsuite
       def test_msgpack_flow(original, mp=None):
@@ -518,30 +521,33 @@ class ModelTests(FrameworkTest):
 
     def test_inflate_model_from_msgpack(self):
 
-      ''' Test inflating a `Model` object from a msgpack payload '''
+      """ Test inflating a `Model` object from a msgpack payload """
 
       obj = {'firstname': 'John', 'lastname': 'Doe'}
       mpack = self.msgpack.dumps(obj)
 
       # load into object
-      p = Person.from_msgpack(mpack)
+      p = TestPerson.from_msgpack(mpack)
       assert p.firstname == 'John'
       assert p.lastname == 'Doe'
 
   def test_explicit(self):
 
-    ''' Test a `Model`'s behavior in `explicit` mode '''
+    """ Test a `Model`'s behavior in `explicit` mode """
 
     # sample people
-    s = Person(firstname='Sam')
-    p = Person(firstname='John')
+    s = TestPerson(firstname='Sam')
+    p = TestPerson(firstname='John')
 
     # go into explicit mode
     self.assertEqual(p.__explicit__, False)
     explicit_firstname, explicit_lastname, explicit_active = None, None, None
     with p:
-      explicit_firstname, explicit_lastname, explicit_active = p.firstname, p.lastname, p.active
-      self.assertNotEqual(p.__explicit__, s.__explicit__)  # only instances switch modes
+      explicit_firstname, explicit_lastname, explicit_active = (
+          p.firstname, p.lastname, p.active)
+
+      # only instances switch modes
+      self.assertNotEqual(p.__explicit__, s.__explicit__)
 
       self.assertEqual(s.lastname, None)
       self.assertEqual(s.active, True)
@@ -551,8 +557,12 @@ class ModelTests(FrameworkTest):
 
     # test explicit values
     self.assertEqual(explicit_firstname, 'John')
-    self.assertEqual(explicit_active, datastructures._EMPTY)  # default values are not returned in `explicit` mode
-    self.assertEqual(explicit_lastname, datastructures._EMPTY)  # unset properties are returned as _EMPTY in `explicit` mode
+
+    # default values are not returned in `explicit` mode
+    self.assertEqual(explicit_active, datastructures.EMPTY)
+
+    # unset properties are returned as EMPTY in `explicit` mode
+    self.assertEqual(explicit_lastname, datastructures.EMPTY)
 
     # test implicit values
     self.assertEqual(p.firstname, 'John')
@@ -561,10 +571,10 @@ class ModelTests(FrameworkTest):
 
   def test_generator_implicit(self):
 
-    ''' Test a `Model`'s behavior when used as an iterator '''
+    """ Test a `Model`'s behavior when used as an iterator """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test implicit generator
     items = {}
@@ -577,10 +587,10 @@ class ModelTests(FrameworkTest):
 
   def test_generator_explicit(self):
 
-    ''' Test a `Model`'s behavior when used as an iterator in `explicit` mode '''
+    """ Test `Model` behavior when used as an iterator in `explicit` mode """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test explicit generator
     items = {}
@@ -588,17 +598,22 @@ class ModelTests(FrameworkTest):
       for name, value in p:
         items[name] = value
 
-    self.assertEqual(len(items), len(p.__lookup__))  # should have _all_ properties
+    # should have _all_ properties
+    self.assertEqual(len(items), len(p.__lookup__))
     self.assertEqual(items['firstname'], 'John')
-    self.assertEqual(items['active'], datastructures._EMPTY)  # defaults are returned as sentinels in `explicit` mode
-    self.assertEqual(items['lastname'], datastructures._EMPTY)  # unset properties are returned as sentinels in `explicit` mode
+
+    # defaults are returned as sentinels in `explicit` mode
+    self.assertEqual(items['active'], datastructures.EMPTY)
+
+    # unset properties are returned as sentinels in `explicit` mode
+    self.assertEqual(items['lastname'], datastructures.EMPTY)
 
   def test_len(self):
 
-    ''' Test a `Model`'s behavior when used with `len()` '''
+    """ Test a `Model`'s behavior when used with `len()` """
 
     # sample person
-    p = Person()
+    p = TestPerson()
     self.assertEqual(len(p), 0)
 
     # set 1st property
@@ -611,10 +626,10 @@ class ModelTests(FrameworkTest):
 
   def test_nonzero(self):
 
-    ''' Test a `Model`'s falsyness with no properties '''
+    """ Test a `Model`'s falsyness with no properties """
 
     # sample peron
-    p = Person()
+    p = TestPerson()
     self.assertTrue((not p))  # empty model should be falsy
 
     p.firstname = 'John'
@@ -622,10 +637,10 @@ class ModelTests(FrameworkTest):
 
   def test_get_invalid_property(self):
 
-    ''' Test getting an invalid `Model` property '''
+    """ Test getting an invalid `Model` property """
 
     # sample person
-    p = Person()
+    p = TestPerson()
 
     # should be sealed off by `__slots__`
     with self.assertRaises(AttributeError):
@@ -633,7 +648,7 @@ class ModelTests(FrameworkTest):
 
     # should be sealed off by metaclass-level `__slots__`
     with self.assertRaises(AttributeError):
-      (Person.blabble)
+      (TestPerson.blabble)
 
     # should be sealed off by good coding practices (lolz)
     with self.assertRaises(AttributeError):
@@ -641,10 +656,10 @@ class ModelTests(FrameworkTest):
 
   def test_get_value_all_properties(self):
 
-    ''' Test getting *all* properties via `_get_value` '''
+    """ Test getting *all* properties via `_get_value` """
 
     # sample person
-    p = Person(firstname='John', lastname='Doe')
+    p = TestPerson(firstname='John', lastname='Doe')
     properties = p._get_value(None)
 
     # should be a list of tuples
@@ -652,16 +667,17 @@ class ModelTests(FrameworkTest):
     self.assertIsInstance(properties, list)
     self.assertIsInstance(properties[0], tuple)
 
-    # should retrieve even unset properties (but they should be set to `None`, not the _EMPTY sentinel of course)
+    # should retrieve even unset properties
+    # (but they should be set to `None`, not the EMPTY sentinel of course)
     for k, v in properties:
       self.assertEqual(v, getattr(p, k))
 
   def test_model_getitem_setitem(self):
 
-    ''' Test a `Model`'s compliance with Python's Item API '''
+    """ Test a `Model`'s compliance with Python's Item API """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # test __getitem__
     self.assertEqual(p.firstname, 'John')
@@ -671,7 +687,8 @@ class ModelTests(FrameworkTest):
     p['lastname'] = 'Gammon'
     self.assertEqual(p.lastname, 'Gammon')
 
-    # try getting a nonexistent property, which should raise `KeyError` instead of `AttributeError`
+    # try getting a nonexistent property, which should raise
+    # `KeyError` instead of `AttributeError`
     with self.assertRaises(KeyError):
       (p['invalidproperty'])
 
@@ -681,13 +698,13 @@ class ModelTests(FrameworkTest):
 
   def test_model_setvalue(self):
 
-    ''' Test the protected method `_set_value`, which is used by Model API internals '''
+    """ Test protected method `_set_value`, which is used by model internals """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # try writing a new key
-    x = p._set_value('key', model.Key(Person, "john"))
+    x = p._set_value('key', model.VertexKey(TestPerson, "john"))
     self.assertEqual(x, p)
 
     # try writing to invalid property
@@ -696,21 +713,21 @@ class ModelTests(FrameworkTest):
 
     # quick test via descriptor API, which should also raise `AttributeError`
     with self.assertRaises(AttributeError):
-      Person.__dict__['firstname'].__set__(None, 'invalid')
+      TestPerson.__dict__['firstname'].__set__(None, 'invalid')
 
   def test_model_setkey(self):
 
-    ''' Test the protected method `_set_key`, which is used by Model API internals '''
+    """ Test protected method `_set_key`, which is used by model internals """
 
     # sample person
-    p = Person(firstname='John')
+    p = TestPerson(firstname='John')
 
     # try writing an invalid key
     with self.assertRaises(TypeError):
       p._set_key(5.5)
 
     # try writing via kwargs
-    k = model.Key(Person, "john")
+    k = model.VertexKey(TestPerson, "john")
 
     # try constructing via urlsafe
     p._set_key(urlsafe=k.urlsafe())
@@ -735,13 +752,12 @@ class ModelTests(FrameworkTest):
 
   def test_early_mutate(self):
 
-    ''' Test setting attributes and items on a model before it's ready '''
+    """ Test setting attributes and items on a model before it's ready """
 
-    ## EarlyMutateModel
-    # Tests mutation of properties before instantiation, which should fail.
+
     class EarlyMutateModel(model.Model):
 
-      ''' Tests mutation of properties before instantiation. '''
+      """ Tests mutation of properties before instantiation. """
 
       string = basestring
 
@@ -758,13 +774,13 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_required_properties(self):
 
-    ''' Test validation of required properties '''
+    """ Test validation of required properties """
 
     ## RequiredPropertyModel
     # Try validating properties marked as required.
     class RequiredPropertyModel(model.Model):
 
-      ''' Tests required properties. '''
+      """ Tests required properties. """
 
       nonrequired = basestring
       required = basestring, {'required': True}
@@ -782,13 +798,13 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_property_basetype(self):
 
-    ''' Test validation of property basetypes '''
+    """ Test validation of property basetypes """
 
     ## BasetypedPropertyModel
     # Try validating properties by basetype.
     class BasetypedPropertyModel(model.Model):
 
-      ''' Tests property basetypes. '''
+      """ Tests property basetypes. """
 
       string = basestring
       number = int
@@ -828,13 +844,13 @@ class ModelTests(FrameworkTest):
 
   def test_validation_of_repeated_properties(self):
 
-    ''' Test validation of repeated properties '''
+    """ Test validation of repeated properties """
 
     ## RepeatedPropertyModel
     # Try validating properties marked as repeated.
     class RepeatedPropertyModel(model.Model):
 
-      ''' Tests repeated properties. '''
+      """ Tests repeated properties. """
 
       nonrepeated = basestring
       repeated = int, {'repeated': True}
@@ -865,13 +881,13 @@ class ModelTests(FrameworkTest):
 
   def test_class_level_default_value(self):
 
-    ''' Test reading a property with a default set at the class level '''
+    """ Test reading a property with a default set at the class level """
 
     ## ClassDefaultSample
     # Try grabbing the value of a defaulted property at the class level.
     class ClassDefaultSample(model.Model):
 
-      ''' Tests properties with default values at the class level. '''
+      """ Tests properties with default values at the class level. """
 
       sample_default = basestring, {'default': 'Hello, default!'}
 
@@ -880,7 +896,7 @@ class ModelTests(FrameworkTest):
 
   def test_class_level_propery_access(self):
 
-    ''' Test class-level property access on `Model` subclasses '''
+    """ Test class-level property access on `Model` subclasses """
 
     assert isinstance(Car.make, model.Property)
     assert 'make' in Car.make.__repr__()
@@ -888,7 +904,7 @@ class ModelTests(FrameworkTest):
 
   def test_class_level_item_access(self):
 
-    ''' Test class-level item access on `Model` subclasses '''
+    """ Test class-level item access on `Model` subclasses """
 
     assert isinstance(Car['make'], model.Property)
     assert 'make' in Car['make'].__repr__()
@@ -896,7 +912,7 @@ class ModelTests(FrameworkTest):
 
   def test_graph_class_existence(self):
 
-    ''' Test proper export of ``Vertex`` and ``Edge`` models '''
+    """ Test proper export of ``Vertex`` and ``Edge`` models """
 
     assert hasattr(model, 'Vertex')
     assert hasattr(model, 'Edge')
@@ -905,20 +921,18 @@ class ModelTests(FrameworkTest):
 
   def test_vertex_class_mro(self):
 
-    ''' Test proper MRO for ``Vertex`` models '''
+    """ Test proper MRO for ``Vertex`` models """
 
-    assert hasattr(Person, 'edges')
-    assert hasattr(Person(), 'edges')
-    assert hasattr(Person, 'neighbors')
-    assert hasattr(Person(), 'neighbors')
-    assert issubclass(Person, model.Vertex)
-    assert isinstance(Person(), model.Vertex)
+    assert hasattr(TestPerson, 'edges')
+    assert hasattr(TestPerson(), 'edges')
+    assert hasattr(TestPerson, 'neighbors')
+    assert hasattr(TestPerson(), 'neighbors')
+    assert issubclass(TestPerson, model.Vertex)
+    assert isinstance(TestPerson(), model.Vertex)
 
   def test_edge_class_mro(self):
 
-    ''' Test proper MRO for ``Edge`` models '''
+    """ Test proper MRO for ``Edge`` models """
 
     assert hasattr(Friendship, 'peers')
-    assert hasattr(Friendship(), 'peers')
     assert issubclass(Friendship, model.Edge)
-    assert isinstance(Friendship(), model.Edge)

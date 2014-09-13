@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   test runner
   ~~~~~~~~~~~
@@ -13,17 +13,16 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
-if __debug__:
+
+if __debug__:  # pragma: no cover
 
   # stdlib & canteen
-  import os
-  import sys
-  import canteen
-  import canteen.test
+  import sys, os
 
-  if __name__ == '__main__':
 
+  if __name__ == '__main__' and (
+        'CANTEEN_TESTING' not in os.environ):  # pragma: no cover
     import nose
     sys.exit(int(nose.run()))

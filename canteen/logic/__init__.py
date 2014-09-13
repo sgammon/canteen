@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   logic
   ~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # submodules
 from .http import *
@@ -22,10 +22,8 @@ from .template import *
 from .realtime import *
 
 
-__all__ = (
-  'url',
-  'http',
-  'cache',
-  'realtime',
-  'template'
-)
+__all__ = ('url',
+           'http',
+           'cache',
+           'realtime',
+           'template')

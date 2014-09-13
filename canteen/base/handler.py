@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   handler base
   ~~~~~~~~~~~~
@@ -16,7 +16,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import itertools
@@ -26,23 +26,23 @@ from ..core import injection
 from ..util import decorators
 
 
-@decorators.configured
 class Handler(object):
 
-  ''' Base class structure for a ``Handler`` of some request or desired action.
+  """ Base class structure for a ``Handler`` of some request or desired action.
       Specifies basic machinery for tracking a ``request`` alongside some form
       of ``response``.
 
       Also keeps track of relevant ``environ`` (potentially from WSGI) and sets
       up a jump off point for DI-provided tools like logging, config, caching,
-      template rendering, etc. '''
+      template rendering, etc. """
 
-  # @TODO(sgammon): HTTPify
+  # @TODO(sgammon): HTTPify, convert to decorator
   config = property(lambda self: {})
 
   __agent__ = None  # current `agent` details
-  __status__ = 200  # keen is an optimistic bunch ;)
+  __status__ = 200  # it's a glass-half-full kind of day, why not
   __routes__ = None  # route map adapter from werkzeug
+  __context__ = None  # holds current runtime context, if any
   __logging__ = None  # internal logging slot
   __runtime__ = None  # reference up to the runtime
   __environ__ = None  # original WSGI environment
@@ -61,7 +61,7 @@ class Handler(object):
                      request=None,
                      response=None, **context):
 
-    ''' Initialize a new ``Handler`` object with proper ``environ`` details and
+    """ Initialize a new ``Handler`` object with proper ``environ`` details and
         inform it of larger world around it.
 
         ``Handler`` objects (much like ``Runtime`` objects) are designed to be
@@ -71,43 +71,41 @@ class Handler(object):
         providing ``runtime``, ``request`` and ``response`` allow tighter
         integration with the underlying runtime.
 
-        Current execution details (internal to Canteen) are passed as
-        ``kwargs`` and compounded as new context items are added.
+        Current execution details (internal to Canteen) are passed as ``kwargs``
+          and compounded as new context items are added.
 
         :param environ: WSGI environment, provided by active runtime. ``dict``
-        in standard WSGI format.
+          in standard WSGI format.
 
-        :param start_response: Callable to begin the response cycle. Usually
-        a vanilla ``function``.
+        :param start_response: Callable to begin the response cycle. Usually a
+          vanilla ``function``.
 
-        :param runtime: Currently-active Canteen runtime. Always an instance
-        of :py:class:`canteen.core.runtime.Runtime` or a subclass thereof.
+        :param runtime: Currently-active Canteen runtime. Always an instance of
+          :py:class:`canteen.core.runtime.Runtime` or a subclass thereof.
 
         :param request: Object to use for ``self.request``. Usually an instance
-        of :py:class:`werkzeug.wrappers.Request`.
+          of :py:class:`werkzeug.wrappers.Request`.
 
-        :param response: Object to use for ``self.response``. Usually an instance
-        of :py:class:`werkzeug.wrappers.Response`. '''
+        :param response: Object to use for ``self.response``. Usually an
+          instance of :py:class:`werkzeug.wrappers.Response`. """
 
     # startup/assign internals
     self.__runtime__, self.__environ__, self.__callback__ = (
       runtime,  # reference to the active runtime
       environ,  # reference to WSGI environment
-      start_response  # reference to WSGI callback
-    )
+      start_response)  # reference to WSGI callback
 
     # setup HTTP/dispatch stuff
     self.__status__, self.__headers__, self.__content_type__ = (
       200,  # default response stauts
       {},  # default repsonse headers
-      'text/html; charset=utf-8'  # default content type
-    )
+      'text/html; charset=utf-8')  # default content type
 
-    # request & response
-    self.__request__, self.__response__ = request, response
+    # request, response & context
+    self.__request__, self.__response__, self.__context__ = (
+        request, response, context)
 
   # expose internals, but write-protect
-  runtime = property(lambda self: self.__runtime__)
   routes = property(lambda self: self.__runtime__.routes)
   status = property(lambda self: self.__status__)
   headers = property(lambda self: self.__headers__)
@@ -145,11 +143,11 @@ class Handler(object):
   @property
   def template_context(self):
 
-    ''' Generate template context to be used in rendering source templates. The
+    """ Generate template context to be used in rendering source templates. The
         ``template_context`` accessor is expected to return a ``dict`` of
         ``name=>value`` pairs to present to the template API.
 
-        :returns: ``dict`` of template context. '''
+        :returns: ``dict`` of template context. """
 
     # for javascript context
     from canteen.rpc import ServiceHandler
@@ -218,16 +216,16 @@ class Handler(object):
 
   def respond(self, content=None):
 
-    ''' Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
+    """ Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
         content. UTF-8 encoding happens if necessary.
 
-        :param content: Content to respond to. Must be ``str``, ``unicode``,
-        or a similar string buffer object.
+        :param content: Content to respond to. Must be ``str``, ``unicode``, or
+          a similar string buffer object.
 
-        :returns: Generated (filled-in) ``self.response`` object. '''
+        :returns: Generated (filled-in) ``self.response`` object. """
 
     # today is a good day
-    if not self.status: self.status = 200
+    if not self.status: self.__status__ = 200
     if content: self.response.response = content
 
     # set status code and return
@@ -235,15 +233,15 @@ class Handler(object):
                   ('status_code' if isinstance(self.status, int) else 'status'),
                     self.status) or (
                   (i.encode('utf-8').strip() for i in self.response.response),
-                  self.response)
+                    self.response)
 
   def render(self, template,
-                   headers={},
+                   headers=None,
                    content_type='text/html; charset=utf-8',
-                   context={},
+                   context=None,
                    _direct=False, **kwargs):
 
-    ''' Render a source ``template`` for the purpose of responding to this
+    """ Render a source ``template`` for the purpose of responding to this
         ``Handler``'s request, given ``context`` and proper ``headers`` for
         return.
 
@@ -251,86 +249,79 @@ class Handler(object):
         ``context`` before render.
 
         :param template: Path to template file to serve. ``str`` or ``unicode``
-        file path.
+          file path.
 
-        :param headers: Extra headers to send with response. ``dict`` or iter
-        of ``(name, value)`` tuples.
+        :param headers: Extra headers to send with response. ``dict`` or iter of
+          ``(name, value)`` tuples.
 
         :param content_type: Value to send for ``Content-Type`` header. ``str``,
-        defaults to ``text/html; charset=utf-8``.
+          defaults to ``text/html; charset=utf-8``.
 
-        :param context: Extra template context to include during render. ``dict``
-        of items, with keys as names that values are bound to in the resulting
-        template context.
+        :param context: Extra template context to include during render.
+          ``dict`` of items, with keys as names that values are bound to in the
+          resulting template context.
 
         :param _direct: Flag indicating that ``self`` should be returned, rather
-        than ``self.response``. Bool, defaults to ``False`` as this technically
-        breaks WSGI.
+          than ``self.response``. Bool, defaults to ``False`` as this
+          technically breaks WSGI.
 
-        :returns: Rendered template content, added to ``self.response``. '''
+        :returns: Rendered template content, added to ``self.response``. """
 
     from canteen.util import config
 
-    # set mimetype
+    # set mime type
     if content_type: self.response.mimetype = content_type
 
     # collapse and merge HTTP headers (base headers first)
     self.response.headers.extend(itertools.chain(
-      iter(self.template.base_headers),
+      iter(self.http.base_headers),
       self.config.get('http', {}).get('headers', {}).iteritems(),
       self.headers.iteritems(),
-      headers.iteritems()
-    ))
+      (headers or {}).iteritems()))
 
     # merge template context
     _merged_context = dict(itertools.chain(*(i.iteritems() for i in (
       self.template.base_context,
       self.template_context,
-      context,
-      kwargs
-    ))))
+      context or {},
+      kwargs))))
 
     # render template and set as response data
     self.response.response, self.response.direct_passthrough = (
       self.template.render(
         self,
-        getattr(self.runtime, 'config', config.Config()),
+        getattr(self.runtime, 'config', None) or config.Config(),
         template,
-        _merged_context
-      )), True
+        _merged_context)), True
 
     return self.respond()
 
   def __call__(self, url_args, direct=False):
 
-    ''' Kick off the local response dispatch process, and run any necessary
+    """ Kick off the local response dispatch process, and run any necessary
         pre/post hooks (named ``prepare`` and ``destroy``, respectively).
 
         :param url_args: Arguments parsed from URL according to matched route.
-        ``dict`` of ``{param: value}`` pairs.
+          ``dict`` of ``{param: value}`` pairs.
 
         :param direct: Flag to indicate 'direct' mode, whereby a handler is
-        returned instead of a response. Bool, defaults to ``False``, as this
-        technically breaks WSGI.
+          returned instead of a response. Bool, defaults to ``False``, as this
+          technically breaks WSGI.
 
         :returns: ``self.response`` if ``direct`` mode is not active, otherwise
-        ``self`` for chainability. '''
+          ``self`` for chainability. """
 
     # run prepare hook, if specified
-    if hasattr(self, 'prepare'):
-      self.prepare(url_args, direct=direct)
+    if hasattr(self, 'prepare'): self.prepare(url_args, direct=direct)
 
     # resolve method to call - try lowercase first
     method = getattr(self, self.request.method)
     _response = method(**url_args)
-    if _response is not None:
-      self.__response__ = _response
+
+    # assign response
+    if _response is not None: self.__response__ = _response
 
     # run destroy hook, if specified
-    if hasattr(self, 'destroy'):
-      self.destroy(self.__response__)
+    if hasattr(self, 'destroy'): self.destroy(self.__response__)
 
     return self.__response__ if not direct else self
-
-
-__all__ = ('Handler',)

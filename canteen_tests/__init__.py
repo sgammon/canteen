@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   canteen: tests
   ~~~~~~~~~~~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 if __debug__:
 
@@ -34,15 +34,23 @@ if __debug__:
   from . import test_util
   from . import test_model
   from . import test_adapters
+  from .test__init__ import *
+  from .test_core import *
+  from .test_dispatch import *
+  from .test_rpc import *
+  from .test_test import *
+  from .test_util import *
+  from .test_model import *
+  from .test_adapters import *
 
 
   class SanityTest(test.FrameworkTest):
 
-    ''' Run some basic sanity tests. '''
+    """ Run some basic sanity tests. """
 
     def test_math_sanity(self):
 
-      ''' Test that math still works (lol) '''
+      """ Test that math still works (lol) """
 
       self.assertEqual(1 + 1, 2)
       self.assertEqual(2 - 1, 1)
@@ -52,7 +60,7 @@ if __debug__:
 
     def test_assert_sanity(self):
 
-      ''' Test `assert` behavior '''
+      """ Test `assert` behavior """
 
       try:
         assert 1 == 2

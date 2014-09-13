@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   abstract model adapters
   ~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 
 # stdlib
@@ -37,35 +37,31 @@ _core_mixin_classes = (
     'KeyMixin', 'ModelMixin',
     'CompoundKey', 'CompoundModel',
     'VertexMixin', 'EdgeMixin',
-    'CompoundVertex', 'CompoundEdge'
-)
+    'CompoundVertex', 'CompoundEdge')
 
 ## Computed Classes
-CompoundKey = None
-CompoundModel = None
-CompoundVertex = None
-CompoundEdge = None
+CompoundKey = CompoundModel = CompoundVertex = CompoundEdge = None
 
 try:
   import zlib; _compressor = zlib
 except ImportError:  # pragma: no cover
-  pass
+  pass  # pragma: no cover
 
 try:
   import lz4; _compressor = lz4
 except ImportError:  # pragma: no cover
-  pass
+  pass  # pragma: no cover
 
 try:
   import snappy; _compressor = snappy
-except ImportError:
-  pass
+except ImportError:  # pragma: no cover
+  pass  # pragma: no cover
 
 
 class ModelAdapter(object):
 
-  ''' Abstract base class for classes that adapt canteen
-      models to a particular storage backend. '''
+  """ Abstract base class for classes that adapt canteen models to a particular
+      storage backend. """
 
   registry = {}
   __metaclass__ = abc.ABCMeta
@@ -73,69 +69,69 @@ class ModelAdapter(object):
   @property
   def config(self):  # pragma: no cover
 
-    ''' Cached config shortcut.
+    """ Cached config shortcut.
 
         :returns: Configuration ``dict``, if any. Defaults
-          to ``{'debug': True}``. '''
+          to ``{'debug': True}``. """
 
     return config.Config().get(self.__class__.__name__, {'debug': True})
 
+  # noinspection PyMethodParameters
   @decorators.classproperty
   def logging(cls):
 
-    ''' Named logging pipe.
+    """ Named logging pipe.
 
         :returns: Customized :py:mod:`canteen.util.debug.Logger`
-          instance, with a ``name``/``path``/``condition``. '''
+          instance, with a ``name``/``path``/``condition``. """
 
     return logging  # @TODO(sgammon): proper logging
 
   @decorators.classproperty
   def serializer(cls):
 
-    ''' Load and return the appropriate serialization codec. This
-        property is mainly meant to be overridden by child classes.
+    """ Load and return the appropriate serialization codec. This property is
+        mainly meant to be overridden by child classes.
 
-        :returns: Current serializer, defaults to :py:mod:`json`. '''
+        :returns: Current serializer, defaults to :py:mod:`json`. """
 
     return json  # default to JSON
 
   @decorators.classproperty
   def encoder(cls):  # pragma: no cover
 
-    ''' Encode a stringified blob for storage. This property
-        is mainly meant to be overridden by child classes.
+    """ Encode a stringified blob for storage. This property is mainly meant to
+        be overridden by child classes.
 
-        :returns: Current :py:data:`_encoder`, defaults to :py:mod:`base64`. '''
+        :returns: Current :py:data:`_encoder`, defaults to :py:mod:`base64`. """
 
     return _encoder  # use local encoder
 
   @decorators.classproperty
   def compressor(cls):  # pragma: no cover
 
-    ''' Load and return the appropriate compression codec. This
-        property is mainly meant to be overridden by child classes.
+    """ Load and return the appropriate compression codec. This property is
+        mainly meant to be overridden by child classes.
 
-        :returns: Current :py:mod:`_compressor`, defaults to :py:mod:`zlib`. '''
+        :returns: Current :py:mod:`_compressor`, defaults to :py:mod:`zlib`. """
 
     return _compressor
 
   ## == Internal Methods == ##
   def _get(self, key, **kwargs):
 
-    ''' Low-level method for retrieving an entity by Key. Fetches and
+    """ Low-level method for retrieving an entity by Key. Fetches and
         deserializes the given entity, if it exists, or returns ``None``.
 
-        :param key: Instance of :py:class:`model.Key` to retrieve
-          from storage.
+        :param key: Instance of :py:class:`model.Key` to retrieve from storage.
 
         :raises RuntimeError: If the target :py:class:`adapter.ModelAdapter`
-          does not implement ``get()``, which is an ABC-enforced child
-          class method. :py:exc:`RuntimeError` and descendents are also
-          re-raised from the concrete adapter.
+          does not implement ``get()``, which is an ABC-enforced child class
+          method. :py:exc:`RuntimeError` and descendents are also re-raised from
+          the concrete adapter.
 
-        :returns: Inflated :py:class:`model.Model` instance, corresponding
-            to ``key``, or ``None`` if no such entity could be found. '''
+        :returns: Inflated :py:class:`model.Model` instance, corresponding to
+            ``key``, or ``None`` if no such entity could be found. """
 
     if self.config.get('debug', False):  # pragma: no cover
       self.logging.info("Retrieving entity with Key: \"%s\"." % key)
@@ -180,26 +176,26 @@ class ModelAdapter(object):
 
   def _put(self, entity, **kwargs):
 
-    ''' Low-level method for persisting an Entity. Collapses and serializes
-        the target ``entity`` into native types and delegates to the active
+    """ Low-level method for persisting an Entity. Collapses and serializes the
+        target ``entity`` into native types and delegates to the active
         :py:class:`model.adapter.ModelAdapter` for storage.
 
         :param entity: Object descendent of :py:class:`model.Model`, suitable
           for storage via the currently-active adapter.
 
         :raises ValueError: In the case of an unknown or unregistered *kind*.
-        :returns: New (or updated) key value for the target ``entity``. '''
+        :returns: New (or updated) key value for the target ``entity``. """
 
     # resolve model class
     _model = self.registry.get(entity.kind())
-    if not _model:
+    if not _model:  # pragma: no cover
       raise ValueError('Could not resolve model class "%s".' % entity.kind())
 
     with entity:  # enter explicit mode
 
       # validate entity, will raise validation exceptions
       for name, value in entity.to_dict(_all=True).items():
-        _model.__dict__[name].valid(entity)
+        _model[name].valid(entity)
 
       # resolve key if we have a zero-y key or key class
       if not entity.key or entity.key is None:
@@ -217,10 +213,10 @@ class ModelAdapter(object):
 
   def _delete(self, key, **kwargs):
 
-    ''' Low-level method for deleting an entity by Key.
+    """ Low-level method for deleting an entity by Key.
 
         :param key: Target :py:class:`model.Key` to delete.
-        :returns: Result of the delete operation. '''
+        :returns: Result of the delete operation. """
 
     if self.config.get('debug', False):  # pragma: no cover
       self.logging.info("Deleting Key: \"%s\"." % key)
@@ -232,11 +228,11 @@ class ModelAdapter(object):
   @classmethod
   def _register(cls, model):
 
-    ''' Low-level method for registering a Model class with
-        this adapter's registry.
+    """ Low-level method for registering a Model class with this adapter's this
+        adapter's registry.
 
         :param model: :py:class:`model.Model` class to register.
-        :returns: The ``model`` it was handed (for chainability). '''
+        :returns: The ``model`` it was handed (for chainability). """
 
     cls.registry[model.kind()] = model
     return model
@@ -245,17 +241,16 @@ class ModelAdapter(object):
   @classmethod
   def acquire(cls, name, bases, properties):
 
-    ''' Acquire a new/existing copy of this adapter. Available
-        for override by child classes to customize the driver
-        acquisition process. Passed an identical signature to
-        ``type``, *before* the :py:class:`model.Model` class
-        has been fully-built.
+    """ Acquire a new/existing copy of this adapter. Available for override by
+        child classes to customize the driver acquisition process. Passed an
+        identical signature to ``type``, *before* the :py:class:`model.Model`
+        class has been fully-built.
 
         :param name: String name of the new :py:class:`model.Model` class-to-be.
         :param bases: Tuple of base classes for the target :py:class:`Model`.
         :param properties: Property ``dict`` from class definition.
 
-        :returns: The "acquired" adapter object. '''
+        :returns: The "acquired" adapter object. """
 
     global _adapters
     global _adapters_by_model
@@ -270,22 +265,24 @@ class ModelAdapter(object):
   @abc.abstractmethod
   def get(cls, key, **kwargs):  # pragma: no cover
 
-    ''' Retrieve an entity by :py:class:`model.Key`. Must accept a
-        tuple in the formatv``(<joined Key repr>, <flattened key>)``.
-        Abstract method that **must** be overridden by concrete
-        implementors of :py:class:`ModelAdapter`.
+    """ Retrieve an entity by :py:class:`model.Key`. Must accept a tuple in the
+        format ``(<joined Key repr>, <flattened key>)``. Abstract method that
+        **must** be overridden by concrete implementors of
+        :py:class:`ModelAdapter`.
 
         :param key: Target :py:class:`model.Key` to retrieve.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.get`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def put(cls, key, entity, model, **kwargs):  # pragma: no cover
 
-    ''' Persist an entity in storage. Must accept a :py:class:`model.Key`,
-        which may not have an ID, in which case one is allocated. The entity
-        and :py:class:`model.Model` class are also passed in.
+    """ Persist an entity in storage. Must accept a :py:class:`model.Key`, which
+        may not have an ID, in which case one is allocated. The entity and
+        :py:class:`model.Model` class are also passed in.
 
         This method is abstract and **must** be overridden by concrete
         implementors of :py:class:`ModelAdapter`.
@@ -293,63 +290,69 @@ class ModelAdapter(object):
         :param key: Potentially-empty :py:class:`model.Key` for the new entity.
         :param entity: Object :py:class:`model.Model` to persist in storage.
         :param model: :py:class:`model.Model` class for target ``entity``.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.put`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def delete(cls, key, **kwargs):  # pragma: no cover
 
-    ''' Delete an entity by :py:class:`model.Key`. Must accept a target
+    """ Delete an entity by :py:class:`model.Key`. Must accept a target
         ``key``, whose associated entity will be deleted.
 
         This method is abstract and **must** be overridden by concrete
         implementors of :py:class:`ModelAdapter`.
 
         :param key: Target :py:class:`model.Key` to delete.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.delete`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
   def allocate_ids(cls, key_cls, kind, count=1, **kwargs):  # pragma: no cover
 
-    ''' Allocate new :py:class:`model.Key` IDs for ``kind`` up to
-        ``count``. This method is abstract and **must** be overridden
-        by concrete implementors of :py:class:`ModelAdapter`.
+    """ Allocate new :py:class:`model.Key` IDs for ``kind`` up to ``count``.
+        This method is abstract and **must** be overridden by concrete
+        implementors of :py:class:`ModelAdapter`.
 
         :param key_class: :py:class:`model.Key` class for provisioned IDs.
         :param kind: String ``kind`` name from :py:class:`model.Model` class.
         :param count: Count of IDs to provision, defaults to ``1``.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-    raise NotImplementedError()
+    raise NotImplementedError('`ModelAdapter.allocate_ids`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @classmethod
-  def encode_key(cls, key, joined=None, flattened=None):  # pragma: no cover
+  def encode_key(cls, key, joined=None, flattened=None):
 
-    ''' Encode a :py:class:`model.Key` for storage. This method is
-        abstract and *should* be overridden by concrete implementors
-        of :py:class:`ModelAdapter`.
+    """ Encode a :py:class:`model.Key` for storage. This method is abstract and
+        *should* be overridden by concrete implementors of
+        :py:class:`ModelAdapter`.
 
-        In the case that a :py:class:`ModelAdapter` wishes to defer
-        to the default encoder (:py:mod:`base64`), it can return ``False``.
+        In the case that a :py:class:`ModelAdapter` wishes to defer to the
+        default encoder (:py:mod:`base64`), it can return ``False``.
 
         :param key: Target :py:class:`model.Key` to encode.
         :param joined: Joined/stringified key.
         :param flattened: Flattened ``tuple`` (raw) key.
         :returns: The encoded :py:class:`model.Key`, or ``False`` to
-              yield to the default encoder. '''
+              yield to the default encoder. """
 
-    return False  # by default, yield to key b64 builtin encoding
+    # by default, yield to key b64 builtin encoding
+    return False  # pragma: no cover
 
 
-## IndexedModelAdapter
-# Adapt canteen models to a storage backend that supports indexing.
+# noinspection PyAbstractClass
 class IndexedModelAdapter(ModelAdapter):
 
-  ''' Abstract base class for model adapters that support
-      additional indexing APIs. '''
+  """ Abstract base class for model adapters that support additional indexing
+      APIs. """
 
   # magic prefixes
   _key_prefix = '__key__'
@@ -358,29 +361,26 @@ class IndexedModelAdapter(ModelAdapter):
   _index_prefix = '__index__'
   _reverse_prefix = '__reverse__'
 
-  ## Indexer
-  # Holds routines and data type tools for indexing canteen models in Redis.
+
   class Indexer(object):
 
-    ''' Holds methods for indexing and handling index
-        data types. '''
+    """ Holds methods for indexing and handling index data types. """
 
     _magic = {
       'key': 0x1,  # magic ID for `model.Key` references
       'date': 0x2,  # magic ID for `datetime.date` instances
       'time': 0x3,  # magic ID for `datetime.time` instances
-      'datetime': 0x4  # magic ID for `datetime.datetime` instances
-    }
+      'datetime': 0x4}  # magic ID for `datetime.datetime` instances
 
     @classmethod
     def convert_key(cls, key):
 
-      ''' Convert a :py:class:`model.Key` to an indexable value.
+      """ Convert a :py:class:`model.Key` to an indexable value.
 
-          :param key: Target :py:class:`model.Key` to conver.
+          :param key: Target :py:class:`model.Key` to convert.
 
-          :returns: Tupled ``(<magic key code>, <flattened key>)``,
-            suitable for adding to the index. '''
+          :returns: Tupled ``(<magic key code>, <flattened key>)``, suitable for
+            adding to the index. """
 
       # flatten and return key structure with magic
       joined, flattened = key.flatten(True)
@@ -389,12 +389,12 @@ class IndexedModelAdapter(ModelAdapter):
     @classmethod
     def convert_date(cls, _date):
 
-      ''' Convert a Python ``date`` to an indexable value.
+      """ Convert a Python ``date`` to an indexable value.
 
           :param date: Python ``date`` to convert.
 
-          :returns: Tupled ``(<magic date code>, <flattened date>)`` to
-            add to the index. '''
+          :returns: Tupled ``(<magic date code>, <flattened date>)`` to add to
+            the index. """
 
       # convert to ISO format, return date with magic
       return (cls._magic['date'], _date.isoformat())
@@ -402,12 +402,12 @@ class IndexedModelAdapter(ModelAdapter):
     @classmethod
     def convert_time(cls, _time):
 
-      ''' Convert a Python ``time`` to an indexable value.
+      """ Convert a Python ``time`` to an indexable value.
 
           :param _time: Python ``time`` to convert.
 
           :returns: Tupled ``(<magic time code>, <flattened time>)``, suitable
-            for addition to the index. '''
+            for addition to the index. """
 
       # convert to ISO format, return time with magic
       return (cls._magic['time'], _time.isoformat())
@@ -415,12 +415,12 @@ class IndexedModelAdapter(ModelAdapter):
     @classmethod
     def convert_datetime(cls, _datetime):
 
-      ''' Convert a Python ``datetime`` to an indexable value.
+      """ Convert a Python ``datetime`` to an indexable value.
 
           :param _datetime: Python ``datetime`` to convert.
 
           :returns: Tupled ``(<magic time code>, <flattened datetime>)``,
-            suitable for addition to the index. '''
+            suitable for addition to the index. """
 
       # convert to integer, return datetime with magic
       return (cls._magic['datetime'], int(time.mktime(_datetime.timetuple())))
@@ -428,8 +428,9 @@ class IndexedModelAdapter(ModelAdapter):
   @decorators.classproperty
   def _index_basetypes(self):
 
-    ''' Map basetypes to indexer routines.
-        :returns: Default basetype ``dict``. '''
+    """ Map basetypes to indexer routines.
+
+        :returns: Default basetype ``dict``. """
 
     from canteen import model
 
@@ -452,16 +453,15 @@ class IndexedModelAdapter(ModelAdapter):
 
     }
 
-  def _put(self, entity, **kwargs):
+  def _put(self, entity, **kwargs):  # pragma: no cover
 
-    ''' Hook to trigger index writes for a given entity. Defers
-        up the chain to :py:class:`ModelAdapter` after generating
-        (and potentially writing) a set of indexes from the target
-        ``entity``.
+    """ Hook to trigger index writes for a given entity. Defers up the chain to
+        :py:class:`ModelAdapter` after generating (and potentially writing) a
+        set of indexes from the target ``entity``.
 
         :param entity: Entity :py:class:`model.Model` to persist.
 
-        :returns: Resulting :py:class:`model.Key` from write operation. '''
+        :returns: Resulting :py:class:`model.Key` from write operation. """
 
     # small optimization - with a deterministic key, we can parrellelize
     # index writes (assuming async is supported in the underlying driver)
@@ -480,19 +480,17 @@ class IndexedModelAdapter(ModelAdapter):
         self.generate_indexes(entity.key, _indexed_properties))
 
     self.write_indexes((origin, meta, property_map), **kwargs)
-
-    # delegate up the chain for entity write
-    return written_key
+    return written_key  # delegate up the chain for entity write
 
   def _delete(self, key, **kwargs):
 
-    ''' Hook to trigger index cleanup for a given key. Defers
-        up the chain to :py:class:`ModelAdapter` after generating
-        a set of indexes to clean for the target ``key``.
+    """ Hook to trigger index cleanup for a given key. Defers up the chain to
+        :py:class:`ModelAdapter` after generating a set of indexes to clean for
+        the target ``key``.
 
         :param key: Target :py:class:`model.Key` to delete.
 
-        :returns: Result of delete operation. '''
+        :returns: Result of delete operation. """
 
     # generate meta indexes only, then clean
     self.clean_indexes(self.generate_indexes(key))
@@ -500,16 +498,16 @@ class IndexedModelAdapter(ModelAdapter):
     # delegate delete up the chain
     return super(IndexedModelAdapter, self)._delete(key)
 
-  def _pluck_indexed(self, entity):
+  @staticmethod
+  def _pluck_indexed(entity):
 
-    ''' Zip and pluck only properties that should be indexed.
-        Simply returns a set of property descriptors, mapped to
-        ehtir names in a ``dict``, if they are marked as
-        needing to be indexed.
+    """ Zip and pluck only properties that should be indexed. Simply returns a
+        set of property descriptors, mapped to ehtir names in a ``dict``, if
+        they are marked as needing to be indexed.
 
         :param entity: Target entity to produce indexes for.
 
-        :returns: Map ``dict`` of properties to index. '''
+        :returns: Map ``dict`` of properties to index. """
 
     _map = {}
 
@@ -521,24 +519,45 @@ class IndexedModelAdapter(ModelAdapter):
 
     return _map
 
+  def _execute_query(self, query):
+
+    """ Execute a ``query.Query`` object, returning results that match the
+        search terms specified in ``query`` and the attached
+        ``query.QueryOptions`` object.
+
+        :param query: ``query.Query`` to execute via the local adapter.
+
+        :returns: Query results, if any. """
+
+    return self.execute_query(*(
+      query.kind, (query.filters, query.sorts), query.options))
+
   @classmethod
   def generate_indexes(cls, key, properties=None):
 
-    ''' Generate a set of indexes that should be written to
-        with associated values.
+    """ Generate a set of indexes that should be written to with associated
+        values.
 
         :param key: Target :py:class:`model.Key` to index.
-        :param properties: Entity :py:class:`model.Model` property
-        values to index.
+        :param properties: Entity :py:class:`model.Model` property values to
+          index.
 
         :returns: Tupled set of ``(encoded, meta, property)``, where ``meta``
-          and ``property`` are indexes to be written in each category. '''
+          and ``property`` are indexes to be written in each category. """
+
+    if key is None and not properties:  # pragma: no cover
+      raise TypeError('Must pass at least `key` or `properties'
+                      ' to `generate_indexes`.')
 
     _property_indexes, _meta_indexes = [], []
 
     if key is not None:
 
       # provision vars, generate meta indexes
+      # meta indexes look like:
+      #  `__key__`, target
+      #  `__kind__`, target
+
       encoded_key = cls.encode_key(*key.flatten(True)) or key.urlsafe()
       _meta_indexes.append((cls._key_prefix,))
       _meta_indexes.append((cls._kind_prefix, key.kind))  # map kind
@@ -547,9 +566,16 @@ class IndexedModelAdapter(ModelAdapter):
       if not key.parent:
 
         # generate group indexes in the case of a nonvoid parent
+        # group indexes look like:
+        #  `<trimmed-root-key>`, target
+
         _meta_indexes.append((cls._group_prefix,))
 
       else:
+
+        # generate group prefix for root
+        # root indexes look like:
+        #  `__group__`, trimmed-target-root-key
 
         # append keyparent-based group prefix
         root_key = [i for i in key.ancestry][0]
@@ -560,7 +586,7 @@ class IndexedModelAdapter(ModelAdapter):
         _meta_indexes.append((cls._group_prefix, encoded_root_key))
 
     # add property index entries
-    if properties:
+    if properties is not None:
 
       # we're applying writes
       for k, v in properties.items():
@@ -573,9 +599,16 @@ class IndexedModelAdapter(ModelAdapter):
           tuple, list, set, frozenset)):
           value = [value]
 
+        # generate property index entries for values
+        # property value indexes look like:
+        #  `__index__::kind::property::encoded_value`, target
+
+        # and the internal representation looks like:
+        #  `(value_encoder_callable, (index_prefix, kind, propname, value))`
+
         # iterate through property values
-        for v in value:
-          context = (cls._index_prefix, key.kind, k, v)
+        for x in value:
+          context = (cls._index_prefix, key.kind, k, x)
           _property_indexes.append((
             cls._index_basetypes.get(prop._basetype, basestring), context))
 
@@ -584,151 +617,342 @@ class IndexedModelAdapter(ModelAdapter):
     else:
       # we're cleaning indexes
       return encoded_key, _meta_indexes
-
-    if key is not None:
-      # we're writing indexes
-      return encoded_key, _meta_indexes, _property_indexes
-    return _property_indexes  # pragma: no cover
+    return encoded_key, _meta_indexes, _property_indexes
 
   @abc.abstractmethod
-  def write_indexes(cls, writes, **kwargs):  # pragma: no cover
+  def write_indexes(cls, writes, **kwargs):
 
-    ''' Write a batch of index updates generated earlier
-        via :py:meth:`generate_indexes`. This method is
-        abstract and **must** be overridden by concrete
-        implementors of :py:class:`IndexedModelAdapter`.
+    """ Write a batch of index updates generated earlier via
+        :py:meth:`generate_indexes`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
 
-        :param writes: Batch of index writes to commit,
-          generated via :py:meth:`generate_indexes`.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :param writes: Batch of index writes to commit, generated via
+          :py:meth:`generate_indexes`.
 
-    raise NotImplementedError()
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-  @abc.abstractmethod
-  def clean_indexes(cls, key, **kwargs):  # pragma: no cover
-
-    ''' Clean indexes and index entries matching a
-        particular :py:class:`model.Key`. This method is
-        abstract and **must** be overridden by concrete
-        implementors of :py:class:`IndexedModelAdapter`.
-
-        :param key: Target :py:class:`model.Key` to clean
-          indexes for.
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
-
-    raise NotImplementedError()
+    raise NotImplementedError('`IndexedModelAdapter.write_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
+  def clean_indexes(cls, key, **kwargs):
 
-    ''' Execute a query, specified by ``spec``, across
-        one (or multiple) indexed properties.
+    """ Clean indexes and index entries matching a particular
+        :py:class:`model.Key`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
 
-        :param spec: Object specification (:py:class:`model.Query`)
-          specifying the query to satisfy..
-        :raises: :py:exc:`NotImplementedError`, as this method is abstract. '''
+        :param key: Target :py:class:`model.Key` to clean indexes for.
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-    raise NotImplementedError()
+    raise NotImplementedError('`IndexedModelAdapter.clean_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
+
+  @abc.abstractmethod
+  def execute_query(cls, kind, spec, options, **kwargs):
+
+    """ Execute a query, specified by ``spec``, across one (or multiple) indexed
+        properties.
+
+        :param spec: Object specification (:py:class:`model.Query`) specifying
+          the query to satisfy.
+
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
+
+    raise NotImplementedError('`IndexedModelAdapter.execute_query`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
 
-## GraphModelAdapter
-# Adapt models to a Graph-based storage paradigm, defaulting to undirected.
 class GraphModelAdapter(IndexedModelAdapter):
 
-  ''' Abstract base class for model adapters that support
-      Graph-style paradigms for data storage. '''
+  """ Abstract base class for model adapters that support Graph-style paradigms
+      for data storage. """
 
-  def _edges(self, target):  # pragma: no cover
+  # graph/vertex/edge prefixes
+  _edge_prefix = '__edge__'
+  _graph_prefix = '__graph__'
+  _vertex_prefix = '__vertex__'
 
-    ''' '''
+  # universal tokens
+  _neighbors_token = 'neighbors'
 
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+  # directed tokens
+  _in_token = 'in'
+  _out_token = 'out'
+  _directed_token = 'directed'
 
-  def _connect(self, target):  # pragma: no cover
+  # undirected tokens
+  _peers_token = 'peers'
+  _undirected_token = 'undirected'
 
-    '''  '''
 
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+  class Indexer(IndexedModelAdapter.Indexer):
 
-  def _neighbors(self, target):  # pragma: no cover
+    """ Adds Graph-specific ``Indexer`` routines and constants. """
 
-    '''  '''
+    _magic = {
+      'key': 0x1,  # magic ID for `model.Key` references
+      'date': 0x2,  # magic ID for `datetime.date` instances
+      'time': 0x3,  # magic ID for `datetime.time` instances
+      'datetime': 0x4,  # magic ID for `datetime.datetime` instances
+      'vertex': 0x5,  # magic ID for `Vertex` `model.Key` references
+      'edge': 0x6}  # magic ID for `Edge` `model.Key` references
 
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
+    @classmethod
+    def convert_key(cls, key):
+
+      """ Convert a :py:class:`model.Key` to an indexable value, considering
+          ``Vertex`` and ``Edge`` keys as well.
+
+          :param key: Target :py:class:`model.Key` to convert.
+
+          :returns: Tupled ``(<magic key code>, <flattened key>)``, suitable for
+            adding to the index. """
+
+      from canteen import model
+
+      joined, flattened = key.flatten(True)
+      sanitized = map(lambda x: x is not None, flattened)
+
+      _GRAPH_KEYS = (model.Vertex.__keyclass__, model.Edge.__keyclass__)
+
+      _key = 'key'
+      if hasattr(key, '__vertex__') and key.__vertex__:
+        _key = 'vertex'  # pragma: no cover
+      elif hasattr(key, '__edge__') and key.__edge__:
+        _key = 'edge'  # pragma: no cover
+      return (cls._magic[_key], key.urlsafe())
+
+  @decorators.classproperty
+  def _index_basetypes(self):
+
+    """ Map basetypes to indexer routines, with support for graph-specialized
+        key types (``VertexKey`` and ``EdgeKey``).
+
+        :returns: Default basetype ``dict``. """
+
+    from canteen import model
+    types = super(GraphModelAdapter, self)._index_basetypes
+
+    types.update({
+      # -- graph key types -- #
+      model.Key: self.Indexer.convert_key,
+      model.EdgeKey: self.Indexer.convert_key,
+      model.VertexKey: self.Indexer.convert_key})
+    return types
+
+  @staticmethod
+  def _pluck_indexed(entity):
+
+    """ Override the indexed property scanner to ignore ``Edge``-related auto-
+        injected properties.
+
+        :param entity: Target entity to produce indexes for.
+
+        :returns: Map ``dict`` of properties to index. """
+
+    _map = IndexedModelAdapter._pluck_indexed(entity)
+    if hasattr(entity.__class__, '__edge__') and entity.__class__.__edge__:
+      if 'peers' in _map: del _map['peers']
+      if 'target' in _map: del _map['target']
+      if 'source' in _map: del _map['source']
+    return _map
+
+  def _put(self, entity, **kwargs):
+
+    """ Override to enable ``graph``-specific indexes (for stored ``Vertex`` and
+        ``Edge`` objects/keys).
+
+        :param entity: Entity :py:class:`model.Model` to persist.
+
+        :returns: Resulting :py:class:`model.Key` from write operation. """
+
+    # small optimization - with a deterministic key, we can parrellelize
+    # index writes (assuming async is supported in the underlying driver)
+
+    _indexed_properties = self._pluck_indexed(entity)
+
+    # delegate write up the chain
+    written_key = super(IndexedModelAdapter, self)._put(entity, **kwargs)
+
+    # proxy to `generate_indexes` and write indexes
+    origin, meta, properties, graph = (
+      self.generate_indexes(entity.key, entity, _indexed_properties))
+
+    self.write_indexes((origin, meta, properties), graph, **kwargs)
+    return written_key  # delegate up the chain for entity write
+
+  @classmethod
+  def generate_indexes(cls, key, entity=None, properties=None):
+
+    """ Generate a set of indexes that should be written to with associated
+        values, considering that some ``key`` values may be ``VertexKey`` or
+        ``EdgeKey`` instances.
+
+        :param key: Target :py:class:`model.Key`, :py:class:`VertexKey` or
+          :py:class:`EdgeKey` to index.
+
+        :param entity: :py:class:`Model` entity to be stored. Defaults to
+          ``None``, in which case we're cleaning indexes and don't have access
+          to the original entity - just the key.
+
+        :param properties: Entity :py:class:`model.Model` property values to
+          index.
+
+        :raises TypeError: If neither a ``key`` or ``properties`` are passed,
+          since we can't generate anything without at least one or the other.
+
+        :returns: Tupled set of ``(encoded, meta, property, graph)``, where
+          ``meta`` and ``property`` are indexes to be written in each category
+           and ``graph`` is a bundle of special indexes for ``Vertex`` and
+           ``Edge`` keys. """
+
+    from .. import Model
+
+    if key is None and not properties:  # pragma: no cover
+      raise TypeError('Must pass at least `key` or `properties'
+                      ' to `generate_indexes`.')
+
+    if not (entity is None or isinstance(entity, Model)):  # pragma: no cover
+      raise TypeError('Must pass either `None` or a `Model`'
+                      ' for the `entity` parameter to `generate_indexes`.'
+                      ' Instead, got: "%s".' % entity)
+
+    from .. import VertexKey, EdgeKey
+    _super = super(GraphModelAdapter, cls).generate_indexes
+
+    # initialize graph indexes
+    graph = []
+
+    if key and properties is None:
+      # we're probably cleaning indexes
+      encoded, meta = _super(key)
+
+    else:
+      # defer upwards for regular indexes
+      encoded, meta, properties = _super(key, properties)
+
+
+    if key:
+      # vertex keys
+      if isinstance(key, VertexKey):
+        graph.append((cls._vertex_prefix,))
+
+      # edge keys
+      elif isinstance(key, EdgeKey):
+
+        # main edge index
+        graph.append((cls._edge_prefix,))
+
+        if entity:
+          # extract spec @TODO(sgammon): make specs not suck
+          spec = entity.__spec__
+
+          # directed/undirected index
+          graph.append((cls._edge_prefix, cls._directed_token if (
+            spec.directed) else cls._undirected_token))
+
+          # directed indexes
+          if spec.directed:
+
+            for target in entity.target:
+
+              # __graph__::<source>::out => edge
+              graph.append((entity.source, cls._out_token, entity.key))
+
+              # __graph__::<target>::in => edge
+              graph.append((target, cls._in_token, entity.key))
+
+              # __graph__::<source>::neighbors => target
+              graph.append((entity.source, cls._neighbors_token, target))
+
+              # __graph__::<target>::neighbors => source
+              graph.append((target, cls._neighbors_token, entity.source))
+
+          # undirected indexes
+          else:
+
+            _indexed_pairs = set()
+            for o, source in enumerate(entity.peers):
+              for i, target in enumerate(entity.peers):
+
+                # skip if it's the same object in the pair
+                if o == i: continue
+
+                # skip if we've already indexed the two, since we're undirected
+                # and one iteration past either will work for both
+                if (source, target) in _indexed_pairs or (
+                    (target, source) in _indexed_pairs):  # pragma: no cover
+                  continue
+
+                # __graph__::<source>::peers => edge
+                graph.append((source, cls._peers_token, entity.key))
+
+                # __graph__::<target>::peers => edge
+                graph.append((target, cls._peers_token, entity.key))
+
+                # __graph__::<source>::neighbors => target
+                graph.append((source, cls._neighbors_token, target))
+
+                # __graph__::<target>::neighbors => source
+                graph.append((target, cls._neighbors_token, source))
+
+    if key and properties is None:
+      return encoded, meta, tuple(graph)
+    return encoded, meta, properties, tuple(graph)
 
   @abc.abstractmethod
-  def edges(cls, key1, key2=None, type=None, **kwargs):  # pragma: no cover
+  def write_indexes(cls, writes, graph, **kwargs):
 
-    ''' Retrieve all ``Edges`` between ``key1`` and ``key2``
-        (or just for ``key1``) if no peer key is provided),
-        optionally only of ``Edge`` type ``type``. '''
+    """ Write a batch of index updates generated earlier via
+        :py:meth:`generate_indexes`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
 
-    raise NotImplementedError('`edges` is abstract.')
+        :param writes: Batch of index writes to commit, generated via
+          :py:meth:`generate_indexes`.
+
+        :param graph: Batch of graph-related storage updates for indexes related
+          to ``Edge`` and ``Vertex`` objects.
+
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
+
+    raise NotImplementedError('`GraphModelAdapter.write_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def connect(cls, key1, key2, edge, **kwargs):  # pragma: no cover
+  def clean_indexes(cls, key, graph, **kwargs):
 
-    ''' Connect two objects (expressed as ``key1`` and ``key2``)
-        as ``Vertexes`` by an ``Edge``. Accepts an ``Edge``
-        object to use for the connection. '''
+    """ Clean indexes and index entries matching a particular
+        :py:class:`model.Key`. This method is abstract and **must** be
+        overridden by concrete implementors of :py:class:`IndexedModelAdapter`.
 
-    raise NotImplementedError('`connect` is abstract.')
+        :param key: Target :py:class:`model.Key` to clean indexes for.
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
-  @abc.abstractmethod
-  def neighbors(cls, key, type=None, **kwargs):  # pragma: no cover
-
-    ''' Retrieve all ``Vertexes`` connected to ``key`` by at
-        least one ``Edge``, optionally filtered by ``Edge``
-        type with ``type``. '''
-
-    raise NotImplementedError('`neighbors` is abstract.')
+    raise NotImplementedError('`IndexedModelAdapter.clean_indexes`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
 
 
-## DirectedGraphAdapter
-# Adapt canteen models to a directed-graph-based storage paradigm.
 class DirectedGraphAdapter(GraphModelAdapter):
 
-  ''' Abstract base class for model adpaters that support
-      directed-graph-type models. '''
-
-  def _heads_or_tails(self, tails=False):  # pragma: no cover
-
-    '''  '''
-
-    # @TODO(sgammon): finalize and remove nocover
-    import pdb; pdb.set_trace()
-
-  @abc.abstractmethod
-  def tails(cls, key, type=None, **kwargs):  # pragma: no cover
-
-    ''' Retrieve all directed ``Edge``s that terminate at this node,
-        optionally filtering by ``Edge`` type ``type``. '''
-
-    raise NotImplementedError()
-
-  @abc.abstractmethod
-  def heads(cls, key, type=None, **kwargs):  # pragma: no cover
-
-    ''' Retrieve all directed ``Edge``s that originate from this node,
-        optionally filtering by ``Edge`` type ``type``. '''
-
-    raise NotImplementedError()
+  """ Abstract base class for model adpaters that support directed-graph-type
+      models. """
 
 
-## Mixin
-# Metaclass for registering mixins and applying them later.
+# noinspection PyAttributeOutsideInit
 class Mixin(object):
 
-  ''' Abstract parent for detecting and registering `Mixin` classes. '''
+  """ Abstract parent for detecting and registering `Mixin` classes. """
 
   __slots__ = tuple()
 
   class __metaclass__(type):
 
-    ''' Local `Mixin` metaclass for registering encountered `Mixin`(s). '''
+    """ Local `Mixin` metaclass for registering encountered `Mixin`(s). """
 
     ## == Mixin Registry == ##
     _compound = {}
@@ -740,7 +964,7 @@ class Mixin(object):
 
     def __new__(cls, name, bases, properties):
 
-      ''' Factory a new registered :py:class:`Mixin`. Registers the target
+      """ Factory a new registered :py:class:`Mixin`. Registers the target
           ``Mixin`` in :py:attr:`Mixin.__metaclass__._mixin_lookup`, and
           extends compound class at :py:attr:`Mixin.__metaclass__._compound`.
 
@@ -749,7 +973,7 @@ class Mixin(object):
           :param properties: Mapping ``dict`` of class properties.
           :raises RuntimeError: For invalid inheritance between mixin bases.
 
-          :returns: Constructed ``Mixin`` class. '''
+          :returns: Constructed ``Mixin`` class. """
 
       # apply local metaclass to factoried concrete children
       klass = super(cls, cls).__new__(cls, name, bases, properties)
@@ -771,14 +995,16 @@ class Mixin(object):
         if Mixin._compound.get(cls):
 
           ## extend class dict if we already have one
-          Mixin._compound.__dict__.update(dict(cls.__dict__.items()))
+          Mixin._compound.__dict__.update(*(
+            dict(cls.__dict__.items())))  # pragma: no cover
 
       return klass
 
     def __repr__(cls):
 
-      ''' Generate a string representation of a `Mixin` subclass.
-        :returns: String *repr* for ``Mixin`` class. '''
+      """ Generate a string representation of a `Mixin` subclass.
+
+          :returns: String *repr* for ``Mixin`` class. """
 
       return "Mixin(%s.%s)" % (cls.__module__, cls.__name__)
 
@@ -787,8 +1013,9 @@ class Mixin(object):
   @decorators.classproperty
   def methods(cls):
 
-    ''' Recursively return all available ``Mixin`` methods.
-      :yields: Each method in each ``Mixin``. '''
+    """ Recursively return all available ``Mixin`` methods.
+
+        :yields: Each method in each ``Mixin``. """
 
     for component in cls.components:
       for method, func in component.__dict__.items():
@@ -797,10 +1024,10 @@ class Mixin(object):
   @decorators.classproperty
   def compound(cls):
 
-    ''' Generate a compound ``Mixin`` class. Builds a new class,
-      composed of all available methods on attached mixins.
+    """ Generate a compound ``Mixin`` class. Builds a new class, composed of all
+        available methods on attached mixins.
 
-      :returns: Factoried compound ``Mixin`` class. '''
+        :returns: Factoried compound ``Mixin`` class. """
 
     global CompoundKey, CompoundModel, CompoundVertex, CompoundEdge
 
@@ -813,8 +1040,7 @@ class Mixin(object):
         dict([
           ('__origin__', cls),
           ('__slots__', tuple()),
-        ] + [(k, v) for k, v in cls.methods])
-      ))
+        ] + [(k, v) for k, v in cls.methods])))
 
       if cls.__compound__.__name__ == 'CompoundKey':
         CompoundKey = cls.__compound__
@@ -830,62 +1056,44 @@ class Mixin(object):
   @decorators.classproperty
   def components(cls):
 
-    ''' Return registered ``Mixin`` classes for the current ``cls``.
-      :yields: Each mixin in the registry. '''
+    """ Return registered ``Mixin`` classes for the current ``cls``.
+
+        :yields: Each mixin in the registry. """
 
     for mixin in cls.__registry__.itervalues(): yield mixin
 
 
-## KeyMixin
-# Extendable, registered class that mixes in attributes to `Key`.
 class KeyMixin(Mixin):
 
-  ''' Allows injection of attributes into `Key`. '''
+  """ Allows injection of attributes into `Key`. """
 
   __slots__ = tuple()
   __compound__ = 'CompoundKey'
   __registry__ = Mixin._key_mixin_registry
 
 
-## ModelMixin
-# Extendable, registered class that mixes in attributes to `Model`.
 class ModelMixin(Mixin):
 
-  ''' Allows injection of attributes into `Model`. '''
+  """ Allows injection of attributes into `Model`. """
 
   __slots__ = tuple()
   __compound__ = 'CompoundModel'
   __registry__ = Mixin._model_mixin_registry
 
 
-## VertexMixin
-# Extendable, registered class that mixes in attributes to `Vertex`.
 class VertexMixin(Mixin):
 
-  ''' Allows injection of attributes into `Vertex`. '''
+  """ Allows injection of attributes into `Vertex`. """
 
   __slots__ = tuple()
   __compound__ = 'CompoundVertex'
   __registry__ = Mixin._vertex_mixin_registry
 
 
-## EdgeMixin
-# Extendable, registered class that mixes in attributes to `Edge`.
 class EdgeMixin(Mixin):
 
-  ''' Allows injection of attributes into `Edge`. '''
+  """ Allows injection of attributes into `Edge`. """
 
   __slots__ = tuple()
   __compound__ = 'CompoundEdge'
   __registry__ = Mixin._edge_mixin_registry
-
-
-__all__ = (
-  'CompoundKey',
-  'CompoundModel',
-  'ModelAdapter',
-  'IndexedModelAdapter',
-  'Mixin',
-  'KeyMixin',
-  'ModelMixin'
-)

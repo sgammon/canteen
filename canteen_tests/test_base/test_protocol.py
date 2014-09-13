@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   base protocol tests
   ~~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # testing
 from canteen import test
@@ -22,55 +22,75 @@ from canteen.base import protocol
 
 class SomeValidProtocol(protocol.Protocol):
 
-  ''' I am a valid, registered protocol '''
+  """ I am a valid, registered protocol """
 
-  def encode_message(self, message): pass
-  def decode_message(self, type, encoded): pass
+  def encode_message(self, message):
+
+    """ sample encode message """
+
+  def decode_message(self, _type, encoded):
+
+    """ sample decode message """
 
 
 class BaseProtocolTest(test.FrameworkTest):
 
-  ''' Tests `base.protocol`. '''
+  """ Tests `base.protocol`. """
 
   def _make_protocol(self, valid=True):
 
-    ''' Build a quick mock Protocol '''
+    """ Build a quick mock Protocol """
 
-    class SomeProtocol(protocol.Protocol):
 
-      ''' I am a valid, registered protocol '''
+    if valid:
 
-      if valid:
-        def encode_message(self, message): pass
-        def decode_message(self, type, encoded): pass
-      else:
-        def not_encode_message(self, message): pass
-        def not_decode_message(self, type, encoded): pass
 
-    return SomeProtocol
+      class _SomeValidProtocol(protocol.Protocol):
+
+        """ I am a valid, registered protocol """
+
+        def encode_message(self, message):
+
+          """ sample encode message """
+
+        def decode_message(self, _type, encoded):
+
+          """ sample decode message """
+
+      return _SomeValidProtocol
+
+    else:
+
+
+      class SomeInvalidProtocol(protocol.Protocol):
+
+        """ I am an invalid protocol """
+
+
+      return SomeInvalidProtocol
 
   def test_base_protocol(self):
 
-    ''' Test that `base` exports `Protocol` '''
+    """ Test that `base` exports `Protocol` """
 
     assert hasattr(protocol, 'Protocol')
 
   def test_protocol_abstract(self):
 
-    ''' Test that `Protocol` is abstract '''
+    """ Test that `Protocol` is abstract """
 
     with self.assertRaises(TypeError):
       self._make_protocol(valid=False)()
 
   def test_protocol_extend(self):
 
-    ''' Test that `Protocol` can be extended '''
+    """ Test that `Protocol` can be extended """
 
     self._make_protocol()()
 
   def test_protocol_register(self):
 
-    ''' Test that `Protocol` registers properly '''
+    """ Test that `Protocol` registers properly """
 
     # simulate decorator
     protocol.Protocol.register('randorpc', (
@@ -80,7 +100,7 @@ class BaseProtocolTest(test.FrameworkTest):
 
   def test_protocol_all(self):
 
-    ''' Test that `Protocol.all` iterates over registered protocols '''
+    """ Test that `Protocol.all` iterates over registered protocols """
 
     # simulate decorator
     protocol.Protocol.register('randorpc', (
@@ -93,8 +113,8 @@ class BaseProtocolTest(test.FrameworkTest):
 
   def test_protocol_mapping(self):
 
-    ''' Test that `Protocol.mapping` returns a proper type=>protocol
-        mapping '''
+    """ Test that `Protocol.mapping` returns a proper type=>protocol
+        mapping """
 
     # simulate decorator
     protocol.Protocol.register('randorpc', (

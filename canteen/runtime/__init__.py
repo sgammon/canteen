@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: runtime
-  ~~~~~~~~~~~~~~~~
+  runtime
+  ~~~~~~~
 
   holds code that bridges :py:mod:`canteen` into various WSGI runtimes,
   like :py:mod:`gevent` and :py:mod:`wsgiref`.
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # runtimes
 from . import uwsgi
@@ -24,10 +24,8 @@ from . import tornado
 from . import werkzeug
 
 
-__all__ = (
-  'uwsgi',
-  'gevent',
-  'wsgiref',
-  'tornado',
-  'werkzeug'
-)
+__all__ = ('uwsgi',
+           'gevent',
+           'wsgiref',
+           'tornado',
+           'werkzeug')

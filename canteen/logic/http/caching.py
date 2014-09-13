@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   HTTP caching logic
   ~~~~~~~~~~~~~~~~~~
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core runtime
 from canteen.base import logic
@@ -26,12 +26,4 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
   @decorators.bind('http.caching')
   class Caching(logic.Logic):
-
-    '''  '''
-
-    pass
-
-
-  __all__ = (
-    'Caching',
-  )
+      """  """

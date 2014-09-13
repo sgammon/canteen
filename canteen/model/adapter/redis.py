@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  protorpc model extensions
-  ~~~~~~~~~~~~~~~~~~~~~~~~~
+  redis model adapter
+  ~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
 import json
@@ -20,7 +20,7 @@ import datetime
 
 # adapter API
 from . import abstract
-from .abstract import IndexedModelAdapter
+from .abstract import DirectedGraphAdapter
 
 # canteen util
 from canteen.util import struct
@@ -29,10 +29,11 @@ from canteen.util import decorators
 
 ## Globals
 _support = struct.WritableObjectProxy()
+_mock_redis = None  # holds global singleton for mock testing
 _server_profiles = {}  # holds globally-configured server profiles
 _default_profile = None  # holds the default redis instance mapping
 _client_connections = {}  # holds instantiated redis connection clients
-_profiles_by_model = {}  # holds specific model => redis instance mappings, if any
+_profiles_by_model = {}  # holds specific model => redis instance mappings
 _SERIES_BASETYPES = (  # basetypes that should be stored as a sorted set
   datetime.datetime, datetime.date, datetime.time, float, int, long)
 
@@ -44,14 +45,20 @@ try:
   ## force absolute import to avoid infinite recursion
   redis = _redis_client = _support.redis = (
     __import__('redis', locals(), globals(), [], 0))
-except ImportError as e:  # pragma: no cover
+except ImportError:  # pragma: no cover
   _support.redis, _redis_client, redis = False, None, None
+
+# or fakeredis, for testing only
+try:
+  import fakeredis; _support.fakeredis = True
+except ImportError:  # pragma: no cover
+  fakeredis, _support.fakeredis = None, False
 
 # resolve gevent
 try:
   import gevent; _support.gevent = gevent
-except ImportError as e:  # pragma: no cover
-  _support.gevent = False
+except ImportError:  # pragma: no cover
+  gevent, _support.gevent = None, False
 else:  # pragma: no cover
   if _support.redis and (
     hasattr(redis.connection, 'socket') and hasattr(gevent, 'socket')):
@@ -65,7 +72,7 @@ else:  # pragma: no cover
 try:
   import msgpack; _support.msgpack = msgpack
 except ImportError:  # pragma: no cover
-  _support.msgpack = False
+  msgpack, _support.msgpack = None, False
 
 
 ##### ==== compressors ==== #####
@@ -74,25 +81,24 @@ except ImportError:  # pragma: no cover
 try:
   import zlib; _support.zlib = zlib
 except ImportError:  # pragma: no cover
-  _support.zlib = False
+  zlib, _support.zlib = None, False
 
 # resolve snappy
 try:
   import snappy; _support.snappy = snappy
 except ImportError:  # pragma: no cover
-  _support.snappy = False
+  snappy, _support.snappy = None, False
 
 # resolve lz4
 try:
   import lz4; _support.lz4 = lz4
 except ImportError:  # pragma: no cover
-  _support.lz4 = False
+  lz4, _support.lz4 = None, False
 
 
 class RedisMode(object):
 
-  ''' Map of hard-coded modes of internal
-      operation for the `RedisAdapter`. '''
+  """ Map of hard-coded modes of internal operation for the `RedisAdapter`. """
 
   hashkey_hash = 'hashkey'  # HSET <key>, <field> => <value> [...]
   hashkey_blob = 'hashblob'  # HSET <entity_group>, <key_id>, <entity>
@@ -100,9 +106,11 @@ class RedisMode(object):
   toplevel_blob = 'toplevel'  # SET <key>, <entity>
 
 
-class RedisAdapter(IndexedModelAdapter):
+class RedisAdapter(DirectedGraphAdapter):
 
-  ''' Adapt model classes to Redis. '''
+  """ Adapt model classes to Redis. """
+
+  __testing__ = False  # are we testing redis?
 
   # key encoding
   adapter = _redis_client
@@ -119,7 +127,7 @@ class RedisAdapter(IndexedModelAdapter):
 
   class EngineConfig(object):
 
-    ''' Configuration for the `RedisAdapter` engine. '''
+    """ Configuration for the `RedisAdapter` engine. """
 
     encoding = True  # encoding for keys and special values
     serializer = json  # json or msgpack
@@ -129,204 +137,226 @@ class RedisAdapter(IndexedModelAdapter):
 
   class Operations(object):
 
-    ''' Available datastore operations. '''
+    """ Available datastore operations. """
 
     ## Key Operations
-    SET = 'SET'  # set a value at a key directly
-    GET = 'GET'  # get a value by key directly
-    KEYS = 'KEYS'  # get a list of all keys matching a regex
-    DUMP = 'DUMP'  # dump serialized information about a key
-    DELETE = 'DEL'  # delete a key=> value pair, by key
-    EXISTS = 'EXISTS'  # determine if a key exists
-    EXPIRE = 'EXPIRE'  # set expiration time for a key
-    EXPIRE_AT = 'EXPIREAT'  # set absolute expiration for a key
-    MIGRATE = 'MIGRATE'  # atomically transfer key and value to a different Redis instance
-    MOVE = 'MOVE'  # move a key from one `db` to another
-    GETBIT = 'GETBIT'  # retrieve a specific bit from a key value
-    GETSET = 'GETSET'  # set a value by key, and return the existing value
-    GETRANGE = 'GETRANGE'  # return the substring of str value at given key
-    OBJECT = 'OBJECT'  # inspect internals of redis objects
-    PERSIST = 'PERSIST'  # remove expiration of a key
-    PEXPIRE = 'PEXPIRE'  # set TTL for a key in milliseconds
-    PEXPIREAT = 'PEXPIREAT'  # set TTL absolutely in milliseconds
-    PTTL = 'TTL'  # get TTL for a key in milliseconds
-    RANDOM = 'RANDOMKEY'  # select a random key from the database
-    RENAME = 'RENAME'  # rename a key to a different name
-    RENAMENX = 'RENAMENX'  # rename a key, only if the new key doesn't exist
-    RESTORE = 'RESTORE'  # restore a key previously DUMPed
-    SORT = 'SORT'  # sort the elements in a list or set
-    TTL = 'TTL'  # get the TTL for a key
-    TYPE = 'TYPE'  # determine the type of a key
-    SCAN = 'SCAN'  # incrementally iterate over keyspace
+    SET = 'SET'
+    GET = 'GET'
+    KEYS = 'KEYS'
+    DUMP = 'DUMP'
+    DELETE = 'DEL'
+    EXISTS = 'EXISTS'
+    EXPIRE = 'EXPIRE'
+    EXPIRE_AT = 'EXPIREAT'
+    MIGRATE = 'MIGRATE'
+    MOVE = 'MOVE'
+    GETBIT = 'GETBIT'
+    GETSET = 'GETSET'
+    GETRANGE = 'GETRANGE'
+    OBJECT = 'OBJECT'
+    PERSIST = 'PERSIST'
+    PEXPIRE = 'PEXPIRE'
+    PEXPIREAT = 'PEXPIREAT'
+    PTTL = 'TTL'
+    RANDOM = 'RANDOMKEY'
+    RENAME = 'RENAME'
+    RENAMENX = 'RENAMENX'
+    RESTORE = 'RESTORE'
+    SORT = 'SORT'
+    TTL = 'TTL'
+    TYPE = 'TYPE'
+    SCAN = 'SCAN'
 
     ## Counter Operations
-    INCREMENT = 'INCR'  # increment a key by 1
-    DECREMENT = 'DECR'  # decrement a key by 1
-    INCREMENT_BY = 'INCRBY'  # increment a key by int
-    DECREMENT_BY = 'DECRBY'  # decrement a key by int
-    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'  # incremement a key by float
+    INCREMENT = 'INCR'
+    DECREMENT = 'DECR'
+    INCREMENT_BY = 'INCRBY'
+    DECREMENT_BY = 'DECRBY'
+    INCREMENT_BY_FLOAT = 'INCRBYFLOAT'
 
     ## Hash Operations
-    HASH_SET = 'HSET'  # set the value of an individual hash field
-    HASH_GET = 'HGET'  # get the value of an individual hash field
-    HASH_KEYS = 'HKEYS'  # get all the property names in a hash
-    HASH_SCAN = 'HSCAN'  # incrementally iterate over fields and values by optional pattern
-    HASH_DELETE = 'HDEL'  # delete one or more individual hash fields
-    HASH_LENGTH = 'HLEN'  # retrieve the number of fields in a hash
-    HASH_VALUES = 'HVALS'  # get all values in a hash, without keys
-    HASH_EXISTS = 'HEXISTS'  # determine if an individual hash field exists
-    HASH_GET_ALL = 'HGETALL'  # get all fields and values of a hash
-    HASH_SET_SAFE = 'HSETNX'  # set the value of a hash field, only if it doesn't exist
-    HASH_MULTI_GET = 'HMGET'  # get the values of multiple hash fields
-    HASH_MULTI_SET = 'HMSET'  # set the values of multiple hash fields
-    HASH_INCREMENT = 'HINCRBY'  # increment an individual hash field by X
-    HASH_INCREMENT_FLOAT = 'HINCRBYFLOAT'  # increment an individual hash field by float(X)
+    HASH_SET = 'HSET'
+    HASH_GET = 'HGET'
+    HASH_KEYS = 'HKEYS'
+    HASH_SCAN = 'HSCAN'
+    HASH_DELETE = 'HDEL'
+    HASH_LENGTH = 'HLEN'
+    HASH_VALUES = 'HVALS'
+    HASH_EXISTS = 'HEXISTS'
+    HASH_GET_ALL = 'HGETALL'
+    HASH_SET_SAFE = 'HSETNX'
+    HASH_MULTI_GET = 'HMGET'
+    HASH_MULTI_SET = 'HMSET'
+    HASH_INCREMENT = 'HINCRBY'
+    HASH_INCREMENT_FLOAT = 'HINCRBYFLOAT'
 
     ## String Commands
-    APPEND = 'APPEND'  # append string data to to an existing key
-    STRING_LENGTH = 'STRLEN'  # retrieve the length of a string value at a key
+    APPEND = 'APPEND'
+    STRING_LENGTH = 'STRLEN'
 
     ## List Operations
-    LIST_SET = 'LSET'  # set a value in a list by its index
-    LEFT_POP = 'LPOP'  # pop a value off the left side of a list
-    RIGHT_POP = 'RPOP'  # pop a value off the right side of a list
-    LEFT_PUSH = 'LPUSH'  # add a value to the right side of a list
-    RIGHT_PUSH = 'RPUSH'  # add a value to the right side of a list
-    LEFT_PUSH_X = 'LPUSHX'  # add a value to the left side of a list, only if it already exists
-    RIGHT_PUSH_X = 'RPUSHX'  # add a value to the right side of a list, only if it already exists
-    LIST_TRIM = 'LTRIM'  # truncate the list to only containing X values
-    LIST_INDEX = 'LINDEX'  # get a value from a list by its index
-    LIST_RANGE = 'LRANGE'  # get a range of values from a list
-    LIST_LENGTH = 'LLEN'  # retrieve the current length of a list
-    LIST_REMOVE = 'LREM'  # remove elements from an existing list
-    BLOCK_LEFT_POP = 'BLPOP'  # same as lpop, but block until an item is available
-    BLOCK_RIGHT_POP = 'BRPOP'  # same as rpop, but block until an item is available
+    LIST_SET = 'LSET'
+    LEFT_POP = 'LPOP'
+    RIGHT_POP = 'RPOP'
+    LEFT_PUSH = 'LPUSH'
+    RIGHT_PUSH = 'RPUSH'
+    LEFT_PUSH_X = 'LPUSHX'
+    RIGHT_PUSH_X = 'RPUSHX'
+    LIST_TRIM = 'LTRIM'
+    LIST_INDEX = 'LINDEX'
+    LIST_RANGE = 'LRANGE'
+    LIST_LENGTH = 'LLEN'
+    LIST_REMOVE = 'LREM'
+    BLOCK_LEFT_POP = 'BLPOP'
+    BLOCK_RIGHT_POP = 'BRPOP'
 
     ## Set Operations
-    SET_ADD = 'SADD'  # add a new member to a set
-    SET_POP = 'SPOP'  # pop and remove an item from the end of a set
-    SET_MOVE = 'SMOVE'  # move a member from one set to another
-    SET_DIFF = 'SDIFF'  # calculate the difference/delta of two sets
-    SET_UNION = 'SUNION'  # calculate the union/combination of two sets
-    SET_REMOVE = 'SREM'  # remove one or more members from a set
-    SET_MEMBERS = 'SMEMBERS'  # retrieve all members of a set
-    SET_INTERSECT = 'SINTER'  # calculate the intersection of two sets
-    SET_IS_MEMBER = 'SISMEMBER'  # determine if a value is a member of a set
-    SET_DIFF_STORE = 'SDIFFSTORE'  # calculate the delta of two sets and store the result
-    SET_CARDINALITY = 'SCARD'  # calculate the number of members in a set
-    SET_UNION_STORE = 'SUNIONSTORE'  # calculate the union of two sets and store the result
-    SET_RANDOM_MEMBER = 'SRANDMEMBER'  # retrieve a random member of a set
-    SET_INTERSECT_STORE = 'SINTERSTORE'  # calculate the intersection of a set and store the result
+    SET_ADD = 'SADD'
+    SET_POP = 'SPOP'
+    SET_MOVE = 'SMOVE'
+    SET_DIFF = 'SDIFF'
+    SET_UNION = 'SUNION'
+    SET_REMOVE = 'SREM'
+    SET_MEMBERS = 'SMEMBERS'
+    SET_INTERSECT = 'SINTER'
+    SET_IS_MEMBER = 'SISMEMBER'
+    SET_DIFF_STORE = 'SDIFFSTORE'
+    SET_CARDINALITY = 'SCARD'
+    SET_UNION_STORE = 'SUNIONSTORE'
+    SET_RANDOM_MEMBER = 'SRANDMEMBER'
+    SET_INTERSECT_STORE = 'SINTERSTORE'
 
     ## Sorted Set Operations
-    SORTED_ADD = 'ZADD'  # add a member to a sorted set
-    SORTED_RANK = 'ZRANK'  # determine the index o a member in a sorted set
-    SORTED_RANGE = 'ZRANGE'  # return a range of members in a sorted set, by index
-    SORTED_SCORE = 'ZSCORE'  # get the score associated with the given member in a sorted set
-    SORTED_COUNT = 'ZCOUNT'  # count the members in a sorted set with scores within a given range
-    SORTED_REMOVE = 'ZREM'  # remove one or more members from a sorted set
-    SORTED_CARDINALITY = 'ZCARD'  # get the number of members in a sorted set (cardinality)
-    SORTED_UNION_STORE = 'ZUNIONSTORE'  # compute the union of two sorted sets, storing the result at a new key
-    SORTED_INCREMENT_BY = 'ZINCRBY'  # increment the score of a member in a sorted set by X
-    SORTED_INDEX_BY_SCORE = 'ZREVRANK'  # determine the index of a member in a sorted set, scores ordered high=>low
-    SORTED_RANGE_BY_SCORE = 'ZRANGEBYSCORE'  # return a range of members in a sorted set, by score
-    SORTED_INTERSECT_STORE = 'ZINTERSTORE'  # intersect multiple sets, storing the result in a new key
-    SORTED_MEMBERS_BY_INDEX = 'ZREVRANGE'  # get a range of members in a sorted set. by index, scores high=>low
-    SORTED_MEMBERS_BY_SCORE = 'ZREVRANGEBYSCORE'  # remove all members in a sorted set within the given scores
-    SORTED_REMOVE_RANGE_BY_RANK = 'ZREMRANGEBYRANK'  # remove members in a sorted set within a given range of ranks
-    SORTED_REMOVE_RANGE_BY_SCORE = 'ZREMRANGEBYSCORE'  # remove members in a sorted set within a range of scores
+    SORTED_ADD = 'ZADD'
+    SORTED_RANK = 'ZRANK'
+    SORTED_RANGE = 'ZRANGE'
+    SORTED_SCORE = 'ZSCORE'
+    SORTED_COUNT = 'ZCOUNT'
+    SORTED_REMOVE = 'ZREM'
+    SORTED_CARDINALITY = 'ZCARD'
+    SORTED_UNION_STORE = 'ZUNIONSTORE'
+    SORTED_INCREMENT_BY = 'ZINCRBY'
+    SORTED_INDEX_BY_SCORE = 'ZREVRANK'
+    SORTED_RANGE_BY_SCORE = 'ZRANGEBYSCORE'
+    SORTED_INTERSECT_STORE = 'ZINTERSTORE'
+    SORTED_MEMBERS_BY_INDEX = 'ZREVRANGE'
+    SORTED_MEMBERS_BY_SCORE = 'ZREVRANGEBYSCORE'
+    SORTED_REMOVE_RANGE_BY_RANK = 'ZREMRANGEBYRANK'
+    SORTED_REMOVE_RANGE_BY_SCORE = 'ZREMRANGEBYSCORE'
 
     ## Pub/Sub Operations
-    PUBLISH = 'PUBLISH'  # publish a message to a specific pub/sub channel
-    SUBSCRIBE = 'SUBSCRIBE'  # subscribe to messages on an exact channel
-    UNSUBSCRIBE = 'UNSUBSCRIBE'  # unsubscribe from messages on an exact channel
-    PATTERN_SUBSCRIBE = 'PSUBSCRIBE'  # subscribe to all pub/sub channels matching a pattern
-    PATTERN_UNSUBSCRIBE = 'PUNSUBSCRIBE'  # unsubscribe from all pub/sub channels matching a pattern
+    PUBLISH = 'PUBLISH'
+    SUBSCRIBE = 'SUBSCRIBE'
+    UNSUBSCRIBE = 'UNSUBSCRIBE'
+    PATTERN_SUBSCRIBE = 'PSUBSCRIBE'
+    PATTERN_UNSUBSCRIBE = 'PUNSUBSCRIBE'
 
     ## Transactional Operations
-    EXEC = 'EXEC'  # execute buffered commands in a pipeline queue
-    MULTI = 'MULTI'  # start a new pipeline, where commands can be buffered
-    WATCH = 'WATCH'  # watch a key, such that we can receive a notification in the event it is modified
-    UNWATCH = 'UNWATCH'  # unwatch all currently watched keys
-    DISCARD = 'DISCARD'  # discard buffered commands in a pipeline completely
+    EXEC = 'EXEC'
+    MULTI = 'MULTI'
+    WATCH = 'WATCH'
+    UNWATCH = 'UNWATCH'
+    DISCARD = 'DISCARD'
 
     ## Scripting Operations
-    EVALUATE = 'EVAL'  # evaluate a script inline, written in Lua
-    EVALUATE_STORED = 'EVALSHA'  # execute an already-loaded script
-    SCRIPT_LOAD = ('SCRIPT', 'LOAD')  # load a script into memory for future execution
-    SCRIPT_KILL = ('SCRIPT', 'KILL')  # kill the currently running script
-    SCRIPT_FLUSH = ('SCRIPT', 'FLUSH')  # flush all scripts from the script cache
-    SCRIPT_EXISTS = ('SCRIPT', 'EXISTS')  # check existence of scripts in the script cache
+    EVALUATE = 'EVAL'
+    EVALUATE_STORED = 'EVALSHA'
+    SCRIPT_LOAD = ('SCRIPT', 'LOAD')
+    SCRIPT_KILL = ('SCRIPT', 'KILL')
+    SCRIPT_FLUSH = ('SCRIPT', 'FLUSH')
+    SCRIPT_EXISTS = ('SCRIPT', 'EXISTS')
 
     ## Connection Operations
-    ECHO = 'ECHO'  # echo the given string from the server side - for testing
-    PING = 'PING'  # 'ping' to receive a 'pong' from the server - for keepalive
-    QUIT = 'QUIT'  # exit and close the current connection
-    SELECT = 'SELECT'  # select the currently-active database
-    AUTHENTICATE = 'AUTH'  # authenticate to a protected redis instance
+    ECHO = 'ECHO'
+    PING = 'PING'
+    QUIT = 'QUIT'
+    SELECT = 'SELECT'
+    AUTHENTICATE = 'AUTH'
 
     ## Server Operations
-    TIME = 'TIME'  # get the current time, as seen by the server
-    SYNC = 'SYNC'  # internal command - for master/slave propagation
-    SAVE = 'SAVE'  # synchronously save the dataset to disk
-    INFO = 'INFO'  # get information and statistics about the server
-    DEBUG = ('DEBUG', 'OBJECT')  # get detailed debug information about an object
-    DB_SIZE = 'DBSIZE'  # get the number of keys in a database
-    SLOWLOG = 'SLOWLOG'  # manages the redis slow queries log
-    MONITOR = 'MONITOR'  # listen for all requests received by the server in realtime
-    SLAVE_OF = 'SLAVEOF'  # make the server a slave, or promote it to master
-    SHUTDOWN = 'SHUTDOWN'  # synchronously save to disk and shutdown the server process
-    FLUSH_DB = 'FLUSHDB'  # flush all keys and values from the current database
-    FLUSH_ALL = 'FLUSHALL'  # flush all keys and values in all of redis
-    LAST_SAVE = 'LASTSAVE'  # retrieve a UNIX timestamp indicating the last successful save to disk
-    CONFIG_GET = ('CONFIG', 'GET')  # get the value of a redis configuration parameter
-    CONFIG_SET = ('CONFIG', 'SET')  # set the value of a redis configuration parameter
-    CLIENT_KILL = ('CLIENT', 'KILL')  # kill a client's active connection with redis
-    CLIENT_LIST = ('CLIENT', 'LIST')  # list all the active client connctions with redis
-    CLIENT_GET_NAME = ('CLIENT', 'GETNAME')  # get the name of the current connection
-    CLIENT_SET_NAME = ('CLIENT', 'SETNAME')  # set the name of the current connection
-    CONFIG_RESET_STAT = ('CONFIG', 'RESETSTAT')  # reset infostats that are served by "INFO"
-    BACKGROUND_SAVE = 'BGSAVE'  # in the background, save the current dataset to disk
-    BACKGROUND_REWRITE = 'BGREWRITEAOF'  # in the background, rewrite the current AOF
+    TIME = 'TIME'
+    SYNC = 'SYNC'
+    SAVE = 'SAVE'
+    INFO = 'INFO'
+    DEBUG = ('DEBUG', 'OBJECT')
+    DB_SIZE = 'DBSIZE'
+    SLOWLOG = 'SLOWLOG'
+    MONITOR = 'MONITOR'
+    SLAVE_OF = 'SLAVEOF'
+    SHUTDOWN = 'SHUTDOWN'
+    FLUSH_DB = 'FLUSHDB'
+    FLUSH_ALL = 'FLUSHALL'
+    LAST_SAVE = 'LASTSAVE'
+    CONFIG_GET = ('CONFIG', 'GET')
+    CONFIG_SET = ('CONFIG', 'SET')
+    CLIENT_KILL = ('CLIENT', 'KILL')
+    CLIENT_LIST = ('CLIENT', 'LIST')
+    CLIENT_GET_NAME = ('CLIENT', 'GETNAME')
+    CLIENT_SET_NAME = ('CLIENT', 'SETNAME')
+    CONFIG_RESET_STAT = ('CONFIG', 'RESETSTAT')
+    BACKGROUND_SAVE = 'BGSAVE'
+    BACKGROUND_REWRITE = 'BGREWRITEAOF'
+
+  @classmethod
+  def __repr__(cls):  # pragma: no cover
+
+    """ Generate a pleasant string representation of the currently-active
+        ``RedisAdapter``.
+
+        :returns: Pretty string with config info. """
+
+    return "%s(mode=%s, serializer=%s, compression=%s)" % (
+              cls.__name__,
+              cls.EngineConfig.mode,
+              cls.EngineConfig.serializer and (
+                cls.EngineConfig.serializer.__name__),
+              cls.EngineConfig.compression and (
+                cls.EngineConfig.compression.__name__))
+
+  __unicode__ = __str__ = __repr__
 
   @classmethod
   def is_supported(cls):
 
-    ''' Check whether this adapter is supported in the current environment.
-      :returns: The imported ``Redis`` driver, or ``False`` if it could not be found. '''
+    """ Check whether this adapter is supported in the current environment.
 
+        :returns: The imported ``Redis`` driver, or ``False`` if it could not
+          be found. """
+
+    if cls.__testing__ and fakeredis:  # pragma: no cover
+      return _support.fakeredis
     return _support.redis
 
   @decorators.classproperty
-  def serializer(cls):
+  def serializer(cls):  # pragma: no cover
 
-    ''' Load and return the optimal serialization codec.
+    """ Load and return the optimal serialization codec.
 
-      :returns: Currently-configured serializer, mounted
-      statically at ``cls.EngineConfig.serializer``. '''
+        :returns: Currently-configured serializer, mounted statically at
+          ``cls.EngineConfig.serializer``. """
 
-    return cls.EngineConfig.serializer
+    return msgpack if _support.msgpack else json
 
   @decorators.classproperty
-  def compressor(cls):
+  def compressor(cls):  # pragma: no cover
 
-    ''' Load and return the optimal data compressor.
+    """ Load and return the optimal data compressor.
 
-      :returns: Currently-configured compressor, mounted
-      statically at ``cls.EngineConfig.compression``. '''
+        :returns: Currently-configured compressor, mounted statically at
+          ``cls.EngineConfig.compression``. """
 
     return cls.EngineConfig.compression or zlib
 
   @classmethod
   def acquire(cls, name, bases, properties):
 
-    '''  '''
+    """  """
 
     return super(RedisAdapter, cls).acquire(name, bases, properties)
 
   def __init__(self):
 
-    '''  '''
+    """  """
 
     global _server_profiles
     global _default_profile
@@ -338,171 +368,238 @@ class RedisAdapter(IndexedModelAdapter):
     if not _default_profile:
 
       ## Resolve Redis config
-      if not servers:  # pragma: no cover
-        return None  # no servers to connect to (on noez)
+      if servers:  # pragma: no cover
+        for name, config in servers.items():
+          if name == 'default' or (config.get('default', False) is True):
+            _default_profile = name
+          elif not _default_profile:  # pragma: no cover
+            _default_profile = name
+          _server_profiles[name] = config
 
-      for name, config in servers.items():
-        if name == 'default' or (config.get('default', False) is True):
-          _default_profile = name
-        elif not _default_profile:  # pragma: no cover
-          _default_profile = name
-        _server_profiles[name] = config
+      if not _default_profile:
+        # still no default? inject sensible defaults
+        _default_profile = '__default__'
+        _server_profiles['__default__'] = {
+          'host': '127.0.0.1', 'port': 6379}
 
   @classmethod
   def channel(cls, kind):
 
-    ''' Retrieve a write channel to Redis.
+    """ Retrieve a write channel to Redis.
 
-      :param kind: String :py:class:`model.Model` kind to retrieve a channel for.
-      :returns: Acquired ``Redis`` client connection, potentially specific to the
-      handed-in ``kind``. '''
+        :param kind: String :py:class:`model.Model` kind to retrieve a channel
+          for.
 
-    # convert to string kind if we got a model class
-    if not isinstance(kind, basestring) and kind is not None:
-      kind = kind.kind()
+        :raises RuntimeError:
 
-    # check for existing connection
-    if kind in _client_connections:
+        :returns: Acquired ``Redis`` client connection, potentially specific to
+          the handed-in ``kind``. """
 
-      # return cached connection
-      return _client_connections[kind]
+    global _mock_redis
 
-    # check kind-specific profiles
-    if kind in _profiles_by_model.get('index', set()):
-      client = _client_connections[kind] = cls.adapter.StrictRedis(**_profiles_by_model['map'].get(kind))
-      ## @TODO: patch client with connection/workerpool (if gevent)
+    if not cls.adapter or not _support.redis:  # pragma: no cover
+      raise RuntimeError('No support detected in the current environment'
+                         ' for Python Redis. Please `pip install redis`.')
+
+    if not (__debug__ and cls.__testing__):  # pragma: no cover
+
+      impl = cls.adapter.StrictRedis
+
+      # convert to string kind if we got a model class
+      if not isinstance(kind, basestring) and kind is not None:
+        kind = kind.kind()
+
+      # check for existing connection
+      if kind in _client_connections:
+        return _client_connections[kind]  # return cached connection
+
+      # check kind-specific profiles
+      if kind in _profiles_by_model.get('index', set()):  # pragma: no cover
+        client = _client_connections[kind] = (
+          impl(**_profiles_by_model['map'].get(kind)))
+        return client
+
+      # # @TODO(sgammon): patch client with connection/workerpool (if gevent)
+
+      # check for cached default connection
+      if '__default__' in _client_connections:
+        return _client_connections['__default__']
+
+      # otherwise, build new default
+      default_profile = profile = _server_profiles[_default_profile]
+      if isinstance(default_profile, basestring):
+        # if it's a string, it's a pointer to a profile
+        profile = _server_profiles[default_profile]
+
+      client = _client_connections['__default__'] = impl(**profile)
       return client
 
-    ## @TODO: patch client with connection/workerpool (if gevent)
+    else:  # pragma: no cover
 
-    # check for cached default connection
-    if '__default__' in _client_connections:
-      return _client_connections['__default__']
+      # mock adapter testing
+      import fakeredis
 
-    # otherwise, build new default
-    default_profile = _server_profiles[_default_profile]
-    if isinstance(default_profile, basestring):
-      profile = _server_profiles[default_profile]  # if it's a string, it's a pointer to a profile
-
-    client = _client_connections['__default__'] = cls.adapter.StrictRedis(**profile)
-    return client
+      if not _mock_redis:
+        _mock_redis = fakeredis.FakeStrictRedis()
+      return _mock_redis
 
   @classmethod
   def execute(cls, operation, kind, *args, **kwargs):
 
-    ''' Acquire a channel and execute an operation, optionally buffering the command.
+    """ Acquire a channel and execute an operation, optionally buffering the
+        command.
 
-      :param operation: Operation name to execute (from :py:attr:`RedisAdapter.Operations`).
-      :param kind: String :py:class:`model.Model` kind to acquire the channel for.
-      :param args: Positional arguments to pass to the low-level operation selected.
-      :param kwargs: Keyword arguments to pass to the low-level operation selected.
-      :returns: Result of the selected low-level operation. '''
+        :param operation: Operation name to execute (from
+          :py:attr:`RedisAdapter.Operations`).
+
+        :param kind: String :py:class:`model.Model` kind to acquire the channel
+          for.
+
+        :param args: Positional arguments to pass to the low-level operation
+          selected.
+
+        :param kwargs: Keyword arguments to pass to the low-level operation
+          selected.
+
+        :returns: Result of the selected low-level operation. """
 
     # defer to pipeline or resolve channel for kind
     target = kwargs.get('target', None)
-    if target is None:
-      target = cls.channel(kind)
-    if 'target' in kwargs:
-      del kwargs['target']  # if we were passed an explicit target, remove the arg so the driver doesn't complain
+    if target is None: target = cls.channel(kind)
+
+    if operation == cls.Operations.DELETE:
+      # special case: `delete` instead of `del` (because it's a keyword)
+      operation = 'DELETE'
+
+    if 'target' in kwargs: del kwargs['target']
 
     try:
-      if isinstance(operation, tuple):
-        operation = '_'.join([operation])  # reduce (CLIENT, KILL) to 'client_kill' (for example)
-      if isinstance(target, (_redis_client.client.Pipeline, _redis_client.client.StrictPipeline)):
+      if isinstance(operation, tuple):  # pragma: no cover
+        # (CLIENT, KILL) => "CLIENT KILL"
+        operation = '_'.join(map(unicode, operation))
+      if isinstance(target, (_redis_client.client.Pipeline,
+                             _redis_client.client.StrictPipeline)) or (
+              fakeredis and isinstance(target, fakeredis.FakePipeline)):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
+      if operation == cls.Operations.HASH_SET:
+        r = getattr(target, operation.lower())(*args, **kwargs)
+        if r in (0, 1):
+          # count 0 and 1 as success, as it indicates an overwrite,
+          # not a failure
+          return 1
       return getattr(target, operation.lower())(*args, **kwargs)
-    except Exception as e:
-      if __debug__:
-        import pdb; pdb.set_trace()
+    except Exception:  # pragma: no cover
       raise
+
+  @classmethod
+  def inflate(cls, result):
+    """ Small closure that can inflate (and potentially decompress) a resulting
+        object for a given storage mode.
+
+        :param result: ``basestring`` result from raw Redis storage.
+
+        :returns: Inflated entity, if applicable. """
+
+    if not isinstance(result, basestring):  # pragma: no cover
+      return result  # accounts for dict-like storage
+
+    # account for none, optionally decompress
+    if cls.EngineConfig.compression:  # pragma: no cover
+      result = cls.compressor.decompress(result)
+
+    # deserialize structures
+    return cls.serializer.loads(result)
 
   @classmethod
   def get(cls, key, pipeline=None, _entity=None):
 
-    ''' Retrieve an entity by Key from Redis.
+    """ Retrieve an entity by Key from Redis.
 
-      :param key: Target :py:class:`model.Key` to retrieve from storage.
-      :returns: The deserialized and decompressed entity associated with
-      the target ``key``. '''
+        :param key: Target :py:class:`model.Key` to retrieve from storage.
+
+        :returns: The deserialized and decompressed entity associated with the
+          target ``key``. """
 
     from canteen import model
 
     if key:
       joined, flattened = key
 
-    ## toplevel_blob
-    if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+      ## toplevel_blob
+      if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
-      # execute query
-      result = _entity or (
-        cls.execute(cls.Operations.GET, flattened[1], joined, target=pipeline))
+        # execute query
+        result = _entity or (
+          cls.execute(cls.Operations.GET, flattened[1],
+                        cls.encode_key(joined, flattened),
+                        target=pipeline))
 
-    ## hashkind_blob
-    elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
+      ## hashkind_blob
+      elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
-      # generate kinded key and trim tail
-      kinded = model.Key(flattened[1]).flatten(True)
-      tail = base64.b64decode(key[0]).replace(kinded[0], '')
+        # generate kinded key and trim tail
+        j_kinded, f_kinded = model.Key(flattened[1]).flatten(True)
+        tail = joined.replace(j_kinded, '')
 
-      result = _entity or (
-        cls.execute(*(
-          cls.Operations.HASH_GET,
-          flattened[1],
-          cls.encode_key(*kinded),
-          cls.encode_key(tail, flattened)), target=pipeline))
+        result = _entity or (
+          cls.execute(*(
+            cls.Operations.HASH_GET,
+            flattened[1],
+            cls.encode_key(j_kinded, f_kinded),
+            cls.encode_key(tail, flattened)), target=pipeline))
 
-    ## hashkey_blob
-    elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
+      ## hashkey_blob
+      elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
-      # build key and extract group
-      desired_key = model.Key.from_raw(flattened)
-      root = (ancestor for ancestor in desired_key.ancestry).next()
-      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+        # build key and extract group
+        desired_key = model.Key.from_raw(flattened)
+        root = (ancestor for ancestor in desired_key.ancestry).next()
+        tail = (
+          desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+            '__root__'))
 
-      result = _entity or (
-        cls.execute(*(
-          cls.Operations.HASH_GET,
-          flattened[1],
-          cls.encode_key(*root.flatten(True)),
-          cls.encode_key(tail, flattened)), target=pipeline))
+        result = _entity or (
+          cls.execute(*(
+            cls.Operations.HASH_GET,
+            flattened[1],
+            cls.encode_key(*root.flatten(True)),
+            cls.encode_key(tail, flattened)), target=pipeline))
 
-    ## hashkey_hash
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+      ## hashkey_hash
+      elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
-      raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+        raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
+
+      else:  # pragma: no cover
+        raise NotImplementedError("Unknown storage mode: '%s'." % (
+                                                        cls.EngineConfig.mode))
 
     else:  # pragma: no cover
-      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+      result = _entity
 
     # @TODO: different storage internal modes
     if isinstance(result, basestring):
-
-      # account for none, optionally decompress
-      if cls.EngineConfig.compression:
-        result = cls.compressor.decompress(result)
-
-      # deserialize structures
-      return cls.serializer.loads(result)
+      return cls.inflate(result)
     return result
 
   @classmethod
   def put(cls, key, entity, model, pipeline=None):
 
-    ''' Persist an entity to storage in Redis.
+    """ Persist an entity to storage in Redis.
 
-      :param key: New (and potentially empty) :py:class:`model.Key` for
-      ``entity``. Must be assigned an ``ID`` by the driver
-      through :py:meth:`RedisAdapter.allocate_ids` in the case
-      of an empty (non-deterministic) :py:class:`model.Key`.
+        :param key: New (and potentially empty) :py:class:`model.Key` for
+          ``entity``. Must be assigned an ``ID`` by the driver through
+          :py:meth:`RedisAdapter.allocate_ids` in the case of an empty
+          (non-deterministic) :py:class:`model.Key`.
 
-      :param entity: Object entity :py:class:`model.Model` to persist in
-      ``Redis``.
+        :param entity: Object entity :py:class:`model.Model` to persist in
+          ``Redis``.
 
-      :param model: Schema :py:class:`model.Model` associated with the
-      target ``entity`` being persisted.
+        :param model: Schema :py:class:`model.Model` associated with the target
+          ``entity`` being persisted.
 
-      :returns: Result of the lower-level write operation. '''
+        :returns: Result of the lower-level write operation. """
 
     from canteen import model as _model
 
@@ -510,18 +607,43 @@ class RedisAdapter(IndexedModelAdapter):
     serialized = entity.to_dict()
     joined, flattened = key
 
+    if issubclass(model, _model.Edge):
+      pass
+
+    # clean key types
+    _cleaned = {}
+    for k, v in serialized.iteritems():
+      if k in frozenset(('peers', 'target')) and (
+          issubclass(model, _model.Edge)):
+        _cleaned[k] = [iv.urlsafe() for iv in v]
+      elif k == 'source' and issubclass(model, _model.Edge):
+        _cleaned[k] = v.urlsafe()
+      else:
+        _cleaned[k] = v
+    if not _cleaned:  # pragma: no cover
+      _cleaned['__empty__'] = True
+
+    # serialize + optionally compress
+    serialized = cls.serializer.dumps(_cleaned)
+    if cls.EngineConfig.compression:  # pragma: no cover
+      serialized = cls.compressor.compress(serialized)
+
     # toplevel_blob
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
       # delegate to redis client
-      return cls.execute(cls.Operations.SET, flattened[1], joined, serialized, target=pipeline)
+      if cls.execute(*(
+          cls.Operations.SET,
+          flattened[1],
+          joined,
+          serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:  # pragma: no cover
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## need a serialized blob...
-
-    # serialize + optionally compress
-    serialized = cls.serializer.dumps(serialized)
-    if cls.EngineConfig.compression:
-      serialized = cls.compressor.compress(serialized)
 
     ## hashkind_blob
     if cls.EngineConfig.mode == RedisMode.hashkind_blob:
@@ -531,12 +653,17 @@ class RedisAdapter(IndexedModelAdapter):
       tail = entity.key.flatten(True)[0].replace(kinded[0], '')
 
       # delegate to redis client
-      return cls.execute(*(
+      if cls.execute(*(
         cls.Operations.HASH_SET,
         flattened[1],
         cls.encode_key(*kinded),
         cls.encode_key(tail, flattened),
-        serialized), target=pipeline)
+        serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:  # pragma: no cover
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## hashkey_blob
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
@@ -545,31 +672,39 @@ class RedisAdapter(IndexedModelAdapter):
       root = (ancestor for ancestor in entity.key.ancestry).next().flatten(True)
       tail = entity.key.flatten(True)[0].replace(root[0], '') or '__root__'
 
-      return cls.execute(*(
+      if cls.execute(*(
         cls.Operations.HASH_SET,
         flattened[1],
         cls.encode_key(*root),
         cls.encode_key(tail, flattened),
-        serialized), target=pipeline)
+        serialized), target=pipeline):
+        entity._set_persisted(True)
+        return entity.key
+      else:  # pragma: no cover
+        raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
+          str(entity), str(key) or '<none>'))
 
     ## hashkey_hash
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
-    raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+    raise NotImplementedError("Unknown storage mode: '%s'." % (
+                              cls.EngineConfig.mode))  # pragma: no cover
 
     # @TODO: different storage internal modes
+
+  # @TODO(sgammon): testing for ability to delete entities
 
   @classmethod
   def delete(cls, key, pipeline=None):
 
-    ''' Delete an entity by Key from Redis.
+    """ Delete an entity by Key from Redis.
 
-      :param key: Target :py:class:`model.Key`, whose associated
-      :py:class:`model.Model` is being deleted.
+        :param key: Target :py:class:`model.Key`, whose associated
+          :py:class:`model.Model` is being deleted.
 
-      :returns: The result of the low-level delete operation. '''
+        :returns: The result of the low-level delete operation. """
 
     from canteen import model
 
@@ -578,7 +713,10 @@ class RedisAdapter(IndexedModelAdapter):
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
       # delegate to redis client with encoded key
-      return cls.execute(cls.Operations.DELETE, key.kind, cls.encode_key(joined, flattened), target=pipeline)
+      return cls.execute(*(
+        cls.Operations.DELETE,
+        flattened[1],
+        cls.encode_key(joined, flattened)), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
 
@@ -598,7 +736,9 @@ class RedisAdapter(IndexedModelAdapter):
       # build key and extract group
       desired_key = model.Key.from_raw(flattened)
       root = (ancestor for ancestor in desired_key.ancestry).next()
-      tail = desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or '__root__'
+      tail = (
+        desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+          '__root__'))
 
       return cls.execute(*(
         cls.Operations.HASH_DELETE,
@@ -606,37 +746,38 @@ class RedisAdapter(IndexedModelAdapter):
           cls.encode_key(*root.flatten(True)),
           cls.encode_key(tail, flattened)), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
-    raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+    raise NotImplementedError("Unknown storage mode: '%s'." % (
+                              cls.EngineConfig.mode))  # pragma: no cover
 
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, pipeline=None):
 
-    ''' Allocate new :py:class:`model.Key` IDs up to ``count``. Allocated
-      IDs are guaranteed not to be provisioned or otherwise used by the
-      underlying persistence engine, and thus can be used for uniquely
-      identifying non-deterministic data.
+    """ Allocate new :py:class:`model.Key` IDs up to ``count``. Allocated IDs
+        are guaranteed not to be provisioned or otherwise used by the underlying
+        persistence engine, and thus can be used for uniquely identifying
+        non-deterministic data.
 
-      :param key_class: Descendent of :py:class:`model.Key`
-      to allocate IDs for.
+        :param key_class: Descendent of :py:class:`model.Key` to allocate IDs
+          for.
 
-      :param kind: String :py:class:`model.Model` kind name.
+        :param kind: String :py:class:`model.Model` kind name.
 
-      :param count: The number of IDs to generate, which **must**
-      be greater than 1. Defaults to ``1``.
+        :param count: The number of IDs to generate, which **must** be greater
+          than 1. Defaults to ``1``.
 
-      :raises ValueError: In the case the ``count`` is less than ``1``.
-      :returns: If **only one** ID is requested, an **integer ID**
-      suitable for use in a :py:class:`model.Key` directly.
-      If **more than one** ID is requested, a **generator**
-      is returned, which ``yields`` a set of provisioned
-      integer IDs, each suitable for use in a
-      :py:class:`model.Key` directly. '''
+        :raises ValueError: In the case the ``count`` is less than ``1``.
 
-    if not count:
+        :returns: If **only one** ID is requested, an **integer ID** suitable
+          for use in a :py:class:`model.Key` directly. If **more than one** ID
+          is requested, a **generator** is returned, which ``yields`` a set of
+          provisioned integer IDs, each suitable for use in a
+          :py:class:`model.Key` directly. """
+
+    if not count:  # pragma: no cover
       raise ValueError("Cannot allocate less than 1 ID's.")
 
     # generate kinded key to resolve ID pointer
@@ -644,7 +785,8 @@ class RedisAdapter(IndexedModelAdapter):
     joined, flattened = kinded_key.flatten(True)
 
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
-      key_root_id = cls._magic_separator.join([cls._meta_prefix, cls.encode_key(joined, flattened)])
+      key_root_id = cls._magic_separator.join([
+        cls._meta_prefix, cls.encode_key(joined, flattened)])
 
       # increment by the amount desired
       value = cls.execute(*(
@@ -659,7 +801,8 @@ class RedisAdapter(IndexedModelAdapter):
       RedisMode.hashkey_blob):
 
       # store auto-increment for kind in kind's own hash at special field
-      tail = cls._magic_separator.join([cls._meta_prefix, 'id'])  # ends up as `__meta__::id` or so
+      # ends up as `__meta__::id` or so
+      tail = cls._magic_separator.join([cls._meta_prefix, 'id'])
 
       # delegate to redis client
       value = cls.execute(*(
@@ -669,21 +812,22 @@ class RedisAdapter(IndexedModelAdapter):
         cls.encode_key(tail, flattened),
         count), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     else:  # pragma: no cover
 
-      raise NotImplementedError("Unknown storage mode: '%s'." % cls.EngineConfig.mode)
+      raise NotImplementedError("Unknown storage mode: '%s'." % (
+                                cls.EngineConfig.mode))
 
-    if count > 1:
+    if count > 1:  # pragma: no cover
       def _generate_range():
 
-        ''' Generate a range of requested ID's.
+        """ Generate a range of requested ID's.
 
-          :yields: Each item in a set of provisioned integer IDs,
-               suitable for use in a :py:class:`model.Key`. '''
+            :yields: Each item in a set of provisioned integer IDs,
+              suitable for use in a :py:class:`model.Key`. """
 
         bottom_range = (value - count)
         for i in xrange(bottom_range, value):
@@ -693,59 +837,120 @@ class RedisAdapter(IndexedModelAdapter):
     return value
 
   @classmethod
-  def encode_key(cls, joined, flattened):
+  def encode_key(cls, joined, flattened):  # pragma: no cover
 
-    ''' Encode a Key for storage in ``Redis``. Since we don't need to
-      do anything fancy, just delegate this to the abstract (default)
-      encoder, which is ``base64``.
+    """ Encode a Key for storage in ``Redis``. Since we don't need to
+        do anything fancy, just delegate this to the abstract (default)
+        encoder, which is ``base64``.
 
-      If :py:attr:`RedisEngine.EngineConfig.encoding` is disabled, this
-      simply returns the ``joined`` :py:class:`model.Key` (for reference,
-      see :py:meth:`model.Key.flatten`).
+        If :py:attr:`RedisEngine.EngineConfig.encoding` is disabled, this
+        simply returns the ``joined`` :py:class:`model.Key` (for reference,
+        see :py:meth:`model.Key.flatten`).
 
-      :param joined: String-joined :py:class:`model.Key`.
+        :param joined: String-joined :py:class:`model.Key`.
 
-      :param flattened: Tupled ("raw format") :py:class:`model.Key`.
+        :param flattened: Tupled ("raw format") :py:class:`model.Key`.
 
-      :returns: In the case that ``encoding`` is *on*, the encoded string
-      :py:class:`model.Key`, suitable for storage in ``Redis``.
-      Otherwise (``encoding`` is *off*), the cleartext ``joined``
-      key. '''
+        :returns: In the case that ``encoding`` is *on*, the encoded string
+          :py:class:`model.Key`, suitable for storage in ``Redis``. Otherwise
+          (``encoding`` is *off*), the cleartext ``joined`` key. """
 
     if cls.EngineConfig.encoding:
       return abstract._encoder(joined)
     return joined
 
   @classmethod
-  def write_indexes(cls, writes, pipeline=None, execute=True):  # pragma: no cover
+  def write_indexes(cls, w, g, pipeline=None, execute=True):
 
-    ''' Write a batch of index updates generated earlier via
-      :py:meth:`RedisAdapter.generate_indexes`.
+    """ Write a batch of index updates generated earlier via
+        :py:meth:`RedisAdapter.generate_indexes`.
 
-      :param writes: Batch of writes to commit to ``Redis``.
+        :param w: Batch of writes to commit to ``Redis``.
+        :param g: Batch of graph writes to commit to ``Redis``.
 
-      :param pipeline:
+        :param pipeline: Current active pipeline of ``Redis`` commands to
+          collapse and execute. Defaults to ``None``, which either returns the
+          queued commands (if ``execute`` is ``False``) or a list of results
+          from those commands (if ``execute`` is ``True``). Always returned
+          if not ``None``, so that other calls can be chained.
 
-      :param execute:
+        :param execute: Whether we should actually execute the writes, or just
+          plan it and send it back. ``bool``, defaults to ``True``, which *does*
+          execute the writes.
 
-      :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented.
+        :raises RuntimeError:
 
-      :returns: '''
+        :returns: ``pipeline`` if ``pipeline`` was not ``None``, or a ``tuple``
+          of operation results if ``execute`` was ``True`` and ``pipeline`` was
+          ``None``, or a tuple of plans that *would* be executed if ``pipeline``
+           is ``None`` and ``execute`` is ``False``. """
 
-    origin, meta, property_map = writes
+    from .. import Vertex, Edge, VertexKey, EdgeKey
+
+    origin, meta, property_map = w
 
     results, indexer_calls = [], []
 
     # resolve target (perhaps a pipeline?)
-    if pipeline:
+    if pipeline:  # pragma: no cover
       target = pipeline
     else:
       target = cls.channel(cls._meta_prefix)
 
+    handler, ekey_encoder, vkey_encoder = (
+      cls.Operations.SET_ADD,
+      cls._index_basetypes[EdgeKey],
+      cls._index_basetypes[VertexKey])
+
+    # write graph indexes
+    for bundle in g:  # pragma: no cover
+
+      bundle_args = []
+
+      # one- or two-element tuples are simple indexes (and always edges)
+      if 0 < len(bundle) < 3:
+        bundle_args.append(Edge)
+        bundle_args.append(cls._magic_separator.join(bundle))
+        bundle_args.append(origin)
+
+      # three-element tuples are encoded key indexes
+      elif len(bundle) == 3:
+
+        # encode key components
+        _components = []
+        for _item in bundle:
+          if isinstance(_item, EdgeKey):
+            _components.append(ekey_encoder(_item)[1])
+          elif isinstance(_item, VertexKey):
+            _components.append(vkey_encoder(_item)[1])
+          elif isinstance(_item, basestring):
+            _components.append(_item)
+          else:  # pragma: no cover
+            raise ValueError('Got invalid value in graph index bundle'
+                             ' that was neither a `basestring` or `VertexKey`'
+                             ' or `EdgeKey`. Instead, got: "%s".' % repr(_item))
+
+        # slice key and value into args
+        gbase, gtoken, gtarget = tuple(_components)
+
+        bundle_args.append(Vertex)
+        bundle_args.append(cls._magic_separator.join((cls._graph_prefix,
+                                                      gbase,
+                                                      gtoken)))
+        bundle_args.append(gtarget)
+
+      # invalid indexer bundle
+      else:  # pragma: no cover
+        raise RuntimeError('Invalid graph index bundle: "%s".' % bundle)
+
+      # build index key
+      indexer_calls.append((handler, tuple(bundle_args), {'target': target}))
+
+    # write meta and property indexes
     for btype, bundle in (('meta', meta), ('property', property_map)):
 
       # add meta indexes first
-      for element in bundle:
+      for element in bundle:  # pragma: no cover
 
         # provision args, kwargs, and hash components containers
         args, kwargs, hash_c = [], {}, []
@@ -799,11 +1004,12 @@ class RedisAdapter(IndexedModelAdapter):
         # resolve datatype of index
         if not isinstance(value, bool) and isinstance(value, _SERIES_BASETYPES):
 
-          if converter is None:
-            raise RuntimeError('Illegal non-string value passed in for a `meta` index '
-                       'value. Write bundle: "%s".' % write)
+          if converter is None:  # pragma: no cover
+            raise RuntimeError('Illegal non-string value passed in'
+                               ' for a `meta` index value.'
+                               ' Write bundle: "%s".' % write)
 
-          # time-based or number-like values are automatically stored in sorted sets
+          # time-based or number-like values are stored in sorted sets
           handler = cls.Operations.SORTED_ADD
           sanitized_value = converter(value)
 
@@ -838,55 +1044,58 @@ class RedisAdapter(IndexedModelAdapter):
 
         # build index key
         indexer_calls.append((handler, tuple([
-          None, cls._magic_separator.join(map(str, hash_c))] + args), {'target': target}))
+          None, cls._magic_separator.join(map(str, hash_c))] + args), {
+            'target': target}))
 
-    if execute:
+    if execute:  # pragma: no cover
       for handler, hargs, hkwargs in indexer_calls:
         results.append(cls.execute(handler, *hargs, **hkwargs))
 
       if pipeline:
         return pipeline
       return results
-    return indexer_calls  # return calls only
+    return indexer_calls  # pragma: no cover
 
   @classmethod
-  def clean_indexes(cls, key, pipeline=None):  # pragma: no cover
+  def clean_indexes(cls, writes, pipeline=None):  # pragma: no cover
 
-    ''' Clean indexes and index entries matching a particular
-      :py:class:`model.Key`, and generated via the adapter method
-      :py:meth:`RedisAdapter.generate_indexes`.
+    """ Clean indexes and index entries matching a particular
+        :py:class:`model.Key`, and generated via the adapter method
+        :py:meth:`RedisAdapter.generate_indexes`.
 
-      :param key: Target :py:class:`model.Key` to clean from ``Redis`` indexes.
-      :raises: :py:exc:`NotImplementedError`, as this method is not yet implemented. '''
+      :param writes: Writes to clean up.
+
+      :returns: ``None``. """
 
     return  # not currently implemented
 
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
 
-    ''' Execute a :py:class:`model.Query` across one (or multiple)
-      indexed properties.
+    """ Execute a :py:class:`model.Query` across one (or multiple) indexed
+        properties.
 
-      :param kind: Kind name (``str``) for which we are querying
-      across, or ``None`` if this is a ``kindless`` query.
+        :param kind: Kind name (``str``) for which we are querying across, or
+          ``None`` if this is a ``kindless`` query.
 
-      :param spec: Tupled pair of ``filter`` and ``sort`` directives
-      to apply to this :py:class:`Query` (:py:class:`query.Filter` and
-      :py:class:`query.Sort` and their descendents, respectively), like
-      ``(<filters>, <sorts>)``.
+        :param spec: Tupled pair of ``filter`` and ``sort`` directives to apply
+          to this :py:class:`Query` (:py:class:`query.Filter` and
+          :py:class:`query.Sort` and their descendents, respectively), like
+          ``(<filters>, <sorts>)``.
 
-      :param options: Object descendent from, or directly instantiated
-      as :py:class:`QueryOptions`, specifying options for the execution
-      of this :py:class:`Query`.
+        :param options: Object descendent from, or directly instantiated as
+          :py:class:`QueryOptions`, specifying options for the execution of
+          this :py:class:`Query`.
 
-      :param **kwargs: Low-level options for handling this query, such
-      as ``pipeline`` (for pipelining support) and ``execute`` (to trigger
-      a buffer flush for a generated or constructed pipeline or operation
-      buffer).
+        :param **kwargs: Low-level options for handling this query, such as
+          ``pipeline`` (for pipelining support) and ``execute`` (to trigger a
+          buffer flush for a generated or constructed pipeline or operation
+          buffer).
 
-      :returns: Iterable (``list``) of matching :py:class:`model.Key`
-      yielded by execution of the current :py:class:`Query`. Returns
-      empty iterable (``[]``) in the case that no results could be found. '''
+        :returns: Iterable (``list``) of matching :py:class:`model.Key` yielded
+          by execution of the current :py:class:`Query`. Returns
+          empty iterable (``[]``) in the case that no results could be
+          found. """
 
     # @TODO(sgammon): desparately needs rewriting. absolute utter plebbery.
 
@@ -895,7 +1104,8 @@ class RedisAdapter(IndexedModelAdapter):
 
     if not kind:
       # @TODO(sgammon): implement kindless queries
-      raise NotImplementedError('Kindless queries are not yet implemented in `Redis`.')
+      raise NotImplementedError('Kindless queries are not yet implemented'
+                                ' in `Redis`.')
 
     # extract filter and sort directives and build ancestor
     filters, sorts = spec
@@ -920,26 +1130,70 @@ class RedisAdapter(IndexedModelAdapter):
 
       _filters, _filter_i_lookup = {}, set()
       for _f in filters:
-        origin, meta, property_map = cls.generate_indexes(kinded_key, {
-          _f.target.name: (_f.target, _f.value.data)
-        })
 
-        for operation, index, config in cls.write_indexes((origin, [], property_map), None, False):
+        # handle graph-based edge/neighbor filters first
+        if isinstance(_f, query.EdgeFilter):
 
-          if operation == 'ZADD':
-            _flag, _index_key, value = 'Z', index[1], index[2]
-          else:
-            _flag, _index_key, value = 'S', index[1], index[2]
+          # extract property values
+          _data = _f.value.data if (
+            isinstance(_f.value, model.Model._PropertyValue)) else _f.value
 
-        if (_flag, _index_key) not in _filter_i_lookup:
-          _filters[(_flag, _index_key)] = []
-          _filter_i_lookup.add((_flag, _index_key))
+          # graph prefix and search key
+          _index_key = [
+            cls._graph_prefix,
+            cls._index_basetypes[model.VertexKey](_data)[1]]
 
-        _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
+          # edge queries
+          if _f.kind is _f.EDGES:
+
+            # undirected edge queries
+            if _f.tails is None:
+              _index_key.append(cls._peers_token)
+
+            else:
+              # directed edge queries
+              _index_key.append(cls._out_token if _f.tails else cls._in_token)
+
+          # neighbor queries
+          elif _f.kind is _f.NEIGHBORS:
+            _index_key.append(cls._neighbors_token)
+
+          else:  # pragma: no cover
+            raise RuntimeError('Invalid `EdgeFilter` kind: "%s".' % _f.kind)
+
+          # check for uniqueness and add to queued, unsorted filters
+          _filter_key = ('S', cls._magic_separator.join(_index_key))
+          if _filter_key not in _filter_i_lookup:
+            _filter_i_lookup.add(_filter_key)
+            _filters[_filter_key] = [(_f.operator, _f.value, _f.chain)]
+
+        # then handle property/meta filters, etc
+        else:
+          origin, meta, property_map = cls.generate_indexes(kinded_key, {
+            _f.target.name: (_f.target, _f.value.data)})
+
+          for operation, index, config in cls.write_indexes((
+                  origin, [], property_map), execute=False):
+
+            if operation == cls.Operations.SORTED_ADD:
+              _flag, _index_key, value = 'Z', index[1], index[2]
+            else:
+              _flag, _index_key, value = 'S', index[1], index[2]
+
+          if (_flag, _index_key) not in _filter_i_lookup:
+            _filters[(_flag, _index_key)] = []
+            _filter_i_lookup.add((_flag, _index_key))
+
+          _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
 
       # process sorted sets first: leads to lower cardinality
-      sorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'Z', _filters.iterkeys())])
-      unsorted_indexes = dict([(index, _filters[index]) for index in filter(lambda x: x[0] == 'S', _filters.iterkeys())])
+      sorted_indexes = dict([
+        (index, _filters[index]) for index in (
+          filter(lambda x: x[0] == 'Z', _filters.iterkeys()))])
+
+      unsorted_indexes = dict([
+        (index, _filters[index]) for index in (
+          filter(lambda x: x[0] == 'S', _filters.iterkeys()))])
 
       if sorted_indexes:
 
@@ -963,8 +1217,11 @@ class RedisAdapter(IndexedModelAdapter):
             _, prop = prop
 
             # special case: maybe we can do a sorted range request
-            if (query.GREATER_THAN in _operators) or (query.GREATER_THAN_EQUAL_TO in _operators):
-              if (query.LESS_THAN in _operators) or (query.LESS_THAN_EQUAL_TO in _operators):
+            if (query.GREATER_THAN in _operators) or (
+                    query.GREATER_THAN_EQUAL_TO in _operators):
+
+              if (query.LESS_THAN in _operators) or (
+                    query.LESS_THAN_EQUAL_TO in _operators):
 
                 # range value query over sorted index
                 greater, lesser = max(_values), min(_values)
@@ -998,8 +1255,7 @@ class RedisAdapter(IndexedModelAdapter):
                 _value,
                 _value,
                 options.offset,
-                options.limit
-              )))
+                options.limit)))
 
               continue
 
@@ -1023,7 +1279,8 @@ class RedisAdapter(IndexedModelAdapter):
           _flag, index = prop
           _intersections.add(index)
 
-        # special case: only one unsorted set - pull content instead of a intersection merge
+        # special case: only one unsorted set - pull content instead
+        # of an intersection merge
         if _intersections and len(_intersections) == 1:
           _data_frame.append(cls.execute(*(
             cls.Operations.SET_MEMBERS,
@@ -1056,12 +1313,16 @@ class RedisAdapter(IndexedModelAdapter):
       if not sorts:
 
         # grab all entities of this kind
-        prefix = model.Key(kind, 0, parent=ancestry_parent).urlsafe().replace('=', '')[0:-3]
-        matching_keys = cls.execute(cls.Operations.KEYS, kind.kind(), prefix + '*')  # regex search it. why not
+        prefix = model.Key(kind, 0, parent=ancestry_parent)
+        prefix = prefix.urlsafe().replace('=', '')[0:-3]
+        matching_keys = cls.execute(*(cls.Operations.KEYS,
+                                      kind.kind(),
+                                      prefix + '*'))  # regex search it. why not
 
         # if we're doing keys only, we're done
         if options.keys_only and not (_and_filters or _or_filters):
-          return [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys]
+          return (
+            [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys])
 
     # otherwise, build entities and return
     result_entities = []
@@ -1072,16 +1333,31 @@ class RedisAdapter(IndexedModelAdapter):
       # fill pipeline
       _seen_results = 0
       for key in matching_keys:
-        if (not (_and_filters or _or_filters)) and (options.limit > 0 and _seen_results >= options.limit):
+        if (not (_and_filters or _or_filters)) and (
+                0 < options.limit <= _seen_results):
           break
         _seen_results += 1
 
-        cls.execute(cls.Operations.GET, kind.kind(), key, target=pipeline)
+        decoded_k, base_kind = model.Key(urlsafe=key), None
+        if not decoded_k.kind == kind.kind():
+          _base_kind = cls.registry.get(kind.kind())
+        if decoded_k.kind == kind.kind() or not _base_kind:
+          _base_kind = kind
+
+        if not _base_kind:  # pragma: no cover
+          raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
+
+        decoded_k = _base_kind.__keyclass__(urlsafe=key)
+
+        # queue fetch of key
+        pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
 
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results
-      for key, entity in zip([model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], _blob_results):
+      for key, entity in zip([
+        model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], (
+            _blob_results)):
 
         _seen_results = 0
 
@@ -1092,22 +1368,29 @@ class RedisAdapter(IndexedModelAdapter):
           break
 
         # decode raw entity
-        decoded = cls.get(None, None, entity)
+        decoded = cls.get(key=None, _entity=entity)
+
+        if '__empty__' in decoded:
+          del decoded['__empty__']  # trim __empty__ flag on get
 
         # attach key, decode entity and construct
         decoded['key'] = key
 
         if _and_filters or _or_filters:
 
-          if _and_filters and not all((filter.match(decoded) for filter in _and_filters)):
+          if _and_filters and not all((
+                  (_filter.match(decoded) for _filter in _and_filters))):
             continue  # doesn't match one of the filters
 
-          if _or_filters and not any((filter.match(decoded) for filter in _or_filters)):
+          if _or_filters and not any((
+                  (_filter.match(decoded) for _filter in _or_filters))):
             continue  # doesn't match any of the `or` filters
 
         # matches, by the grace of god
         _seen_results += 1
 
-        result_entities.append(kind(_persisted=True, **decoded))
+        _inflated = cls.registry.get(key.kind, kind)(_persisted=True, **decoded)
+        result_entities.append(_inflated.key if options.keys_only else (
+                               _inflated))
 
     return result_entities

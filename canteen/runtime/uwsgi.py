@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: uwsgi runtime
-  ~~~~~~~~~~~~~~~~~~~~~~
+  uwsgi runtime
+  ~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`uwsgi`.
 
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core + util
 from ..util import debug
@@ -32,19 +32,18 @@ try:  # pragma: no cover
     @decorators.bind('uwsgi')
     class uWSGI(runtime.Runtime):
 
-      '''  '''
+      """  """
 
       @classmethod
       def register_rpc(cls, method):
 
-        '''  '''
+        """  """
 
         pass  # @TODO(sgammon): register methods
 
 
-    uWSGI.set_precedence(True)  # if we make it here, we're running *inside* uWSGI
+    # if we make it here, we're running *inside* uWSGI
+    uWSGI.set_precedence(True)
 
 except ImportError:
   pass
-
-__all__ = tuple()

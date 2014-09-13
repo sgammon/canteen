@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: tornado runtime
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  tornado runtime
+  ~~~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`tornado`.
 
@@ -13,7 +13,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # core
 from ..core import runtime

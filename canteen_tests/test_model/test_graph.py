@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   graph model tests
   ~~~~~~~~~~~~~~~~~
@@ -13,84 +13,156 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # canteen model API
 from canteen import model
 from canteen.test import FrameworkTest
 
+# default inmemory adapter
+from canteen.model.adapter import inmemory
 
-class Person(model.Vertex):
 
-  ''' sample person (also a vertex) '''
+class TestPerson(model.Vertex):
+
+  """ sample person (also a vertex) """
 
   firstname = basestring
   lastname = basestring
 
 
-class Friendship(model.Edge):
+class TestTeammates(TestPerson > TestPerson):
 
-  ''' sample friendship (edge that connects two people) '''
+  """ sample teammate-ship (edge that connects two people) """
 
   year_met = int
 
 
 class VertexModelTests(FrameworkTest):
 
-  ''' Tests `model.Vertex`. '''
+  """ Tests `model.Vertex`. """
 
-  subject = None
+  subject = inmemory.InMemoryAdapter()
 
   def test_construct(self):
 
-    ''' Test constructing a `Vertex` model '''
+    """ Test constructing a `Vertex` model """
 
-    return Person(
-        key=model.Key(Person, 'sup'),
+    return TestPerson(
+        key=model.VertexKey(TestPerson, 'sup'),
         firstname='John',
         lastname='Doe')
 
   def test_vertex_put(self):
 
-    ''' Test saving a `Vertex` model to storage '''
+    """ Test saving a `Vertex` model to storage """
 
     return self.test_construct().put(adapter=self.subject)
 
   def test_vertex_get(self):
 
-    ''' Test retrieving a `Vertex` by its key '''
+    """ Test retrieving a `Vertex` by its key """
 
-    assert Person.get(self.test_vertex_put(), adapter=self.subject)
+    assert TestPerson.get(self.test_vertex_put(), adapter=self.subject)
+
+  def test_vertex_repr(self):
+
+    """ Test string representation of a `Vertex` """
+
+    p = TestPerson.get(self.test_vertex_put(), adapter=self.subject)
+    assert 'Person' in repr(p)
+    assert 'Person' in repr(TestPerson)
+    assert 'Vertex' in repr(model.Vertex)
 
 
 class EdgeModelTests(FrameworkTest):
 
-  ''' Tests `model.Edge`. '''
+  """ Tests `model.Edge`. """
 
-  subject = None
+  subject = inmemory.InMemoryAdapter()
 
-  def test_construct(self):
+  def test_spawn_directed(self):
 
-    ''' Test constructing an `Edge` model '''
+    """ Test spawning directed `Edge` classes """
+
+    class TestFriends(TestPerson > TestPerson):
+        """ friend relationship """
+
+    assert issubclass(TestFriends, model.Edge)
+    assert not TestFriends.__spec__.directed
+
+    class TestFriends(TestPerson < TestPerson):
+        """ friend relationship """
+
+    assert issubclass(TestFriends, model.Edge)
+    assert not TestFriends.__spec__.directed
+
+  def test_spawn_undirected(self):
+
+    """ Test spawning undirected `Edge` classes """
+
+    class Gift(TestPerson >> TestPerson):
+        """ friend relationship """
+
+    assert issubclass(Gift, model.Edge)
+    assert Gift.__spec__.directed
+
+    class Gift(TestPerson << TestPerson):
+        """ friend relationship """
+
+    assert issubclass(Gift, model.Edge)
+    assert Gift.__spec__.directed
+
+  def test_construct_undirected(self):
+
+    """ Test constructing an undirected `Edge` model """
 
     # sam + alex
-    sam, alex = Person(firstname='Sam'), Person(firstname='Alex')
+    sam, alex = TestPerson(firstname='Sam'), TestPerson(firstname='Alex')
 
     # low-level edge construct
-    sam_to_alex = Friendship(sam, alex,
-                              key=model.Key(Friendship, 'sup'),
-                              year_met=2003)
+    sam_to_alex = TestTeammates(sam, alex,
+                                key=model.EdgeKey(TestTeammates, 'sup'),
+                                year_met=2003)
 
     return sam_to_alex
 
-  def test_edge_put(self):
+  def test_construct_directed(self):
 
-    ''' Test saving an `Edge` model to storage '''
+    """ Test constructing a directed `Edge` model """
 
-    return self.test_construct().put(adapter=self.subject)
+    # ian + david
+    ian, david = TestPerson(firstname='Sam'), TestPerson(firstname='Alex')
 
-  def test_edge_get(self):
+    # low-level edge construct
+    ian_to_david = TestTeammates(ian, david,
+                                 key=model.EdgeKey(TestTeammates, 'sup'),
+                                 year_met=2003)
 
-    ''' Test retrieving an `Edge` by its key '''
+    return ian_to_david
 
-    assert Friendship.get(self.test_edge_put(), adapter=self.subject)
+  def test_undirected_edge_put(self):
+
+    """ Test saving an undirected `Edge` model """
+
+    return self.test_construct_undirected().put(adapter=self.subject)
+
+  def test_directed_edge_put(self):
+
+    """ Test saving a directed `Edge` model """
+
+    return self.test_construct_directed().put(adapter=self.subject)
+
+  def test_undirected_edge_get(self):
+
+    """ Test retrieving an undirected `Edge` by its key """
+
+    assert TestTeammates.get(self.test_undirected_edge_put(),
+                             adapter=self.subject)
+
+  def test_directed_edge_get(self):
+
+    """ Test retrieving a directed `Edge` by its key """
+
+    assert TestTeammates.get(self.test_directed_edge_put(),
+                             adapter=self.subject)

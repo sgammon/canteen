@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   base
   ~~~~
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # submodules
 from .page import *
@@ -23,9 +23,7 @@ from .handler import *
 from .protocol import *
 
 
-__all__ = (
-  'page', 'Page',
-  'logic', 'Logic',
-  'handler', 'Handler',
-  'protocol', 'Protocol'
-)
+__all__ = ('page', 'Page',
+           'logic', 'Logic',
+           'handler', 'Handler',
+           'protocol', 'Protocol')

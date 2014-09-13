@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   logic base
   ~~~~~~~~~~
@@ -22,39 +22,7 @@
     @decorators.bind('math')
     class Math(Logic):
 
-      """ I implement some sample math logic """
-
-      def sum(self, iterable_of_numbers):
-
-        """ Simple sum operation """
-
-        return sum(iterable_of_numbers)
-
-
-    # ...  later, in a page or service  ...
-
-    # -*- coding: utf-8 -*-
-    from canteen import url, Page
-
-    @url('/')
-    class Home(Page):
-
-      """ I implement a sample homepage """
-
-      def GET(self):
-
-        """ I serve a sum of the numbers 0 - 20. """
-
-        self.respond("<b>answer:</b>" + self.math.sum(xrange(0, 20)))
-
-
-  :author: Sam Gammon <sg@samgammon.com>
-  :copyright: (c) Sam Gammon, 2014
-  :license: This software makes use of the MIT Open Source License.
-            A copy of this license is included as ``LICENSE.md`` in
-            the root of the project.
-
-'''
+      """
 
 # core API
 from ..core import meta
@@ -64,15 +32,12 @@ from ..util import decorators
 @decorators.singleton
 class Logic(object):
 
-  ''' Base class for Canteen ``Logic`` components. Specifies a class tree on
-      the ``Proxy.Component`` side (meaning that it *provides* DI resources,
-      instead of a ``Proxy.Compound``, which *consumes* them).
+  """ Base class for Canteen ``Logic`` components. Specifies a class tree on the
+      ``Proxy.Component`` side (meaning that it *provides* DI resources, instead
+      of a ``Proxy.Compound``, which *consumes* them).
 
       ``Logic`` classes must be bound using the ``decorators.bind`` tool, which
       takes a ``str`` name and binds a ``Logic`` class (or child) to that name
-      on all ``Compound`` classes and objects. '''
+      on all ``Compound`` classes and objects. """
 
   __owner__, __metaclass__ = "Logic", meta.Proxy.Component
-
-
-__all__ = ('Logic',)

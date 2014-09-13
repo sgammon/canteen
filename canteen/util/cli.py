@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: CLI utils
-  ~~~~~~~~~~~~~~~~~~
+  CLI utils
+  ~~~~~~~~~
 
   toolset for making command-line based tools. useful in general,
   particularly useful in making app management utilities.
@@ -14,7 +14,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 
 # stdlib
@@ -31,8 +31,8 @@ _root_tool = None
 ## == Embedded Metaclass == ##
 class Tool(object):
 
-  ''' Meta parent class that applies an embedded metaclass to enforce/
-      transform encapsulated objects into :py:mod:`argparse` directives. '''
+  """ Meta parent class that applies an embedded metaclass to enforce/ transform
+      encapsulated objects into :py:mod:`argparse` directives. """
 
   safe = False  # parse only known arguments
   parser = None  # local parser for this tool
@@ -42,31 +42,30 @@ class Tool(object):
 
   class __metaclass__(type):
 
-    ''' Bound utility metaclass that re-writes embedded comand classes
-        on-the-fly, into :py:mod:`argparse`-provided objects. '''
+    """ Bound utility metaclass that re-writes embedded comand classes
+        on-the-fly, into :py:mod:`argparse`-provided objects. """
 
     tree = {}  # command parser tree
     parsers = {}  # all encountered parsers
 
-    def __new__(cls, name, bases, properties):
+    def __new__(mcs, name, bases, properties):
 
-      ''' Check to see if we're initializing a new subcommand class,
-          and if we are, construct the appropriate subparser.
+      """ Check to see if we're initializing a new subcommand class, and if we
+          are, construct the appropriate subparser.
 
           :param name: Target class name.
           :param bases: Target class bases.
           :param properties: Class dict properties.
 
-          :raises RuntimeError: If invalid tool bindings are expressed
-          in a meta-initialized class (for instance, an argument without
-          a name).
+          :raises RuntimeError: If invalid tool bindings are expressed in a
+            meta-initialized class (for instance, an argument without a name).
 
-          :returns: Initialized class, transformed into additional
-          objects provided by :py:mod:`argparse`. '''
+          :returns: Initialized class, transformed into additional objects
+            provided by :py:mod:`argparse`. """
 
       # initialize `Tool` regularly to apply this metaclass downwards
-      if name == 'Tool':
-        return super(cls, cls).__new__(cls, name, bases, properties)
+      if name == 'Tool': return super(mcs, mcs).__new__(*(
+                                    mcs, name, bases, properties))
 
       _subtools, _arguments = [], []
       for key, value in properties.viewitems():
@@ -74,10 +73,10 @@ class Tool(object):
         # is it a list of arguments?
         if isinstance(value, (list, tuple)) and key is 'arguments':
 
-          def _add_argument(_parser, _flag, _config):
+          def _add_argument(_parser, _flag, _config):  # pragma: no cover
             if isinstance(_flag, tuple):
               return _parser.add_argument(*_flag, **_config)
-            return _parser.add_argument(_flag, **_config)  # pragma: nocover
+            return _parser.add_argument(_flag, **_config)
 
           for bundle in value:
             if len(bundle) == 2:
@@ -91,15 +90,14 @@ class Tool(object):
         # is it a subtool?
         elif isinstance(value, type) and issubclass(value, Tool):
 
-          def _add_subparser(root, obj, subparsers):
+          def _add_subparser(root, obj, subparsers):  # pragma: no cover
             ## bind helptext from __doc__
             sub = subparsers.add_parser((getattr(obj, 'name') if (
               hasattr(obj, 'name')) else obj.__name__).lower(), **{
               'conflict_handler': 'resolve',
               'help': textwrap.dedent(getattr(obj, '__doc__').strip()) if (
                 hasattr(obj, '__doc__') and (
-                  getattr(obj, '__doc__') is not None)) else None
-            })
+                  getattr(obj, '__doc__') is not None)) else None})
 
             sub.set_defaults(func=obj.execute)
 
@@ -114,57 +112,41 @@ class Tool(object):
 
         elif not key.startswith('__') and not inspect.isfunction(value):
           # well those are the only two options
-          continue
+          continue  # pragma: no cover
 
       # construct class
-      klass = super(cls, cls).__new__(cls, name, bases, properties)
+      klass = super(mcs, mcs).__new__(mcs, name, bases, properties)
 
       # add to registered parsers
-      cls.parsers[name] = {
+      mcs.parsers[name] = {
         'name': (properties['name'] if 'name' in properties else name).lower(),
         'description': textwrap.dedent(properties['__doc__']) if (
           '__doc__' in properties) else None,
         'implementation': klass,
         'objects': {
           'subtools': _subtools,
-          'arguments': _arguments
-        }
-      }
+          'arguments': _arguments}}
 
       return klass
 
-    def consider(self, parser, parent=None):
-
-      ''' Consider a new sub-parser and its parent. Accepts a ``parent``
-          and ``parser`` and adjusts the local :py:attr:`self.tree` to
-          properly reflect sub-tools.
-
-          :param parser: ``ArgumentParser`` object to consider and merge
-          into our tree.
-
-          :param parent: Parent parser to this one. Defaults to ``None``,
-          in which case ``parser`` is the top of the tree.
-
-          :returns: Original parser object, via ``parser``. '''
-
-      if parent not in self.tree: self.tree[parent] = []
-      self.tree[parent].append(self)
-      return parser
-
   def __init__(self, parser=None, autorun=False, safe=False):
 
-    ''' This initializer method is called at the tip of the toolchain
-        tree (composed of :py:class:`Tool` classes) to start the process
-        of initializing and constructing each :py:mod:`argparse` object.
+    """ This initializer method is called at the tip of the toolchain tree
+        (composed of :py:class:`Tool` classes) to start the process of
+        initializing and constructing each :py:mod:`argparse` object.
 
-        Execution cascades from the tip to sub- :py:class:`Tool`s, and
-        then to arguments.
+        Execution cascades from the tip to sub- :py:class:`Tool`s, and then to
+        arguments.
 
-        :param parser:
-        :param autorun:
-        :param safe:
+        :param parser: Existing ``argparse.ArgumentParser`` to use for parsing
+          config arguments, or ``None`` if one should be created on-the-fly.
 
-        :returns: ``None``, as this is an initializer method. '''
+        :param autorun: ``bool`` flag indicating that the CLI tool should start
+          up and try to parse flags immediately.
+
+        :param safe: ``bool`` flag indicating that we should only parse and
+          consider flags *explicitly defined* by the CLI tool, rather than
+          letting through unknown flags. """
 
     global _root_tool
 
@@ -191,29 +173,28 @@ class Tool(object):
     # local subtools
     if config.get('objects', {}).get('subtools', []):
       commands = parser.add_subparsers(dest='subcommand', title='bundled tools')
-      for impl, callable in config.get('objects', {}).get('subtools', []):
-        subparser = callable(_root_tool, impl, commands)  # initialize subtools
+      for impl, _callable in config.get('objects', {}).get('subtools', []):
+        subparser = _callable(_root_tool, impl, commands)  # initialize subtools
         setattr(self, (impl.name if (
           hasattr(impl, 'name')) else impl.__name__).lower(), impl(subparser))
 
-    if autorun:
-      if safe:
-        self(*_root_tool.parse_known_args())
-      else:
-        self(_root_tool.parse_args())
+    if autorun and safe:  # pragma: no cover
+      self(*_root_tool.parse_known_args())
+    elif autorun:  # pragma: no cover
+      self(_root_tool.parse_args())
 
   def __call__(self, arguments, unknown=None):  # pragma: no cover
 
-    ''' Begins dispatching execution from a set of parsed arguments,
-        as the product of a :py:meth:`parser.parse_args()` call.
+    """ Begins dispatching execution from a set of parsed arguments, as the
+        product of a :py:meth:`parser.parse_args()` call.
 
-        :param arguments: :py:class:`argparse.Namespace` object,
-        resulting from ``parser.parse_args()``.
+        :param arguments: :py:class:`argparse.Namespace` object, resulting from
+          ``parser.parse_args()``.
 
         :param unknown:
 
-        :returns: Unix return code, suitable for passing directly
-        to ``sys.exit()``. '''
+        :returns: Unix return code, suitable for passing directly to
+          ``sys.exit()``. """
 
     try:
       # is it a subtool?
@@ -233,6 +214,3 @@ class Tool(object):
     except Exception:
       raise
     return 1 if not return_value else 0
-
-
-__all__ = ('Tool',)

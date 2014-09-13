@@ -66,15 +66,15 @@ class ModelAdapter(object):
   registry = {}
   __metaclass__ = abc.ABCMeta
 
-  @property
-  def config(self):  # pragma: no cover
+  @decorators.classproperty
+  def config(cls):  # pragma: no cover
 
     """ Cached config shortcut.
 
         :returns: Configuration ``dict``, if any. Defaults
           to ``{'debug': True}``. """
 
-    return config.Config().get(self.__class__.__name__, {'debug': True})
+    return config.Config().get(cls.__name__, {'debug': True})
 
   # noinspection PyMethodParameters
   @decorators.classproperty

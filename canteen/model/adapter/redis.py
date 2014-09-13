@@ -403,7 +403,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
     if not (__debug__ and cls.__testing__):  # pragma: no cover
 
-      impl = cls.adapter.StrictRedis
+      impl, profile = cls.adapter.StrictRedis, None
 
       # convert to string kind if we got a model class
       if not isinstance(kind, basestring) and kind is not None:
@@ -424,6 +424,12 @@ class RedisAdapter(DirectedGraphAdapter):
       # check for cached default connection
       if '__default__' in _client_connections:
         return _client_connections['__default__']
+
+      _config = cls.config
+      if 'servers' in _config:
+        profile = _config['servers'].get('default', None)
+        profile = _config['servers'].get(profile, None)
+        if profile: return impl(**profile)
 
       # otherwise, build new default
       default_profile = profile = _server_profiles[_default_profile]
@@ -518,6 +524,13 @@ class RedisAdapter(DirectedGraphAdapter):
 
         :param key: Target :py:class:`model.Key` to retrieve from storage.
 
+        :param pipeline: Redis pipeline to enqueue the resulting commands
+          in, rather than directly executing them. Defaults to ``None``. If a
+          pipeline is passed, it will be returned in lieu of the pending
+          result.
+
+        :param _entity: Entity to inflate, if we already have one.
+
         :returns: The deserialized and decompressed entity associated with the
           target ``key``. """
 
@@ -604,11 +617,8 @@ class RedisAdapter(DirectedGraphAdapter):
     from canteen import model as _model
 
     # reduce entity to dictionary
-    serialized = entity.to_dict()
+    serialized = entity if isinstance(entity, dict) else entity.to_dict()
     joined, flattened = key
-
-    if issubclass(model, _model.Edge):
-      pass
 
     # clean key types
     _cleaned = {}

@@ -199,6 +199,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
     self.outdent()
     self.writeline('')
 
+  compiler.CodeGenerator.visit_Template = template_ast
+
 
   class TemplateCompiler(object):
 
@@ -228,11 +230,11 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           :param prefix: Module prefix to prepend to compiled template
             imports. """
 
-      self.module, self.sources, self.target, self.config = (
-        module, sources, target, config)
+      self.module, self.sources, self.target, self.config, self.prefix = (
+        module, sources, target, config, prefix)
 
-      self.shim_active, self.original_visit_template, self.prefix = (
-        False, None, prefix)
+      # apply again
+      compiler.CodeGenerator.visit_Template = template_ast
 
     @property
     def environment(self):
@@ -459,44 +461,6 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       return _import_paths
 
-    def context(self, exception_type=None, exception=None, traceback=None):
-
-      """ Safely toggle a shim to ``Jinja2``'s internals (via monkeypatching)
-          that wraps compiled templates in a module-level function to prepare
-          (and cache) their logic against a given ``environment``.
-
-          :param exception_type: If an exception is encountered, this is handed
-            in by Python's internals and is equal to ``exception``'s type.
-
-          :param exception: If an exception is encountered, the exception
-            itself is passed in next.
-
-          :param traceback: If an exception is encountered, a traceback is
-            provided as the third parameter.
-
-          :returns: ``self``, to be used in an ``as`` block, after applying the
-            shim (if it was previously unapplied upon call, or used as if it
-            was an ``__enter__`` method). Otherwise returns ``bool`` ``True``/
-            ``False``, indicating whether to suppress any encountered exception
-            (if the shim was previously applied upon call, and this method is
-            dispatched as if it was an ``__exit__`` hook)."""
-
-      if self.shim_active:
-        compiler.CodeGenerator.visit_Template = self.original_visit_template
-        self.shim_active = False
-
-        # don't suppress exceptions
-        if exception or exception_type or traceback:
-          return False  # pragma: no cover
-        return True
-
-      self.shim_active, self.original_visit_template = (
-        True, compiler.CodeGenerator.visit_Template)
-      compiler.CodeGenerator.visit_Template = template_ast
-      return self
-
-    __enter__ = __exit__ = context
-
     def __call__(self, **kw):
 
       """ Defer calls on ``TemplateCompiler`` objects to :py:meth:`compile_dir`.
@@ -504,8 +468,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           :param kw: Keyword arguments to pass to ``compile_dir``.
           :returns: Whatever ``compile_dir`` decides to return. """
 
-      with self:
-        return self.compile_dir(*(self.sources, self.target, self.module), **kw)
+      return self.compile_dir(*(self.sources, self.target, self.module), **kw)
 
 
   class ModuleLoader(jinja2.ModuleLoader):
@@ -956,4 +919,3 @@ class Templates(logic.Logic):
 
     # otherwise, buffer/chain iterators to produce a streaming response
     return self.sanitize(content)
-

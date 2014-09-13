@@ -72,12 +72,6 @@ if jinja2:
       """ Test patching Jinja2's compiler internals with `TemplateCompiler` """
 
       t = self.test_construct()
-      assert not t.shim_active
-
-      with t:
-        assert t.shim_active
-
-      assert not t.shim_active
 
     def test_compile(self):
 

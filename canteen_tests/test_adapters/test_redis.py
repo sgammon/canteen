@@ -15,11 +15,12 @@
 
 """
 
+# redis adapter & model API
+from canteen import model
+from canteen.model.adapter import redis as rapi
+
 # abstract test bases
 from canteen_tests.test_adapters import test_abstract
-
-# redis adapter
-from canteen.model.adapter import redis as rapi
 
 
 try:
@@ -42,6 +43,30 @@ if fakeredis:
       if not self.__abstract__:
         assert self.subject().__testing__ is True
         assert self.subject().EngineConfig.mode == self.mode
+
+    def test_put_entity(self):
+
+      """ Test saving a basic entity to Redis with `RedisAdapter` """
+
+
+      class SampleEntity(model.Model):
+
+        """ quick sample entity """
+
+        __adapter__ = rapi.RedisAdapter
+
+        string = str, {'indexed': False}
+        number = int, {'indexed': False}
+
+      s = SampleEntity(key=model.Key(SampleEntity, 'sample'),
+                       string='hi',
+                       number=5)
+      x = s.put()
+
+      assert s.string == 'hi'
+      assert s.number == 5
+      assert x.kind == 'SampleEntity'
+      assert x.id == 'sample'
 
 
   class RedisAdapterTopLevelBlobTests(test_abstract.DirectedGraphAdapterTests,

@@ -41,15 +41,15 @@ def say(*args):  # pragma: no cover
   print(' '.join(map(lambda x: str(x), args)))
 
 
-def walk(root=None, debug=__debug__):
+def walk(root=None, debug=__debug__):  # pragma: no cover
 
   """  """
 
   # make sure working directory is in path
-  if os.getcwd() not in sys.path:  # pragma: no cover
+  if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-  def walker(bundle):
+  def walker(bundle):  # pragma: no cover
 
     """  """
 

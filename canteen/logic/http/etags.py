@@ -30,7 +30,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
   @decorators.bind('http.etags')
-  class ETags(logic.Logic):
+  class ETags(logic.Logic):  # pragma: no cover
 
     """  """
 

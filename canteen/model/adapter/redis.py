@@ -298,7 +298,7 @@ class RedisAdapter(DirectedGraphAdapter):
     BACKGROUND_REWRITE = 'BGREWRITEAOF'
 
   @classmethod
-  def __repr__(cls):
+  def __repr__(cls):  # pragma: no cover
 
     """ Generate a pleasant string representation of the currently-active
         ``RedisAdapter``.
@@ -328,7 +328,7 @@ class RedisAdapter(DirectedGraphAdapter):
     return _support.redis
 
   @decorators.classproperty
-  def serializer(cls):
+  def serializer(cls):  # pragma: no cover
 
     """ Load and return the optimal serialization codec.
 
@@ -338,7 +338,7 @@ class RedisAdapter(DirectedGraphAdapter):
     return msgpack if _support.msgpack else json
 
   @decorators.classproperty
-  def compressor(cls):
+  def compressor(cls):  # pragma: no cover
 
     """ Load and return the optimal data compressor.
 
@@ -368,7 +368,7 @@ class RedisAdapter(DirectedGraphAdapter):
     if not _default_profile:
 
       ## Resolve Redis config
-      if servers:
+      if servers:  # pragma: no cover
         for name, config in servers.items():
           if name == 'default' or (config.get('default', False) is True):
             _default_profile = name
@@ -397,51 +397,51 @@ class RedisAdapter(DirectedGraphAdapter):
 
     global _mock_redis
 
-    if not cls.adapter or not _support.redis:
+    if not cls.adapter or not _support.redis:  # pragma: no cover
       raise RuntimeError('No support detected in the current environment'
                          ' for Python Redis. Please `pip install redis`.')
 
-    impl = cls.adapter.StrictRedis
-    if __debug__ and cls.__testing__:
+    if not (__debug__ and cls.__testing__):  # pragma: no cover
+
+      impl = cls.adapter.StrictRedis
+
+      # convert to string kind if we got a model class
+      if not isinstance(kind, basestring) and kind is not None:
+        kind = kind.kind()
+
+      # check for existing connection
+      if kind in _client_connections:
+        return _client_connections[kind]  # return cached connection
+
+      # check kind-specific profiles
+      if kind in _profiles_by_model.get('index', set()):  # pragma: no cover
+        client = _client_connections[kind] = (
+          impl(**_profiles_by_model['map'].get(kind)))
+        return client
+
+      # # @TODO(sgammon): patch client with connection/workerpool (if gevent)
+
+      # check for cached default connection
+      if '__default__' in _client_connections:
+        return _client_connections['__default__']
+
+      # otherwise, build new default
+      default_profile = profile = _server_profiles[_default_profile]
+      if isinstance(default_profile, basestring):
+        # if it's a string, it's a pointer to a profile
+        profile = _server_profiles[default_profile]
+
+      client = _client_connections['__default__'] = impl(**profile)
+      return client
+
+    else:  # pragma: no cover
+
+      # mock adapter testing
       import fakeredis
+
       if not _mock_redis:
         _mock_redis = fakeredis.FakeStrictRedis()
       return _mock_redis
-
-    # convert to string kind if we got a model class
-    if not isinstance(kind, basestring) and kind is not None:
-      kind = kind.kind()
-
-    # check for existing connection
-    if kind in _client_connections:
-
-      # return cached connection
-      return _client_connections[kind]
-
-    # check kind-specific profiles
-    if kind in _profiles_by_model.get('index', set()):  # pragma: no cover
-      client = _client_connections[kind] = (
-        impl(**_profiles_by_model['map'].get(kind)))
-      return client
-
-    ## @TODO(sgammon): patch client with connection/workerpool (if gevent)
-
-    # check for cached default connection
-    if '__default__' in _client_connections:
-      return _client_connections['__default__']
-
-    # otherwise, build new default
-    default_profile = profile = _server_profiles[_default_profile]
-    if isinstance(default_profile, basestring):
-      # if it's a string, it's a pointer to a profile
-      profile = _server_profiles[default_profile]
-
-    if cls.__testing__:
-      import fakeredis
-      return fakeredis.FakeStrictRedis(**profile)
-
-    client = _client_connections['__default__'] = impl(**profile)
-    return client
 
   @classmethod
   def execute(cls, operation, kind, *args, **kwargs):
@@ -499,11 +499,11 @@ class RedisAdapter(DirectedGraphAdapter):
 
         :returns: Inflated entity, if applicable. """
 
-    if not isinstance(result, basestring):
+    if not isinstance(result, basestring):  # pragma: no cover
       return result  # accounts for dict-like storage
 
     # account for none, optionally decompress
-    if cls.EngineConfig.compression:
+    if cls.EngineConfig.compression:  # pragma: no cover
       result = cls.compressor.decompress(result)
 
     # deserialize structures
@@ -565,7 +565,7 @@ class RedisAdapter(DirectedGraphAdapter):
             cls.encode_key(tail, flattened)), target=pipeline))
 
       ## hashkey_hash
-      elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+      elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
         raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
@@ -611,10 +611,10 @@ class RedisAdapter(DirectedGraphAdapter):
     # clean key types
     _cleaned = {}
     for k, v in serialized.iteritems():
-      if hasattr(model, '__edge__') and model.__edge__ and k in frozenset((
-          'peers', 'target', 'source')):
-        continue
-      if isinstance(v, _model.Key):
+      if k in frozenset(('peers', 'target')) and (
+          issubclass(model, _model.Edge)):
+        _cleaned[k] = [iv.urlsafe() for iv in v]
+      elif k == 'source' and issubclass(model, _model.Edge):
         _cleaned[k] = v.urlsafe()
       else:
         _cleaned[k] = v
@@ -623,7 +623,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
     # serialize + optionally compress
     serialized = cls.serializer.dumps(_cleaned)
-    if cls.EngineConfig.compression:
+    if cls.EngineConfig.compression:  # pragma: no cover
       serialized = cls.compressor.compress(serialized)
 
     # toplevel_blob
@@ -678,19 +678,21 @@ class RedisAdapter(DirectedGraphAdapter):
         serialized), target=pipeline):
         entity._set_persisted(True)
         return entity.key
-      else:
+      else:  # pragma: no cover
         raise RuntimeError('Failed to write entity "%s" to key "%s".' % (
           str(entity), str(key) or '<none>'))
 
     ## hashkey_hash
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
-    raise NotImplementedError("Unknown storage"
-                              " mode: '%s'." % cls.EngineConfig.mode)
+    raise NotImplementedError("Unknown storage mode: '%s'." % (
+                              cls.EngineConfig.mode))  # pragma: no cover
 
     # @TODO: different storage internal modes
+
+  # @TODO(sgammon): testing for ability to delete entities
 
   @classmethod
   def delete(cls, key, pipeline=None):
@@ -742,12 +744,12 @@ class RedisAdapter(DirectedGraphAdapter):
           cls.encode_key(*root.flatten(True)),
           cls.encode_key(tail, flattened)), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
     raise NotImplementedError("Unknown storage mode: '%s'." % (
-                              cls.EngineConfig.mode))
+                              cls.EngineConfig.mode))  # pragma: no cover
 
   @classmethod
   def allocate_ids(cls, key_class, kind, count=1, pipeline=None):
@@ -773,7 +775,7 @@ class RedisAdapter(DirectedGraphAdapter):
           provisioned integer IDs, each suitable for use in a
           :py:class:`model.Key` directly. """
 
-    if not count:
+    if not count:  # pragma: no cover
       raise ValueError("Cannot allocate less than 1 ID's.")
 
     # generate kinded key to resolve ID pointer
@@ -808,7 +810,7 @@ class RedisAdapter(DirectedGraphAdapter):
         cls.encode_key(tail, flattened),
         count), target=pipeline)
 
-    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+    elif cls.EngineConfig.mode == RedisMode.hashkey_hash:  # pragma: no cover
 
       raise NotImplementedError('Redis mode not implemented: "hashkey_hash".')
 
@@ -817,7 +819,7 @@ class RedisAdapter(DirectedGraphAdapter):
       raise NotImplementedError("Unknown storage mode: '%s'." % (
                                 cls.EngineConfig.mode))
 
-    if count > 1:
+    if count > 1:  # pragma: no cover
       def _generate_range():
 
         """ Generate a range of requested ID's.
@@ -833,7 +835,7 @@ class RedisAdapter(DirectedGraphAdapter):
     return value
 
   @classmethod
-  def encode_key(cls, joined, flattened):
+  def encode_key(cls, joined, flattened):  # pragma: no cover
 
     """ Encode a Key for storage in ``Redis``. Since we don't need to
         do anything fancy, just delegate this to the abstract (default)
@@ -856,7 +858,7 @@ class RedisAdapter(DirectedGraphAdapter):
     return joined
 
   @classmethod
-  def write_indexes(cls, w, g, pipeline=None, execute=True):  # pragma: no cover
+  def write_indexes(cls, w, g, pipeline=None, execute=True):
 
     """ Write a batch of index updates generated earlier via
         :py:meth:`RedisAdapter.generate_indexes`.
@@ -888,7 +890,7 @@ class RedisAdapter(DirectedGraphAdapter):
     results, indexer_calls = [], []
 
     # resolve target (perhaps a pipeline?)
-    if pipeline:
+    if pipeline:  # pragma: no cover
       target = pipeline
     else:
       target = cls.channel(cls._meta_prefix)
@@ -899,7 +901,7 @@ class RedisAdapter(DirectedGraphAdapter):
       cls._index_basetypes[VertexKey])
 
     # write graph indexes
-    for bundle in g:
+    for bundle in g:  # pragma: no cover
 
       bundle_args = []
 
@@ -946,7 +948,7 @@ class RedisAdapter(DirectedGraphAdapter):
     for btype, bundle in (('meta', meta), ('property', property_map)):
 
       # add meta indexes first
-      for element in bundle:
+      for element in bundle:  # pragma: no cover
 
         # provision args, kwargs, and hash components containers
         args, kwargs, hash_c = [], {}, []
@@ -1043,14 +1045,14 @@ class RedisAdapter(DirectedGraphAdapter):
           None, cls._magic_separator.join(map(str, hash_c))] + args), {
             'target': target}))
 
-    if execute:
+    if execute:  # pragma: no cover
       for handler, hargs, hkwargs in indexer_calls:
         results.append(cls.execute(handler, *hargs, **hkwargs))
 
       if pipeline:
         return pipeline
       return results
-    return indexer_calls  # return calls only
+    return indexer_calls  # pragma: no cover
 
   @classmethod
   def clean_indexes(cls, writes, pipeline=None):  # pragma: no cover
@@ -1340,7 +1342,7 @@ class RedisAdapter(DirectedGraphAdapter):
         if decoded_k.kind == kind.kind() or not _base_kind:
           _base_kind = kind
 
-        if not _base_kind:
+        if not _base_kind:  # pragma: no cover
           raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
 
         decoded_k = _base_kind.__keyclass__(urlsafe=key)
@@ -1348,6 +1350,8 @@ class RedisAdapter(DirectedGraphAdapter):
         # queue fetch of key
         pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
 
+      if _value.data.id == 'steve' and len(_index_key) == 3 and _index_key[1] == 'OlRlc3RHcmFwaFBlcnNvbjpzdGV2ZQ==':
+        pass
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results

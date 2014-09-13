@@ -23,41 +23,25 @@ from canteen.model.adapter import redis as rapi
 
 
 try:
-  import redis
-except ImportError:  # pragma: no cover
-  redis = None
-
-try:
   import fakeredis
 except ImportError:  # pragma: no cover
   fakeredis = None
 
 
-if redis or fakeredis:
+if fakeredis:
 
 
   class RedisSetupTeardown(object):
 
     """ Packages Redis setup and teardown methods. """
 
-    __abstract__ = False
-    subject = rapi.RedisAdapter
+    def test_adapter_mode(self):
 
-    @classmethod
-    def setUpClass(cls):
+      """ Test the adapter's internal mode against what we expect it to be """
 
-      """ Set Redis into testing mode. """
-
-      rapi.RedisAdapter.__testing__ = True
-      rapi.RedisAdapter.EngineConfig.mode = cls.mode
-
-    @classmethod
-    def tearDownClass(cls):
-
-      """ Set Redis back into non-testing mode. """
-
-      rapi.RedisAdapter.__testing__ = False
-      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
+      if not self.__abstract__:
+        assert self.subject().__testing__ is True
+        assert self.subject().EngineConfig.mode == self.mode
 
 
   class RedisAdapterTopLevelBlobTests(test_abstract.DirectedGraphAdapterTests,
@@ -65,7 +49,27 @@ if redis or fakeredis:
 
     """ Tests `model.adapter.redis.Redis` in ``toplevel_blob`` mode """
 
+    __abstract__ = False
+    subject = rapi.RedisAdapter
     mode = rapi.RedisMode.toplevel_blob
+
+    @classmethod
+    def setUpClass(cls):
+      """ Set Redis into testing mode. """
+
+      rapi._mock_redis = fakeredis.FakeStrictRedis()
+      rapi._mock_redis.flushall()
+      rapi.RedisAdapter.__testing__ = True
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
+
+    @classmethod
+    def tearDownClass(cls):
+      """ Set Redis back into non-testing mode. """
+
+      rapi._mock_redis = fakeredis.FakeStrictRedis()
+      rapi._mock_redis.flushall()
+      rapi.RedisAdapter.__testing__ = False
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
 
 
   class RedisAdapterHashKindBlobTests(test_abstract.DirectedGraphAdapterTests,
@@ -73,15 +77,47 @@ if redis or fakeredis:
 
     """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode """
 
+    __abstract__ = False
+    subject = rapi.RedisAdapter
     mode = rapi.RedisMode.hashkind_blob
+
+    @classmethod
+    def setUpClass(cls):
+      """ Set Redis into testing mode. """
+
+      rapi.RedisAdapter.__testing__ = True
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.hashkind_blob
+
+    @classmethod
+    def tearDownClass(cls):
+      """ Set Redis back into non-testing mode. """
+
+      rapi.RedisAdapter.__testing__ = False
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
 
 
   class RedisAdapterHashKeyBlobTests(test_abstract.DirectedGraphAdapterTests,
                                      RedisSetupTeardown):
 
-    """ Tests `model.adapter.redis.Redis` in ``hashkind_blob`` mode """
+    """ Tests `model.adapter.redis.Redis` in ``hashkey_blob`` mode """
 
+    __abstract__ = False
+    subject = rapi.RedisAdapter
     mode = rapi.RedisMode.hashkey_blob
+
+    @classmethod
+    def setUpClass(cls):
+      """ Set Redis into testing mode. """
+
+      rapi.RedisAdapter.__testing__ = True
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.hashkey_blob
+
+    @classmethod
+    def tearDownClass(cls):
+      """ Set Redis back into non-testing mode. """
+
+      rapi.RedisAdapter.__testing__ = False
+      rapi.RedisAdapter.EngineConfig.mode = rapi.RedisMode.toplevel_blob
 
 
   # @TODO(sgammon): add hashkey_hash testing when that mode is supported

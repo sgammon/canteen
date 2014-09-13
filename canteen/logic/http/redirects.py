@@ -28,7 +28,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
 
 
   @decorators.bind('http.redirects')
-  class Redirects(logic.Logic):
+  class Redirects(logic.Logic):  # pragma: no cover
 
     """  """
 

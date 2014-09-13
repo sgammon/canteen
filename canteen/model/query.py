@@ -295,30 +295,6 @@ class QueryOptions(object):
                     lambda self, v: self._set_option('cursor', v, _setter=True))
 
 
-class GraphQueryOptions(QueryOptions):
-
-  """ Specifies Graph-related query options in addition to standard ``Query``
-      properties. """
-
-  # == Options == #
-  options = QueryOptions.options | frozenset((
-    '_base',))
-
-  __slots__ = QueryOptions.options | options
-
-  option_names = frozenset(('_'.join(opt.split('_')[1:]) for opt in options))
-
-  # == Option Defaults == #
-  _defaults = dict(QueryOptions._defaults, **{
-    '_graph_base': None})
-
-
-  ## == Public Properties == ##
-
-  # ``base`` - graph-specific base key
-  base = property(lambda self: self._get_option('base'))
-
-
 class AbstractQuery(object):
 
   """ Specifies base structure and interface for all query classes. """
@@ -326,7 +302,7 @@ class AbstractQuery(object):
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def filter(self, expression):
+  def filter(self, expression):  # pragma: no cover
 
     """ Add a filter to the active :py:class:`Query` at ``self``.
 
@@ -338,7 +314,7 @@ class AbstractQuery(object):
                               ' be invoked directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def sort(self, expression):
+  def sort(self, expression):  # pragma: no cover
 
     """ Add a sort directive to the active :py:class:`Query` at ``self``.
 
@@ -350,7 +326,7 @@ class AbstractQuery(object):
                               ' be invoked directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def hint(self, directive):
+  def hint(self, directive):  # pragma: no cover
 
     """ Pass a hint to the query-planning subsystem for how this query could
         most efficiently be satisfied.
@@ -363,7 +339,7 @@ class AbstractQuery(object):
                               ' be invoked directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def fetch(self, **options):
+  def fetch(self, **options):  # pragma: no cover
 
     """ Fetch results for a :py:class:`Query`, via the underlying driver's
         :py:meth:`execute_query` method.
@@ -382,7 +358,7 @@ class AbstractQuery(object):
                               ' be invoked directly.')  # pragma: no cover
 
   @abc.abstractmethod
-  def get(self, **options):
+  def get(self, **options):  # pragma: no cover
 
     """ Get a single result (by default, the first) matching a
         :py:class:`Query`.
@@ -398,6 +374,29 @@ class AbstractQuery(object):
 
     raise NotImplementedError('`fetch` is abstract and may not'
                               ' be invoked directly.')  # pragma: no cover
+
+
+class GraphQueryOptions(QueryOptions):
+  """ Specifies Graph-related query options in addition to standard ``Query``
+      properties. """
+
+  # == Options == #
+  options = QueryOptions.options | frozenset((
+    '_base',))
+
+  __slots__ = QueryOptions.options | options
+
+  option_names = frozenset(('_'.join(opt.split('_')[1:]) for opt in options))
+
+  # == Option Defaults == #
+  _defaults = dict(QueryOptions._defaults, **{
+    '_graph_base': None})
+
+
+  # # == Public Properties == ##
+
+  # ``base`` - graph-specific base key
+  base = property(lambda self: self._get_option('base'))
 
 
 class Query(AbstractQuery):
@@ -819,7 +818,7 @@ class KeyFilter(Filter):
     super(KeyFilter, self).__init__(None, value, AND=AND, OR=OR, type=type)
 
   @property
-  def generic_name(self):
+  def generic_name(self):  # pragma: no cover
 
     """ Return a generic string name for labels including this ``KeyFilter``.
 

@@ -387,10 +387,10 @@ class BidirectionalEnum(object):
       # set class-level enum properties
       for key, value in _map.iteritems():
         if not key.startswith('_') and isinstance(value, _ENUM_TYPES):
-          if value in _plookup:
+          if value in _plookup:  # pragma: no cover
             raise RuntimeError('Cannot map non-unique (double-validated)'
                                ' `BidirectionalEnum` value %s.' % value)
-          if key in _plookup:
+          if key in _plookup:  # pragma: no cover
             raise RuntimeError('Cannot map non-unique (double-validated)'
                                ' `BidirectionalEnum` key %s.' % value)
 

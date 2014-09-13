@@ -345,7 +345,7 @@ else:
         key, value = item
 
         if isinstance(value, list) and len(value) == 0:
-          return False
+          return False  # pragma: no cover
         return True
 
       filtered = filter(_check_value, values.iteritems())

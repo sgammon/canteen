@@ -282,7 +282,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
       from canteen.util import config as configutil
 
       # create `compiled` root folder, if necessary
-      if not path.isdir(_FRAMEWORK_TEMPLATES_COMPILED):
+      if not path.isdir(_FRAMEWORK_TEMPLATES_COMPILED):  # pragma: no cover
         cls.mkdir_p(_FRAMEWORK_TEMPLATES_COMPILED)
 
       compiled = cls(_FRAMEWORK_TEMPLATE_ROOT,
@@ -387,7 +387,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
 
       _import_paths = []
 
-      if path.isdir(destination):
+      if path.isdir(destination):  # pragma: no cover
         init = path.join(destination, '__init__.py')
         if not path.exists(init):
           open(init, 'w').close()

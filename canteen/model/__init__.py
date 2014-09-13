@@ -1022,10 +1022,10 @@ class AbstractModel(object):
 
     if issubclass(self, Vertex) and (
         isinstance(value, Key) and not isinstance(value, VertexKey)):
-      value = VertexKey.from_raw(value.flatten())
+      value = VertexKey.from_raw(value.flatten())  # pragma: no cover
     elif issubclass(self, Edge) and (
         isinstance(value, Key) and not isinstance(value, EdgeKey)):
-      value = EdgeKey.from_raw(value.flatten())
+      value = EdgeKey.from_raw(value.flatten())  # pragma: no cover
 
     # for a literal key value
     if value is not None:
@@ -1281,7 +1281,7 @@ class Property(object):
 
     if self.__class__ != Property and hasattr(self, 'validate'):
       # check for subclass-defined validator to delegate validation to
-      return self.validate(instance)
+      return self.validate(instance)  # pragma: no cover
 
     value = instance._get_value(self.name)  # retrieve value
 
@@ -1480,7 +1480,7 @@ class Vertex(Model):
 
     # classes only plz
     for target in targets:
-      if not issubclass(target, Vertex):
+      if not issubclass(target, Vertex):  # pragma: no cover
         raise TypeError("Vertices can only point to other Vertices."
                         " An Edge from `%s` to `%s` was requested, but `%s` is"
                         " not a Vertex." % (cls, target, target))
@@ -1524,14 +1524,14 @@ class EdgeSpec(object):
           represents a directional relationship between each
           ``origin -> target`` pair. """
 
-    if not len(peering) > 0:
+    if not len(peering) > 0:  # pragma: no cover
       raise TypeError('Cannot specify an `Edge` without at'
                       ' least one target.')
 
     self.origin, self.peering, self.directed = (
       origin, peering[0] if len(peering) == 1 else peering, directed)
 
-  def __repr__(self):
+  def __repr__(self):  # pragma: no cover
 
     """ Generate a string representation for the relationship specified by this
         ``EdgeSpec`` class.
@@ -1586,7 +1586,8 @@ class Edge(Model):
 
     _keyify = lambda obj: obj.key if isinstance(obj, Vertex) else obj
 
-    if (source is None or not targets) and not properties.get('_persisted'):
+    if (source is None or not targets) and not (
+        properties.get('_persisted')):  # pragma: no cover
       raise TypeError('Constructing an `Edge` requires at least'
                       ' one `source` and `target`, or one pair'
                       ' (`source`, `target`).')

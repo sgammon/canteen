@@ -24,13 +24,13 @@ class RealtimeSemantics(logic.Logic):
 
   """  """
 
-  def on_connect(self, client):
+  def on_connect(self, client):  # pragma: no cover
 
     """  """
 
     pass
 
-  def on_message(self, client, message):
+  def on_message(self, client, message):  # pragma: no cover
 
     """  """
 

@@ -465,8 +465,11 @@ class RedisAdapter(DirectedGraphAdapter):
 
     # defer to pipeline or resolve channel for kind
     target = kwargs.get('target', None)
-    if target is None:
-      target = cls.channel(kind)
+    if target is None: target = cls.channel(kind)
+
+    if operation == cls.Operations.DELETE:
+      # special case: `delete` instead of `del` (because it's a keyword)
+      operation = 'DELETE'
 
     if 'target' in kwargs: del kwargs['target']
 
@@ -487,7 +490,6 @@ class RedisAdapter(DirectedGraphAdapter):
           return 1
       return getattr(target, operation.lower())(*args, **kwargs)
     except Exception:  # pragma: no cover
-      if __debug__: import pdb; pdb.set_trace()
       raise
 
   @classmethod
@@ -713,7 +715,7 @@ class RedisAdapter(DirectedGraphAdapter):
       # delegate to redis client with encoded key
       return cls.execute(*(
         cls.Operations.DELETE,
-        key.kind,
+        flattened[1],
         cls.encode_key(joined, flattened)), target=pipeline)
 
     elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
@@ -1350,8 +1352,6 @@ class RedisAdapter(DirectedGraphAdapter):
         # queue fetch of key
         pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
 
-      if _value.data.id == 'steve' and len(_index_key) == 3 and _index_key[1] == 'OlRlc3RHcmFwaFBlcnNvbjpzdGV2ZQ==':
-        pass
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results

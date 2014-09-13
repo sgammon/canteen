@@ -68,6 +68,18 @@ if fakeredis:
       assert x.kind == 'SampleEntity'
       assert x.id == 'sample'
 
+      return s, x, SampleEntity
+
+    def test_delete_entity(self):
+
+      """ Test deleting a basic entity from Redis with `RedisAdapter` """
+
+      s, x, SampleEntity = self.test_put_entity()
+      s.delete()
+
+      ss = SampleEntity.get(x)
+      assert not ss
+
 
   class RedisAdapterTopLevelBlobTests(test_abstract.DirectedGraphAdapterTests,
                                       RedisSetupTeardown):

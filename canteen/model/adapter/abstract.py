@@ -410,7 +410,7 @@ class IndexedModelAdapter(ModelAdapter):
             for addition to the index. """
 
       # convert to ISO format, return time with magic
-      return cls._magic['time'], int(time.mktime(_time.timetuple()))
+      return cls._magic['time'], _time.isoformat()
 
     @classmethod
     def convert_datetime(cls, _datetime):

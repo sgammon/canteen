@@ -506,7 +506,10 @@ class RedisAdapter(DirectedGraphAdapter):
 
     # account for none, optionally decompress
     if cls.EngineConfig.compression:  # pragma: no cover
-      result = cls.compressor.decompress(result)
+      try:
+        result = cls.compressor.decompress(result)
+      except:
+        pass  # maybe entity is uncompressed? will fail during deserialization
 
     # deserialize structures
     return cls.serializer.loads(result)
@@ -607,9 +610,6 @@ class RedisAdapter(DirectedGraphAdapter):
     serialized = entity.to_dict()
     joined, flattened = key
 
-    if issubclass(model, _model.Edge):
-      pass
-
     # clean key types
     _cleaned = {}
     for k, v in serialized.iteritems():
@@ -619,15 +619,21 @@ class RedisAdapter(DirectedGraphAdapter):
         _cleaned[k] = [iv.urlsafe() for iv in v]
       elif k == 'source' and issubclass(model, _model.Edge):
         _cleaned[k] = v.urlsafe()
-      else:
+      elif isinstance(v, (int, long, basestring, float)):
         _cleaned[k] = v
+      elif isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
+        _cleaned[k] = v.isoformat()
     if not _cleaned:  # pragma: no cover
       _cleaned['__empty__'] = True
 
     # serialize + optionally compress
     serialized = cls.serializer.dumps(_cleaned)
     if cls.EngineConfig.compression:  # pragma: no cover
-      serialized = cls.compressor.compress(serialized)
+      compressed = cls.compressor.compress(serialized)
+
+      if len(compressed) < len(serialized):
+        # we saved space, store it compressed and it should uncompress on `get`
+        serialized = compressed
 
     # toplevel_blob
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
@@ -1034,7 +1040,7 @@ class RedisAdapter(DirectedGraphAdapter):
           # everything else is stored unsorted
           handler = cls.Operations.SET_ADD
 
-          if converter:
+          if converter and value is not None:
             sanitized_value = converter(value)
           else:
             sanitized_value = value

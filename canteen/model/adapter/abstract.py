@@ -384,7 +384,7 @@ class IndexedModelAdapter(ModelAdapter):
 
       # flatten and return key structure with magic
       joined, flattened = key.flatten(True)
-      return (cls._magic['key'], map(lambda x: x is not None, flattened))
+      return cls._magic['key'], map(lambda x: x is not None, flattened)
 
     @classmethod
     def convert_date(cls, _date):
@@ -397,7 +397,7 @@ class IndexedModelAdapter(ModelAdapter):
             the index. """
 
       # convert to ISO format, return date with magic
-      return (cls._magic['date'], _date.isoformat())
+      return cls._magic['date'], int(time.mktime(_date.timetuple()))
 
     @classmethod
     def convert_time(cls, _time):
@@ -410,7 +410,7 @@ class IndexedModelAdapter(ModelAdapter):
             for addition to the index. """
 
       # convert to ISO format, return time with magic
-      return (cls._magic['time'], _time.isoformat())
+      return cls._magic['time'], int(time.mktime(_time.timetuple()))
 
     @classmethod
     def convert_datetime(cls, _datetime):
@@ -423,7 +423,7 @@ class IndexedModelAdapter(ModelAdapter):
             suitable for addition to the index. """
 
       # convert to integer, return datetime with magic
-      return (cls._magic['datetime'], int(time.mktime(_datetime.timetuple())))
+      return cls._magic['datetime'], int(time.mktime(_datetime.timetuple()))
 
   @decorators.classproperty
   def _index_basetypes(self):

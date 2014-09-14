@@ -35,7 +35,7 @@ _default_profile = None  # holds the default redis instance mapping
 _client_connections = {}  # holds instantiated redis connection clients
 _profiles_by_model = {}  # holds specific model => redis instance mappings
 _SERIES_BASETYPES = (  # basetypes that should be stored as a sorted set
-  datetime.datetime, datetime.date, datetime.time, float, int, long)
+  datetime.datetime, datetime.date, float)
 
 
 ##### ==== runtime ==== #####
@@ -623,8 +623,8 @@ class RedisAdapter(DirectedGraphAdapter):
         _cleaned[k] = v
       elif isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
         _cleaned[k] = v.isoformat()
-    if not _cleaned:  # pragma: no cover
-      _cleaned['__empty__'] = True
+      else:
+        _cleaned[k] = v
 
     # serialize + optionally compress
     serialized = cls.serializer.dumps(_cleaned)
@@ -844,7 +844,7 @@ class RedisAdapter(DirectedGraphAdapter):
     return value
 
   @classmethod
-  def encode_key(cls, joined, flattened):  # pragma: no cover
+  def encode_key(cls, joined, flattened=None):  # pragma: no cover
 
     """ Encode a Key for storage in ``Redis``. Since we don't need to
         do anything fancy, just delegate this to the abstract (default)
@@ -861,6 +861,11 @@ class RedisAdapter(DirectedGraphAdapter):
         :returns: In the case that ``encoding`` is *on*, the encoded string
           :py:class:`model.Key`, suitable for storage in ``Redis``. Otherwise
           (``encoding`` is *off*), the cleartext ``joined`` key. """
+
+    from canteen import model
+
+    if isinstance(joined, model.Key):
+      return joined.urlsafe()
 
     if cls.EngineConfig.encoding:
       return abstract._encoder(joined)
@@ -1376,9 +1381,6 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # decode raw entity
         decoded = cls.get(key=None, _entity=entity)
-
-        if '__empty__' in decoded:
-          del decoded['__empty__']  # trim __empty__ flag on get
 
         # attach key, decode entity and construct
         decoded['key'] = key

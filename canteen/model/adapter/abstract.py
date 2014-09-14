@@ -426,7 +426,7 @@ class IndexedModelAdapter(ModelAdapter):
       return cls._magic['datetime'], int(time.mktime(_datetime.timetuple()))
 
   @decorators.classproperty
-  def _index_basetypes(self):
+  def _index_basetypes(cls):
 
     """ Map basetypes to indexer routines.
 
@@ -437,19 +437,19 @@ class IndexedModelAdapter(ModelAdapter):
     return {
 
       # -- basetypes -- #
-      int: self.serializer.dumps,
-      bool: self.serializer.dumps,
-      long: self.serializer.dumps,
-      float: self.serializer.dumps,
-      basestring: self.serializer.dumps,
+      int: cls.serializer.dumps,
+      bool: cls.serializer.dumps,
+      long: cls.serializer.dumps,
+      float: cls.serializer.dumps,
+      basestring: cls.serializer.dumps,
 
       # -- model/key types -- #
-      model.Key: self.Indexer.convert_key,
+      model.Key: cls.Indexer.convert_key,
 
       # -- date/time types -- #
-      datetime.date: self.Indexer.convert_date,
-      datetime.time: self.Indexer.convert_time,
-      datetime.datetime: self.Indexer.convert_datetime
+      datetime.date: cls.Indexer.convert_date,
+      datetime.time: cls.Indexer.convert_time,
+      datetime.datetime: cls.Indexer.convert_datetime
 
     }
 

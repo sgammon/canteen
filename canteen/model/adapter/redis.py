@@ -613,6 +613,7 @@ class RedisAdapter(DirectedGraphAdapter):
     # clean key types
     _cleaned = {}
     for k, v in serialized.iteritems():
+      prop = getattr(model, k)
       if k in frozenset(('peers', 'target')) and (
           issubclass(model, _model.Edge)):
         _cleaned[k] = [iv.urlsafe() for iv in v]

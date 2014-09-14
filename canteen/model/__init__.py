@@ -762,7 +762,8 @@ class AbstractModel(object):
         raise exception('mutate', name, cls)
 
       # setting internal class-level properties
-      if name.startswith('__'):
+      if name.startswith('__') or callable(value) or (
+        isinstance(value, (classmethod, staticmethod))):
         return super(AbstractModel.__metaclass__, cls).__setattr__(name, value)
 
       # cannot create new properties before instantiation
@@ -1543,6 +1544,7 @@ class EdgeSpec(object):
       self.origin.kind(), '<->' if not self.directed else '->', (
         self.peering.kind() if issubclass(self.peering, Model) else ', '.join((
           k.kind() for k in self.peering))))
+
 
 class Edge(Model):
 

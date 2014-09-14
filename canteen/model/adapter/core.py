@@ -297,6 +297,8 @@ class DictMixin(KeyMixin, ModelMixin):
         :raises:
         :returns: """
 
+    from canteen import model
+
     dictionary = {}  # return dictionary
     _default_include = False  # flag for including properties unset
 
@@ -342,7 +344,10 @@ class DictMixin(KeyMixin, ModelMixin):
         else:
           if not self.__explicit__:  # None == sentinel in implicit mode
             value = None
-      dictionary[name] = value
+      if isinstance(value, model.Model):
+        dictionary[name] = value.to_dict()
+      else:
+        dictionary[name] = value
     return dictionary
 
   @classmethod

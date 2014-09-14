@@ -35,7 +35,13 @@ _default_asset_path = os.path.join(os.getcwd(), 'assets')
 @decorators.bind('assets')
 class Assets(logic.Logic):
 
-  """  """
+  """ Provides logic related to the use and management of static assets, such as
+      images, CSS, JavaScript, fonts, etc.
+
+      Canteen enables two styles of asset management: *registered* and
+      *unregistered*. When using registered assets, developers add their static
+      files to config (for everything but images) and use a dereferenced naming
+      scheme to reference them from templates or handlers. """
 
   __config__ = None  # asset configuration, if any
   __handles__ = {}  # cached file handles for local responders
@@ -56,18 +62,30 @@ class Assets(logic.Logic):
   @hooks.HookResponder('initialize')
   def bind_urls(self):
 
-    """  """
+    """ Bind static asset URLs, if Canteen is instructed to handle requests for
+        static assets. Constructs handlers according to URLs and paths from
+        application configuration. """
 
     from canteen import url, handler
 
     ## asset handler
     def make_responder(asset_type, path_prefix=None):
 
-      """  """
+      """ Internal utility function to make an ``AssetResponder`` handler which
+          can handler assets of type ``asset_type`` at prefix ``path_prefix``.
+
+          :param asset_type: Type of asset we're binding this handler for.
+          :param path_prefix: URL path prefix that we should respond to.
+
+          :returns: :py:class:`AssetResponder` instance, which is a Canteen
+            :py:class:`base.Handler`, preconfigured to handle asset URLs. """
+
 
       class AssetResponder(handler.Handler):
 
-        """  """
+        """ Internal :py:class:`canteen.base.Handler` implementation for binding
+            to and fulfilling static asset URLs, such as those for CSS, images,
+            JavaScript files and SVGs. """
 
         content_types = {
           'css': 'text/css',
@@ -84,12 +102,19 @@ class Assets(logic.Logic):
           'mpeg': 'video/mpeg',
           'mp4': 'video/mp4',
           'flv': 'video/x-flv',
-          'appcache': 'text/cache-manifest'
-        }
+          'appcache': 'text/cache-manifest'}
 
         def GET(self, asset):
 
-          """  """
+          """ Fulfill HTTP GET requests for a particular kind of ``asset_type``
+              and ``path_prefix``, which are provided by the outer closure that
+              constructs this handler.
+
+              :param asset: Asset to serve. This is a relative path that should
+                be translated into a local file and served.
+
+              :returns: Response containing the headers and content to be served
+                for the resource specified at ``asset``. """
 
           fullpath = (
             os.path.join(path_prefix, asset) if path_prefix else (
@@ -134,7 +159,19 @@ class Assets(logic.Logic):
         # noinspection PyBroadException
         def open_and_serve(self, filepath):
 
-          """  """
+          """ Utility function to open a static asset file and serve its
+              contents. Takes a filepath and properly handles MIME/content-type
+              negotiation before responding with the asset.
+
+              :param filepath: Path to the static asset to be served.
+
+              :returns: Structure (``tuple``) containing:
+                - a timestamp for when the asset was last modified, provided by
+                  ``getmtime`` from the OS
+                - original handle to the file, which should be closed after
+                  exiting this function
+                - the contents of the file, as a string
+                - an MD5 hash of the contents of the file, as a hex digest """
 
           if os.path.exists(filepath):
             try:
@@ -249,7 +286,20 @@ class Assets(logic.Logic):
       isinstance(x, tuple)) else x, url_blocks))])
 
   @decorators.bind()  # CSS
-  def style_url(self, *fragments, **arguments): return (
+  def style_url(self, *fragments, **arguments):
+
+    """ Exports logic to calculate a URL for a *regsitered* or *unregistered*
+        static CSS asset from a set of spec ``fragments`` and ``arguments``.
+
+      :param fragments: Positional specification fragments that should be used
+        to resolve the asset to be linked-to.
+
+      :param arguments: Keyword arguments to be used for filling in path items
+        when building the CSS asset URL.
+
+      :return: Generated CSS asset URL. """
+
+    return (
     self.asset_url('style', fragments, arguments))
 
   @decorators.bind()  # JS

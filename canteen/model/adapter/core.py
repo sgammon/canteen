@@ -281,7 +281,8 @@ class DictMixin(ModelMixin):
 
   def to_dict(self, exclude=tuple(), include=tuple(),
               filter=None, map=None, _all=False,
-              filter_fn=filter, map_fn=map):
+              filter_fn=filter, map_fn=map,
+              convert_keys=True, convert_models=True):
 
     """ Export this Entity as a dictionary, excluding/including/ filtering/
         mapping as we go.
@@ -293,6 +294,8 @@ class DictMixin(ModelMixin):
         :param _all:
         :param filter_fn:
         :param map_fn:
+        :param convert_keys:
+        :param convert_models:
 
         :raises:
         :returns: """
@@ -309,10 +312,13 @@ class DictMixin(ModelMixin):
       include = self.__lookup__  # default include list is model properties
       _default_include = True  # mark flag that we used the default
 
-    map = map or (lambda x: x)  # substitute no map with a passthrough
+    if not map:
+      map = lambda x: x  # substitute no map with a passthrough
+      _default_map = True
 
     # substitute no filter with a passthrough
     if not filter: filter = lambda x: True
+
 
     # freeze our comparison sets
     exclude, include = frozenset(exclude), frozenset(include)
@@ -344,14 +350,25 @@ class DictMixin(ModelMixin):
         else:
           if not self.__explicit__:  # None == sentinel in implicit mode
             value = None
-      if isinstance(value, model.Model):
+      if isinstance(value, (model.Model, model.Key)):
         if _property_descriptor._options.get('embedded'):
+          if isinstance(value, model.Key):
+            raise RuntimeError('Cannot reference embedded submodel'
+                               ' by key "%s".' % repr(value))
           dictionary[name] = value.to_dict()
         else:
-          if not value.key:
+          if isinstance(value, model.Model) and not value.key:
             raise RuntimeError('Cannot reference non-embedded submodel'
                                ' "%s" with empty key.' % repr(value))
-          dictionary[name] = value.key.urlsafe()
+
+          # no embedded status means it should be left as-is
+          elif _property_descriptor._options.get('embedded') is None:
+            dictionary[name] = value
+
+          else:
+            # embedded set to ``False`` explicitly should yield a urlsafed key
+            dictionary[name] = (
+              value if isinstance(value, model.Key) else value.key).urlsafe()
       else:
         dictionary[name] = value
     return dictionary

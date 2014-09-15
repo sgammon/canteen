@@ -316,7 +316,8 @@ else:
       from canteen import model
 
       values = {}
-      for prop, value in self.to_dict(*args, **kwargs).items():
+      for prop, value in self.to_dict(*args,
+                                      convert_keys=False, **kwargs).items():
 
         # convert keys => urlsafe
         if isinstance(value, (model.Key, model.VertexKey, model.EdgeKey)):

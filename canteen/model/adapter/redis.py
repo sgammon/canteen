@@ -617,7 +617,8 @@ class RedisAdapter(DirectedGraphAdapter):
       if k in frozenset(('peers', 'target')) and (
           issubclass(model, _model.Edge)):
         _cleaned[k] = [iv.urlsafe() for iv in v]
-      elif k == 'source' and issubclass(model, _model.Edge):
+      elif k == 'source' and issubclass(model, _model.Edge) and (
+          isinstance(v, _model.Key)):
         _cleaned[k] = v.urlsafe()
       elif isinstance(v, (int, long, basestring, float)):
         _cleaned[k] = v

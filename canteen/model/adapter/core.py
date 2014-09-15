@@ -262,7 +262,7 @@ class AdaptedEdge(EdgeMixin):
   __graph__ = __edge__ = True  # mark as graph model and vertex
 
 
-class DictMixin(KeyMixin, ModelMixin):
+class DictMixin(ModelMixin):
 
   """ Provides `to_dict`-type methods for first-class Model API classes. """
 
@@ -345,7 +345,13 @@ class DictMixin(KeyMixin, ModelMixin):
           if not self.__explicit__:  # None == sentinel in implicit mode
             value = None
       if isinstance(value, model.Model):
-        dictionary[name] = value.to_dict()
+        if _property_descriptor._options.get('embedded'):
+          dictionary[name] = value.to_dict()
+        else:
+          if not value.key:
+            raise RuntimeError('Cannot reference non-embedded submodel'
+                               ' "%s" with empty key.' % repr(value))
+          dictionary[name] = value.key.urlsafe()
       else:
         dictionary[name] = value
     return dictionary

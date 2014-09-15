@@ -260,8 +260,7 @@ else:
       args = {
         'id': self.id,
         'kind': self.kind,
-        'encoded': self.urlsafe()
-      }
+        'encoded': self.urlsafe()}
 
       if self.parent:
         if encoded:

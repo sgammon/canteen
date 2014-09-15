@@ -1306,10 +1306,19 @@ class Property(object):
       # it validates if:
       # 1) the field is typeless, or
       # 2) the value is `None` or an instance of it's basetype
+      # 3) the value is a submodel and complies with:
+      #    - being a valid model and kind (if embedded)
+      #    - being a valid key (if not embedded)
       if self._basetype is None or (
         (v is not self._sentinel) and isinstance(v, (
                                       self._basetype, type(None)))):
         continue
+      if isinstance(self._basetype, type) and issubclass(self._basetype, Model):
+        if self._options.get('embedded') and isinstance(v, self._basetype):
+          continue  # embedded & compliant model
+        elif not self._options.get('embedded') and isinstance(v, Key):
+          continue  # non-embedded & compliant key
+
       raise exceptions.InvalidPropertyValue(*(
         self.name, instance.kind(), type(v).__name__, self._basetype.__name__))
     return True  # validation passed! :)

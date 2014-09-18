@@ -392,7 +392,7 @@ class AbstractKey(object):
   __str__ = __unicode__ = __repr__
 
   # util: support for `__nonzero__` and aliased `__len__`
-  __nonzero__ = lambda self: isinstance(self.__id__, (basestring, int))
+  __nonzero__ = lambda self: isinstance(self.__id__, (basestring, int, long))
   __len__ = lambda self: (
     int(self.__nonzero__()) if self.__parent__ is None else (
       sum((1 for i in self.ancestry))))

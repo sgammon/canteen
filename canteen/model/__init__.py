@@ -417,6 +417,9 @@ class AbstractKey(object):
     if name == 'parent' and isinstance(value, Model):
       # special case: if setting parent and it's a model, use the key instead
       value = value.key  # pragma: no cover
+    if name == 'id' and isinstance(value, basestring) and ':' in value:
+      raise ValueError('Keynames may not contain the ":" character.'
+                       ' Got: "%s".' % value)
     setattr(self, '__%s__' % name, value)
     return self
 
@@ -1126,12 +1129,12 @@ class Key(AbstractKey):
     except StopIteration:
       pass
 
-    return {  # delegate full-key decoding to classmethods
-      'raw': cls.from_raw,
-      'urlsafe': cls.from_urlsafe
-    }.get(*(
-      formatter,
-      lambda x: super(AbstractKey, cls).__new__(cls, *parts, **formats)))(value)
+    if not parts and formats.get('raw'):
+      return cls.from_raw(formats['raw'])
+    if not parts and formats.get('urlsafe'):
+      return cls.from_urlsafe(formats['urlsafe'])
+
+    return super(AbstractKey, cls).__new__(cls, *parts, **formats)
 
   def __init__(self, *parts, **kwargs):
 
@@ -1141,6 +1144,9 @@ class Key(AbstractKey):
 
         :raises:
         :returns: """
+
+    if kwargs.get('raw') or kwargs.get('urlsafe') and (
+        self.kind and self.id): return  # if we're re-initializing, return
 
     if len(parts) > 1:  # normal case: it's a full/partially-spec'd key
 
@@ -1168,10 +1174,10 @@ class Key(AbstractKey):
       self.__kind__ = parts[0]
 
     # if we *know* this is an existing key, `_persisted` should be `true`
-    self._set_internal('parent', kwargs.get('parent'))
+    self._set_internal('parent', kwargs.get('parent') or None)
 
     # also set kwarg-passed parent.
-    self._set_internal('persisted', kwargs.get('_persisted', False))
+    self._set_internal('persisted', kwargs.get('_persisted'))
 
   def __setattr__(self, name, value):
 

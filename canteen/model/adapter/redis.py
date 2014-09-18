@@ -1195,11 +1195,12 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # then handle property/meta filters, etc
         else:
-          origin, meta, property_map = cls.generate_indexes(kinded_key, {
-            _f.target.name: (_f.target, _f.value.data)})
+          origin, meta, property_map, graph_indexes = (
+            cls.generate_indexes(*(
+              kinded_key, None, {_f.target.name: (_f.target, _f.value.data)})))
 
-          for operation, index, config in cls.write_indexes((
-                  origin, [], property_map), execute=False):
+          for operation, index, config in cls.write_indexes(
+              (origin, [], property_map), graph_indexes, execute=False):
 
             if operation == cls.Operations.SORTED_ADD:
               _flag, _index_key, value = 'Z', index[1], index[2]

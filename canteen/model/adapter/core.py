@@ -100,10 +100,10 @@ class AdaptedKey(KeyMixin):
       # recursively decode, removing chunks as we go. extract argset by argset.
       last_key = cls(*(encoded.popleft() for i in (
                      xrange(0, len(cls.__schema__) - 1))),
-                     parent=last_key,
+                     parent=last_key or None,
                      _persisted=kwargs.get('_persisted', False))
     return cls(*encoded,
-                parent=last_key,
+                parent=last_key or None,
                 _persisted=kwargs.get('_persisted', False))
 
   @classmethod

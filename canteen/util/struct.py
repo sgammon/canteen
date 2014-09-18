@@ -167,10 +167,10 @@ class ObjectProxy(UtilStruct):
         :returns: """
 
     filtered = self.i_filter(name)
-    if filtered not in self._entries:
+    if filtered not in self._entries and name not in self._entries:
       raise KeyError("Cannot locate name '%s'"
                      " in ObjectProxy '%s'." % (name, self))
-    return self._entries[filtered]
+    return self._entries.get(filtered, self._entries.get(name))
 
   def __getattr__(self, name):
 
@@ -181,10 +181,10 @@ class ObjectProxy(UtilStruct):
         :returns: """
 
     filtered = self.i_filter(name)
-    if filtered not in self._entries:
+    if filtered not in self._entries and name not in self._entries:
       raise AttributeError("Could not find the attribute '%s'"
                            " on the specified ObjectProxy." % name)
-    return self._entries[filtered]
+    return self._entries.get(filtered, self._entries.get(name))
 
   # filter for case sensitivity
   i_filter = lambda self, target: (

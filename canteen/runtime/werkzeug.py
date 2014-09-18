@@ -52,8 +52,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
     'NotImplemented': err.NotImplemented,  # 501
     'ServiceUnavailable': err.ServiceUnavailable,  # 502
     'ClientDisconnected': err.ClientDisconnected,
-    'SecurityError': err.SecurityError
-  }
+    'SecurityError': err.SecurityError}
 
 
   class Werkzeug(runtime.Runtime):
@@ -97,5 +96,4 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         'processes': 1,
         'passthrough_errors': False,
         'ssl_context': None,
-        'static_files': paths
-      })
+        'static_files': paths})

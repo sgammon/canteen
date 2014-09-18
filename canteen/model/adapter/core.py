@@ -363,7 +363,14 @@ class DictMixin(ModelMixin):
 
           # no embedded status means it should be left as-is
           elif _property_descriptor._options.get('embedded') is None:
-            dictionary[name] = value
+
+            # @TODO(sgammon): decide sensible logic here
+
+            # if mapping is an explicit key, conver it to a string
+            if _property_descriptor._basetype is model.Key:
+              dictionary[name] = value.urlsafe()
+            else:
+              dictionary[name] = value
 
           else:
             # embedded set to ``False`` explicitly should yield a urlsafed key

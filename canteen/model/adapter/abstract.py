@@ -511,9 +511,11 @@ class IndexedModelAdapter(ModelAdapter):
 
     _map = {}
 
+    _edict = entity if isinstance(entity, dict) else entity.to_dict()
+
     # grab only properties enabled for indexing
     is_indexed = lambda x: entity.__class__.__dict__[x[0]]._indexed
-    for k, v in filter(is_indexed, entity.to_dict().items()):
+    for k, v in filter(is_indexed, _edict.items()):
       # attach property name, property class, value
       _map[k] = (entity.__class__.__dict__[k], v)
 
@@ -712,6 +714,12 @@ class GraphModelAdapter(IndexedModelAdapter):
             adding to the index. """
 
       from canteen import model
+
+      if isinstance(key, basestring):
+        # expand from urlsafe
+        # @TODO(sgammon): this is disgusting what was i thinking
+        # @TODO(sgammon): come up with a proper native repr for a key
+        key = model.Key(urlsafe=key)
 
       joined, flattened = key.flatten(True)
       sanitized = map(lambda x: x is not None, flattened)

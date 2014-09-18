@@ -17,6 +17,7 @@ __version__ = 'v5'
 
 # stdlib
 import abc
+import string
 import inspect
 import operator
 
@@ -31,6 +32,7 @@ from .adapter import VertexMixin, EdgeMixin
 
 # datastructures
 from canteen.util.struct import EMPTY
+from canteen.util.struct import BidirectionalEnum
 
 
 # Globals / Sentinels
@@ -572,9 +574,20 @@ class AbstractModel(object):
         for prop, spec in filter(mcs._get_prop_filter(),
                                   properties.iteritems()):
 
+          if any((char not in string.lowercase for char in prop[1:])) and (
+              isinstance(spec, type) and issubclass(spec, BidirectionalEnum)):
+            modelclass[prop] = spec
+            continue  # camel-case properties should be skipped for init
+
           # build a descriptor object and data slot
           basetype, options = (
             (spec, {}) if not isinstance(spec, tuple) else spec)
+
+          # simple strings should accept both str and unicode
+          if basetype is str: basetype = basestring
+
+          # (note that specifying unicode explicitly only accepts unicode)
+
           property_map[prop] = Property(prop, basetype, **options)
 
         # drop non-data-properties into our ``_nondata_map``
@@ -1220,6 +1233,12 @@ class Property(object):
         :raises:
         :returns: """
 
+    # shim choices in from enum
+    if isinstance(basetype, type) and (
+        issubclass(basetype, BidirectionalEnum)) and not (
+          options.get('choices')):
+      options['choices'] = [choice for (key, choice) in basetype]
+
     # copy locals specified above onto object properties of the same name,
     # specified in `self.__slots__`
     map(lambda args: setattr(self, *args), (
@@ -1313,11 +1332,15 @@ class Property(object):
         (v is not self._sentinel) and isinstance(v, (
                                       self._basetype, type(None)))):
         continue
-      if isinstance(self._basetype, type) and issubclass(self._basetype, Model):
-        if self._options.get('embedded') and isinstance(v, self._basetype):
-          continue  # embedded & compliant model
-        elif not self._options.get('embedded') and isinstance(v, Key):
-          continue  # non-embedded & compliant key
+      if isinstance(self._basetype, type):
+        if issubclass(self._basetype, Model):
+          if self._options.get('embedded') and isinstance(v, self._basetype):
+            continue  # embedded & compliant model
+          elif not self._options.get('embedded') and isinstance(v, Key):
+            continue  # non-embedded & compliant key
+        elif issubclass(self._basetype, BidirectionalEnum):
+          if v in self._basetype:
+            continue  # consider bidirectional enums
 
       raise exceptions.InvalidPropertyValue(*(
         self.name, instance.kind(), type(v).__name__, self._basetype.__name__))
@@ -1340,6 +1363,15 @@ class Property(object):
   clone = lambda self: self.__class__(self.name, self._basetype, self._default,
                                       self._required, self._repeated,
                                       self._indexed, **self._options)
+
+  # config accessors
+  basetype, default, required, repeated, indexed, options = (
+    property(lambda self: self._basetype),
+    property(lambda self: self._default),
+    property(lambda self: self._required),
+    property(lambda self: self._repeated),
+    property(lambda self: self._indexed),
+    property(lambda self: self._options))
 
   ## == Query Overrides (Operators) == ##
   __sort__ = lambda self, direction: (  # internal sort spawn

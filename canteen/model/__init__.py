@@ -411,6 +411,8 @@ class AbstractKey(object):
 
         :returns: ``self``, for chainability. """
 
+    if value is '': value = None
+
     # fail if we're already persisted (unless we're updating the owner)
     if self.__persisted__ and name != 'owner':
       raise exceptions.PersistedKey(name)
@@ -1174,7 +1176,7 @@ class Key(AbstractKey):
       self.__kind__ = parts[0]
 
     # if we *know* this is an existing key, `_persisted` should be `true`
-    self._set_internal('parent', kwargs.get('parent') or None)
+    self._set_internal('parent', kwargs.get('parent'))
 
     # also set kwarg-passed parent.
     self._set_internal('persisted', kwargs.get('_persisted'))

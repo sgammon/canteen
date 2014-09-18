@@ -569,7 +569,7 @@ class RedisAdapter(DirectedGraphAdapter):
       elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
         # build key and extract group
-        desired_key = model.Key.from_raw(flattened)
+        desired_key = model.Key.from_raw(joined)
         root = (ancestor for ancestor in desired_key.ancestry).next()
         tail = (
           desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (

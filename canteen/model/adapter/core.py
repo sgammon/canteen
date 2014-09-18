@@ -367,15 +367,19 @@ class DictMixin(ModelMixin):
             # @TODO(sgammon): decide sensible logic here
 
             # if mapping is an explicit key, conver it to a string
-            if _property_descriptor._basetype is model.Key:
+            if _property_descriptor._basetype is model.Key and (
+                  convert_keys):
               dictionary[name] = value.urlsafe()
             else:
               dictionary[name] = value
 
           else:
-            # embedded set to ``False`` explicitly should yield a urlsafed key
-            dictionary[name] = (
-              value if isinstance(value, model.Key) else value.key).urlsafe()
+            if isinstance(value, model.Key) and convert_keys:
+              dictionary[name] = value.urlsafe()
+            elif isinstance(value, model.Model) and convert_models:
+              dictionary[name] = value.to_dict()
+            else:
+              dictionary[name] = value
       else:
         dictionary[name] = value
     return dictionary

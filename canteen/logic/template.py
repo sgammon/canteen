@@ -209,7 +209,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         routines. """
 
     def __init__(self, module, sources, target, config,
-                                prefix=_DEFAULT_MODULE_PREFIX):
+                                prefix=_DEFAULT_MODULE_PREFIX,
+                                debug=False):
 
       """ Initialize this ``TemplateCompiler``.
 
@@ -228,10 +229,16 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
             configuration.
 
           :param prefix: Module prefix to prepend to compiled template
-            imports. """
+            imports.
+
+          :param debug: Debug flag (``bool``) specifying whether we should
+            output a bunch of noise about what's going on. Defaults to
+            ``False``, in which case nothing is outputted. """
 
       self.module, self.sources, self.target, self.config, self.prefix = (
         module, sources, target, config, prefix)
+
+      self.debug = debug
 
       # apply again
       compiler.CodeGenerator.visit_Template = template_ast
@@ -400,7 +407,8 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           path.join(destination, filename.replace('-', '_')))
 
         # @TODO(sgammon): compiling file
-        print('Compiling %s...' % filename)
+        if self.debug:
+          print('Compiling %s...' % filename)
 
         if path.isdir(source_name):
           self.mkdir_p(destination_name)

@@ -952,7 +952,8 @@ class RedisAdapter(DirectedGraphAdapter):
           else:  # pragma: no cover
             raise ValueError('Got invalid value in graph index bundle'
                              ' that was neither a `basestring` or `VertexKey`'
-                             ' or `EdgeKey`. Instead, got: "%s".' % repr(_item))
+                             ' or `EdgeKey`. Instead, got: "%s"'
+                             ' of type "%s".' % (repr(_item), type(_item)))
 
         # slice key and value into args
         gbase, gtoken, gtarget = tuple(_components)
@@ -1345,8 +1346,18 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # if we're doing keys only, we're done
         if options.keys_only and not (_and_filters or _or_filters):
-          return (
-            [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys])
+
+          results = []
+          for k in matching_keys:
+            # @TODO(sgammon): unambiguous key classes
+            vanilla = model.Key.from_urlsafe(k, _persisted=True)
+            if vanilla.kind != _base_kind.kind():
+              _base_kind = cls.registry.get(vanilla.kind, _base_kind)
+              results.append(
+                _base_kind.__keyclass__.from_urlsafe(k, _persisted=True))
+            else:
+              results.append(vanilla)
+          return results
 
     result_entities = []  # otherwise, build entities and return
 
@@ -1389,6 +1400,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # decode raw entity + attach key
         decoded = cls.get(key=None, _entity=entity)
+
         decoded['key'] = key
 
         if _and_filters or _or_filters:
@@ -1403,6 +1415,8 @@ class RedisAdapter(DirectedGraphAdapter):
         # if key kind doesn't match base, find suitable impl class
         if key.kind != _base_kind.kind():
           _base_kind = cls.registry.get(key.kind, _base_kind)
+          decoded['key'] = (
+            _base_kind.__keyclass__.from_urlsafe(decoded['key'].urlsafe()))
 
         # inflate and get ready to return
         _inflated = _base_kind(_persisted=True, **decoded)

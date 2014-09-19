@@ -817,6 +817,7 @@ class GraphModelAdapter(IndexedModelAdapter):
            and ``graph`` is a bundle of special indexes for ``Vertex`` and
            ``Edge`` keys. """
 
+    from .. import Key
     from .. import Model
 
     if key is None and not properties:  # pragma: no cover
@@ -867,6 +868,10 @@ class GraphModelAdapter(IndexedModelAdapter):
 
             for target in entity.target:
 
+              if isinstance(target, Key) and not isinstance(target, VertexKey):
+                # @TODO(sgammon): unambiguous graph keys
+                target = VertexKey.from_urlsafe(target.urlsafe())
+
               # __graph__::<source>::out => edge
               graph.append((entity.source, cls._out_token, entity.key))
 
@@ -884,7 +889,17 @@ class GraphModelAdapter(IndexedModelAdapter):
 
             _indexed_pairs = set()
             for o, source in enumerate(entity.peers):
+
+              if isinstance(source, Key) and not isinstance(source, VertexKey):
+                # @TODO(sgammon): unambiguous graph keys
+                source = VertexKey.from_urlsafe(source.urlsafe())
+
               for i, target in enumerate(entity.peers):
+
+                if isinstance(target, Key) and not isinstance(target,
+                                                              VertexKey):
+                  # @TODO(sgammon): unambiguous graph keys
+                  target = VertexKey.from_urlsafe(target.urlsafe())
 
                 # skip if it's the same object in the pair
                 if o == i: continue

@@ -17,6 +17,7 @@
 import json
 import base64
 import datetime
+import collections
 
 # adapter API
 from . import abstract
@@ -878,11 +879,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
     from canteen import model
 
-    if isinstance(joined, model.Key):
-      return joined.urlsafe()
-
-    if cls.EngineConfig.encoding:
-      return abstract._encoder(joined)
+    if isinstance(joined, model.Key): return joined.urlsafe()
+    if cls.EngineConfig.encoding: return abstract._encoder(joined)
     return joined
 
   @classmethod
@@ -1044,12 +1042,7 @@ class RedisAdapter(DirectedGraphAdapter):
             hash_c.append(unicode(magic_symbol))
             args.append(sanitized_value)  # add calculated score to args
           else:
-            magic_symbol = None
             args.append(sanitized_value)
-
-          #if hash_value:
-          #    hash_c.append(sanitized_value)
-
           args.append(origin)  # add key to args
 
         else:
@@ -1259,13 +1252,11 @@ class RedisAdapter(DirectedGraphAdapter):
                   lesser,
                   greater,
                   options.offset,
-                  options.limit
-                )))
+                  options.limit)))
 
                 continue
 
-          # single-filters
-          if len(_filters[prop]) == 1:
+          if len(_filters[prop]) == 1:  # single-filters
 
             # extract info
             _operator = [operator for operator, value in _directives][0]
@@ -1312,16 +1303,14 @@ class RedisAdapter(DirectedGraphAdapter):
           _data_frame.append(cls.execute(*(
             cls.Operations.SET_MEMBERS,
             None,
-            _intersections.pop()
-          )))
+            _intersections.pop())))
 
         # more than one intersection: do an `SINTER` call instead of `SMEMBERS`
         if _intersections and len(_intersections) > 1:
           _data_frame.append(cls.execute(*(
             cls.Operations.SET_INTERSECT,
             None,
-            _intersections
-          )))
+            _intersections)))
 
       if _data_frame:  # there were results, start merging
         _result_window = set()
@@ -1339,33 +1328,41 @@ class RedisAdapter(DirectedGraphAdapter):
     else:
       if not sorts:
 
-        # grab all entities of this kind
-        prefix = model.Key(kind, 0, parent=ancestry_parent)
-        prefix = prefix.urlsafe().replace('=', '')[0:-3]
-        matching_keys = cls.execute(*(cls.Operations.KEYS,
-                                      kind.kind(),
-                                      prefix + '*'))  # regex search it. why not
+        # pull all entities for this kind
+        kind_index_name = None
+        encoded, indexes, property_map = (
+          cls.generate_indexes(model.Key(kind, 0), None, None))
+        for bundle in indexes:
+          if len(bundle) == 2:
+            metakey, metaprefix = bundle
+            if metakey == cls._kind_prefix:
+              matching_keys = cls.execute(*(cls.Operations.SET_MEMBERS,
+                                            kind.kind(),
+                                            cls._magic_separator.join(bundle)))
+
+          else:
+            continue  # only interested in meta indexes for kinds
 
         # if we're doing keys only, we're done
         if options.keys_only and not (_and_filters or _or_filters):
           return (
             [model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys])
 
-    # otherwise, build entities and return
-    result_entities = []
+    result_entities = []  # otherwise, build entities and return
 
     # fetch keys
     with cls.channel(kind.kind()).pipeline() as pipeline:
 
       # fill pipeline
-      _seen_results = 0
+      _seen_results, _queued = 0, collections.deque()
       for key in matching_keys:
         if (not (_and_filters or _or_filters)) and (
                 0 < options.limit <= _seen_results):
           break
         _seen_results += 1
 
-        decoded_k, base_kind = model.Key(urlsafe=key), None
+        decoded_k, _base_kind = (
+          model.Key.from_urlsafe(key, _persisted=True), None)
         if not decoded_k.kind == kind.kind():
           _base_kind = cls.registry.get(kind.kind())
         if decoded_k.kind == kind.kind() or not _base_kind:
@@ -1374,34 +1371,27 @@ class RedisAdapter(DirectedGraphAdapter):
         if not _base_kind:  # pragma: no cover
           raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
 
-        decoded_k = _base_kind.__keyclass__(urlsafe=key)
+        # @TODO(sgammon): make vertex/edge keys unambiguous
+        decoded_k = _base_kind.__keyclass__.from_urlsafe(key)
 
         # queue fetch of key
+        _queued.append(decoded_k)
         pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
+
+        if (options.limit > 0) and _seen_results >= options.limit:
+          break  # break early to avoid pulling junk entities
 
       _blob_results = pipeline.execute()
 
       # execute pipeline, zip keys and build results
-      for key, entity in zip([
-        model.Key.from_urlsafe(k, _persisted=True) for k in matching_keys], (
-            _blob_results)):
+      for key, entity in zip(_queued, _blob_results):
+        if not entity: continue  # skip entities that couldn't be found
 
-        _seen_results = 0
-
-        if not entity:
-          continue
-
-        if (options.limit > 0) and _seen_results >= options.limit:
-          break
-
-        # decode raw entity
+        # decode raw entity + attach key
         decoded = cls.get(key=None, _entity=entity)
-
-        # attach key, decode entity and construct
         decoded['key'] = key
 
         if _and_filters or _or_filters:
-
           if _and_filters and not all((
                   (_filter.match(decoded) for _filter in _and_filters))):
             continue  # doesn't match one of the filters
@@ -1410,11 +1400,12 @@ class RedisAdapter(DirectedGraphAdapter):
                   (_filter.match(decoded) for _filter in _or_filters))):
             continue  # doesn't match any of the `or` filters
 
-        # matches, by the grace of god
-        _seen_results += 1
+        # if key kind doesn't match base, find suitable impl class
+        if key.kind != _base_kind.kind():
+          _base_kind = cls.registry.get(key.kind, _base_kind)
 
-        _inflated = cls.registry.get(key.kind, kind)(_persisted=True, **decoded)
+        # inflate and get ready to return
+        _inflated = _base_kind(_persisted=True, **decoded)
         result_entities.append(_inflated.key if options.keys_only else (
                                _inflated))
-
     return result_entities

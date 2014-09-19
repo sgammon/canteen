@@ -1264,7 +1264,25 @@ class Property(object):
         :raises:
         :returns: """
 
-    if instance:  # proxy to internal entity method.
+    if isinstance(instance, Model):  # proxy to internal entity method.
+
+      is_empty = (
+        instance._get_value(self.name, default=Property._sentinel) is (
+          Property._sentinel))
+      if (self._options.get('embedded') is True) and (
+              isinstance(self._basetype, type)) and (
+              issubclass(self._basetype, Model)):
+
+        # if we're an embedded submodel and so far we're unset, initialize
+        # the property first with an empty instance
+        if is_empty and not instance.__explicit__:
+          ## @TODO(sgammon): embedded models that know about their encapsulators
+          instance._set_value(self.name, self._basetype(), False)
+
+        elif is_empty and instance.__explicit__ and not value:
+          # if we have an empty or missing submodel in explicit mode, return
+          # value directly, which should be the empty sentinel
+          return Property._sentinel
 
       # grab value, returning special
       # a) property default or
@@ -1594,6 +1612,70 @@ class EdgeSpec(object):
         self.peering.kind() if issubclass(self.peering, Model) else ', '.join((
           k.kind() for k in self.peering))))
 
+  def _set_value(self, name, value=EMPTY, _dirty=True):
+
+    """ Overrides setting standard values so that edges can have special
+        behavior for the `source`/`target` and `peers` properties that are
+        injected upon :py:class:`Edge` construction.
+
+        :param name:
+        :param value:
+        :param _dirty:
+
+        :raises:
+        :returns: """
+
+    from canteen import model
+
+    # we are setting a special property under these cases:
+    # 1) the edge has no 'spec', prop name is 'peers'/'source'/'target'
+    # 2) the edge has a spec, is directed, and prop name is 'source' or 'target'
+    # 3) the edge has a spec, is undirected, and prop name is 'peers'
+    if ((not hasattr(self, '__spec__')) and name in (
+         frozenset(('peers', 'source', 'target'))) or (
+         hasattr(self, '__spec__') and (
+            (not self.__spec__.directed and name == 'peers') or (
+            (self.__spec__.directed and name in ('source', 'target')))))):
+
+      # must be an instance of `model.Model` or `model.Key`
+      if not isinstance(value, (model.Model, model.Key)):
+        raise TypeError('`Edge` property `%s` can only accept an instance'
+                        ' of `model.Model` or `model.Key`, but got'
+                        ' "%s" instead.' % (name, value))
+      elif isinstance(value, model.Model):
+        # convert to instance key
+        if value.key is None:
+          raise ValueError('`Edge` property `%s` can only accept a model with'
+                           ' an assigned `model.Key`. Instead, got instance'
+                           ' without key: "%s".' % (name, value))
+        value = value.key
+
+      if not value:
+        raise ValueError('`Edge` property `%s` can only accept a complete key,'
+                         ' but instead got: "%s".' % (name, value))
+
+    if not name: return self  # empty strings or dicts or iterables return self
+
+    if isinstance(name, (list, dict)):
+      if isinstance(name, dict):
+        name = name.items()  # convert dict to list of tuples
+      # filter out flags from caller
+      return [self._set_value(k, i, _dirty=_dirty) for k, i in name if (
+        k not in ('key', '_persisted'))]
+
+    # allow a tuple of (name, value), for use in map/filter/etc
+    if isinstance(name, tuple):  # pragma: no cover
+      name, value = name
+
+    if name == 'key':  # if it's a key, set through _set_key
+      return self._set_key(value).owner  # returns `self` :)
+
+    if name in self.__lookup__:  # check property lookup
+      # if it's a valid property, create a namedtuple value placeholder
+      self.__data__[name] = self.__class__._PropertyValue(value, _dirty)
+      return self
+    raise exceptions.InvalidAttribute('set', name, self.kind())
+
 
 class Edge(Model):
 
@@ -1612,10 +1694,10 @@ class Edge(Model):
 
       """ DOCSTRING """
 
-      if '__spec__' in pmap and pmap['__spec__'].directed:
-        pmap['source'] = VertexKey, {'required': True}
+      if '__spec__' not in pmap or pmap['__spec__'].directed:
+        pmap['source'] = VertexKey
         pmap['target'] = VertexKey, {'repeated': True}
-      elif '__spec__' not in pmap or (
+      if '__spec__' not in pmap or (
            '__spec__' in pmap and not pmap['__spec__'].directed):
         pmap['peers'] = VertexKey, {'indexed': True, 'repeated': True}
       return super(mcs, mcs).initialize(name, bases, pmap)

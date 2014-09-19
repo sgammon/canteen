@@ -56,9 +56,16 @@ class AdaptedKey(KeyMixin):
         :param join:
         :returns: """
 
-    flat = tuple((
-      i if not isinstance(i, self.__class__) else i.flatten(join)) for i in (
-      map(lambda x: getattr(self, x), reversed(self.__schema__))))
+    from canteen import model
+
+    flat = []
+    for element in (getattr(self, i) for i in reversed(self.__schema__)):
+      if not isinstance(element, model.Key):
+        flat.append(element)
+      else:
+        flat.append(element.flatten(join))
+
+    flat = tuple(flat)
     if join:
       return self.__class__.__separator__.join([
         u'' if i is None else unicode(i) for i in (
@@ -328,9 +335,10 @@ class DictMixin(ModelMixin):
       # run map fn over (name, value)
       _property_descriptor = self.__class__.__dict__[name]
 
+
       # pull with property default
-      name, value = map((name, self._get_value(name,
-                        default=self.__class__.__dict__[name]._default)))
+      _prop_default = self.__class__.__dict__[name]._default
+      name, value = map((name, self._get_value(name, default=_prop_default)))
 
       # run filter fn over (name, vlaue)
       filtered = filter((name, value))

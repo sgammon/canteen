@@ -78,7 +78,7 @@ if fakeredis:
       s.delete()
 
       ss = SampleEntity.get(x)
-      assert not ss
+      assert not ss, "should have deleted entity but instead got '%s'" % ss
 
 
   class RedisAdapterTopLevelBlobTests(test_abstract.DirectedGraphAdapterTests,

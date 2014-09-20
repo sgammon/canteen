@@ -541,7 +541,10 @@ class RedisAdapter(DirectedGraphAdapter):
     from canteen import model
 
     if key:
-      joined, flattened = key
+      encoded, flattened = key
+
+      # @TODO(sgammon): access to structured keys in adapters
+      joined, _ = model.Key.from_urlsafe(encoded).flatten(True)
 
       ## toplevel_blob
       if cls.EngineConfig.mode == RedisMode.toplevel_blob:
@@ -549,7 +552,7 @@ class RedisAdapter(DirectedGraphAdapter):
         # execute query
         result = _entity or (
           cls.execute(cls.Operations.GET, flattened[1],
-                        cls.encode_key(joined, flattened),
+                        encoded,
                         target=pipeline))
 
       ## hashkind_blob
@@ -730,7 +733,15 @@ class RedisAdapter(DirectedGraphAdapter):
 
     from canteen import model
 
-    joined, flattened = key
+    # @TODO(sgammon): access to structured keys in adapters
+
+    encoded, flattened = key
+    try:
+      joined, _ = model.Key.from_urlsafe(encoded).flatten(True)
+    except TypeError:
+      joined = encoded
+      encoded = cls.encode_key((joined, flattened))
+
 
     if cls.EngineConfig.mode == RedisMode.toplevel_blob:
 
@@ -744,7 +755,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
       # generate kinded key and trim tail
       kinded = model.Key(flattened[1]).flatten(True)
-      tail = base64.b64decode(joined).replace(kinded[0], '')
+      tail = joined.replace(kinded[0], '')
 
       # delegate to redis client
       return cls.execute(*(
@@ -756,7 +767,7 @@ class RedisAdapter(DirectedGraphAdapter):
     elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
 
       # build key and extract group
-      desired_key = model.Key.from_raw(flattened)
+      desired_key = model.Key.from_raw(joined)
       root = (ancestor for ancestor in desired_key.ancestry).next()
       tail = (
         desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
@@ -1387,7 +1398,10 @@ class RedisAdapter(DirectedGraphAdapter):
 
         # queue fetch of key
         _queued.append(decoded_k)
-        pipeline = cls.get(decoded_k.flatten(True), pipeline=pipeline)
+
+        joined, flattened = decoded_k.flatten(True)
+        pipeline = cls.get((cls.encode_key(joined, flattened), flattened),
+                           pipeline=pipeline)
 
         if (options.limit > 0) and _seen_results >= options.limit:
           break  # break early to avoid pulling junk entities

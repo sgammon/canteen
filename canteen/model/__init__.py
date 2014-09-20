@@ -868,7 +868,7 @@ class AbstractModel(object):
         ', '.join(['='.join([k, str(self.__data__.get(k, None))])
                    for k in self.__lookup__]))
 
-  __str__ = __unicode__ = __repr__  # map repr to str and unicode
+  #__str__ = __unicode__ = __repr__  # map repr to str and unicode
 
   def __setattr__(self, name, value, exception=exceptions.InvalidAttribute):
 
@@ -1654,7 +1654,27 @@ class Edge(Model):
         :raises:
         :returns: """
 
-    _keyify = lambda obj: obj.key if isinstance(obj, Vertex) else obj
+    _key_from_model = lambda obj: obj.key if isinstance(obj, Vertex) else obj
+    _keyify = lambda k: (
+      VertexKey.from_urlsafe(k) if isinstance(k, basestring) else (
+        _key_from_model(k)))
+
+
+    # @TODO(sgammon): better validation on inflation (directed vs not, etc)
+
+    if not source and not targets and 'peers' in properties:
+      source, target = tuple(properties['peers'])
+      targets = (target,)  # should be length of 1
+
+      if len(targets) > 1:
+        raise TypeError('Undirected `Edge` got multiple targets,'
+                        ' where only one was expected:'
+                        ' "%s".' % targets)
+
+    if not source and 'source' in properties:
+      source = properties['source']
+    if not targets and 'targets' in properties:
+      targets = properties['targets']
 
     if (source is None or not targets) and not (
         properties.get('_persisted')):  # pragma: no cover

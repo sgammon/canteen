@@ -1437,7 +1437,7 @@ class Property(object):
           suitable for storage. """
 
     if callable(self._default):
-      return self._default()
+      return self._default(self)
     return self._default
 
   ## == Query Overrides (Operators) == ##

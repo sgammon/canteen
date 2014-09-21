@@ -1055,7 +1055,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
           # basestring is not allowed to be instantiated
           if converter is basestring:
-            converter = unicode
+            converter = cls.serializer.dumps
 
         ## Unpack index write
         if len(write) > 3:  # qualified value-key-mapping index

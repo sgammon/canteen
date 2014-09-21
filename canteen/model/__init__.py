@@ -20,10 +20,14 @@ import abc
 import string
 import inspect
 import operator
+import datetime
 
 # model components
 from . import query
 from . import exceptions
+
+# dateutil
+from dateutil import parser as dtparser
 
 # model adapters
 from .adapter import abstract, concrete
@@ -592,8 +596,10 @@ class AbstractModel(object):
           if basetype is str: basetype = basestring
 
           # (note that specifying unicode explicitly only accepts unicode)
-
-          property_map[prop] = Property(prop, basetype, **options)
+          if isinstance(basetype, Property):
+            property_map[prop] = basetype  # parent/explicit property
+          else:
+            property_map[prop] = Property(prop, basetype, **options)
 
         # drop non-data-properties into our ``_nondata_map``
         for prop, value in filter(mcs._get_prop_filter(inverse=True),
@@ -948,7 +954,7 @@ class AbstractModel(object):
       if (value == Property._sentinel and (not self.__explicit__)):
         if self.__class__.__dict__[name]._default != Property._sentinel:
           # return a prop's default in `implicit` mode
-          yield name, self.__class__.__dict__[name]._default
+          yield name, self.__class__.__dict__[name].default
         continue  # pragma: no cover
       yield name, value
     raise StopIteration()
@@ -984,6 +990,8 @@ class AbstractModel(object):
         if not value:
           if self.__explicit__ and value is Property._sentinel:
             return Property._sentinel  # return EMPTY sentinel in explicit mode
+          if callable(default):
+            return default(self)  # handle callable default values
           return default  # return default value passed in
         return value.data  # return property value
       raise exceptions.InvalidAttribute('get', name, self.kind())
@@ -1017,6 +1025,24 @@ class AbstractModel(object):
       return self._set_key(value).owner  # returns `self` :)
 
     if name in self.__lookup__:  # check property lookup
+
+      prop = self.__class__[name]  # extract property
+
+      # inflate ISO-formatted datetimes
+      if prop.basetype in (datetime.date, datetime.datetime) and not (
+          isinstance(value, (datetime.date, datetime.datetime))):
+        if isinstance(value, basestring):
+          # try to inflate from ISO
+          value = dtparser.parse(value)
+          if prop.basetype is datetime.date:
+            value = value.date
+
+        elif isinstance(value, (int, float)):
+          # try to inflate from timestamp
+          value = datetime.datetime.fromtimestamp(value) if (
+            prop.basetype is datetime.datetime) else (
+            datetime.date.fromtimestamp(value))
+
       # if it's a valid property, create a namedtuple value placeholder
       self.__data__[name] = self.__class__._PropertyValue(value, _dirty)
       return self
@@ -1279,7 +1305,7 @@ class Property(object):
           ## @TODO(sgammon): embedded models that know about their encapsulators
           instance._set_value(self.name, self._basetype(), False)
 
-        elif is_empty and instance.__explicit__ and not value:
+        elif is_empty and instance.__explicit__:
           # if we have an empty or missing submodel in explicit mode, return
           # value directly, which should be the empty sentinel
           return Property._sentinel
@@ -1392,13 +1418,27 @@ class Property(object):
                                       self._indexed, **self._options)
 
   # config accessors
-  basetype, default, required, repeated, indexed, options = (
+  basetype, required, repeated, indexed, options = (
     property(lambda self: self._basetype),
-    property(lambda self: self._default),
     property(lambda self: self._required),
     property(lambda self: self._repeated),
     property(lambda self: self._indexed),
     property(lambda self: self._options))
+
+  @property
+  def default(self):
+
+    """ Accessor that collapses callback-based default values or returns any
+        explicitly-set default value for a ``Property`` object.
+
+        :returns: Default value at ``self._default`` if explicitly set. If
+          ``self._default`` is a callable, it is called with the local model
+          as the first and only parameter, and expected to return a value
+          suitable for storage. """
+
+    if callable(self._default):
+      return self._default()
+    return self._default
 
   ## == Query Overrides (Operators) == ##
   __sort__ = lambda self, direction: (  # internal sort spawn

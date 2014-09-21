@@ -16,6 +16,7 @@
 # stdlib
 import json
 import base64
+import datetime
 import collections
 
 # mixin adapters
@@ -294,7 +295,7 @@ class DictMixin(ModelMixin):
   def to_dict(self, exclude=tuple(), include=tuple(),
               filter=None, map=None, _all=False,
               filter_fn=filter, map_fn=map,
-              convert_keys=True, convert_models=True):
+              convert_keys=True, convert_models=True, convert_datetime=True):
 
     """ Export this Entity as a dictionary, excluding/including/ filtering/
         mapping as we go.
@@ -393,6 +394,9 @@ class DictMixin(ModelMixin):
               dictionary[name] = value.to_dict()
             else:
               dictionary[name] = value
+      elif isinstance(value, (datetime.date, datetime.datetime)):
+        dictionary[name] = (
+          value if not convert_datetime else value.isoformat())
       else:
         dictionary[name] = value
     return dictionary

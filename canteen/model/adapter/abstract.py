@@ -511,7 +511,8 @@ class IndexedModelAdapter(ModelAdapter):
 
     _map = {}
 
-    _edict = entity if isinstance(entity, dict) else entity.to_dict()
+    _edict = entity if isinstance(entity, dict) else entity.to_dict(
+      convert_datetime=False)
 
     # grab only properties enabled for indexing
     is_indexed = lambda x: entity.__class__.__dict__[x[0]]._indexed
@@ -557,8 +558,8 @@ class IndexedModelAdapter(ModelAdapter):
 
       # provision vars, generate meta indexes
       # meta indexes look like:
-      #  `__key__`, target
-      #  `__kind__`, target
+      #  (`__key__`,), target
+      #  (`__kind__`, kind), target
 
       encoded_key = cls.encode_key(*key.flatten(True)) or key.urlsafe()
       _meta_indexes.append((cls._key_prefix,))
@@ -569,7 +570,7 @@ class IndexedModelAdapter(ModelAdapter):
 
         # generate group indexes in the case of a nonvoid parent
         # group indexes look like:
-        #  `<trimmed-root-key>`, target
+        #  (`<group-key>`,), target
 
         _meta_indexes.append((cls._group_prefix,))
 
@@ -817,8 +818,7 @@ class GraphModelAdapter(IndexedModelAdapter):
            and ``graph`` is a bundle of special indexes for ``Vertex`` and
            ``Edge`` keys. """
 
-    from .. import Key
-    from .. import Model
+    from .. import Key, Model
 
     if key is None and not properties:  # pragma: no cover
       raise TypeError('Must pass at least `key` or `properties'
@@ -842,7 +842,6 @@ class GraphModelAdapter(IndexedModelAdapter):
     else:
       # defer upwards for regular indexes
       encoded, meta, properties = _super(key, properties)
-
 
     if key:
       # vertex keys

@@ -624,7 +624,8 @@ class RedisAdapter(DirectedGraphAdapter):
     from canteen import model as _model
 
     # reduce entity to dictionary
-    serialized = entity if isinstance(entity, dict) else entity.to_dict()
+    serialized = entity if isinstance(entity, dict) else (
+      entity.to_dict(convert_datetime=False))
     joined, flattened = key
 
     # clean key types

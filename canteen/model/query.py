@@ -169,8 +169,7 @@ class QueryOptions(object):
           properties.append((k, v))
 
     return "QueryOptions(%s)" % (
-      ", ".join(map(lambda (k, v): "=".join((k, str(v))), properties))
-    )
+      ", ".join(map(lambda (k, v): "=".join((k, str(v))), properties)))
 
   ## == Protected Methods == ##
   def _set_option(self, name, value=EMPTY, _setter=False):

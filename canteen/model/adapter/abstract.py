@@ -499,7 +499,7 @@ class IndexedModelAdapter(ModelAdapter):
     return super(IndexedModelAdapter, self)._delete(key)
 
   @staticmethod
-  def _pluck_indexed(entity):
+  def _pluck_indexed(entity, context=None, _map=None):
 
     """ Zip and pluck only properties that should be indexed. Simply returns a
         set of property descriptors, mapped to ehtir names in a ``dict``, if
@@ -509,16 +509,25 @@ class IndexedModelAdapter(ModelAdapter):
 
         :returns: Map ``dict`` of properties to index. """
 
-    _map = {}
+    from canteen import model
 
+    _map = _map or {}
     _edict = entity if isinstance(entity, dict) else entity.to_dict(
       convert_datetime=False)
 
     # grab only properties enabled for indexing
     is_indexed = lambda x: entity.__class__.__dict__[x[0]]._indexed
     for k, v in filter(is_indexed, _edict.items()):
-      # attach property name, property class, value
-      _map[k] = (entity.__class__.__dict__[k], v)
+      prop = entity.__class__.__dict__[k]
+
+      if isinstance(prop._basetype, type) and (
+              issubclass(prop._basetype, model.Model) and (
+              prop._options.get('embedded'))):
+        _map = IndexedModelAdapter._pluck_indexed(getattr(entity, k), k, _map)
+
+      else:
+        # attach property name, property class, value
+        _map['.'.join((context, k)) if context else k] = (prop, v)
 
     return _map
 

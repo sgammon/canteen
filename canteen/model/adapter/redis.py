@@ -21,7 +21,8 @@ import collections
 
 # adapter API
 from . import abstract
-from .abstract import DirectedGraphAdapter
+from .abstract import (IndexedModelAdapter,
+                       DirectedGraphAdapter)
 
 # canteen util
 from canteen.util import struct
@@ -375,7 +376,10 @@ class RedisAdapter(DirectedGraphAdapter):
             _default_profile = name
           elif not _default_profile:  # pragma: no cover
             _default_profile = name
-          _server_profiles[name] = config
+          if isinstance(config, basestring):
+            _server_profiles[name] = redis.from_url(config)
+          else:
+            _server_profiles[name] = config
 
       if not _default_profile:
         # still no default? inject sensible defaults
@@ -404,7 +408,8 @@ class RedisAdapter(DirectedGraphAdapter):
 
     if not (__debug__ and cls.__testing__):  # pragma: no cover
 
-      impl, profile = cls.adapter.StrictRedis, None
+      impl, pool, profile = (
+        cls.adapter.StrictRedis, cls.adapter.ConnectionPool, None)
 
       # convert to string kind if we got a model class
       if not isinstance(kind, basestring) and kind is not None:
@@ -416,9 +421,18 @@ class RedisAdapter(DirectedGraphAdapter):
 
       # check kind-specific profiles
       if kind in _profiles_by_model.get('index', set()):  # pragma: no cover
-        client = _client_connections[kind] = (
-          impl(**_profiles_by_model['map'].get(kind)))
-        return client
+        profile = _profiles_by_model['map'].get(kind)
+        if 'unix_socket_path' in profile:
+          client = _client_connections[kind] = (
+            impl(**profile))
+          return client
+
+        max_connections = profile.get('max_connections', 1000)
+        if 'max_connections' in profile:
+          del profile['max_connections']
+        client = _client_connections[kind] = pool(
+          max_connections=max_connections, **profile)
+        return impl(connection_pool=client)
 
       # # @TODO(sgammon): patch client with connection/workerpool (if gevent)
 
@@ -602,6 +616,46 @@ class RedisAdapter(DirectedGraphAdapter):
     if isinstance(result, basestring):
       return cls.inflate(result)
     return result
+
+  def _put(self, entity, **kwargs):  # pragma: no cover
+
+    """ Overrides low-level ``put`` process to enable pipelining of object
+        writes with their indexes.
+
+        :param entity: Entity :py:class:`model.Model` to persist.
+
+        :returns: Resulting :py:class:`model.Key` from write operation. """
+
+    _indexed_properties = self._pluck_indexed(entity)
+
+    # reuse pipeline passed, if any
+    if 'pipeline' in kwargs:
+      pipeline = kwargs['pipeline']
+      del kwargs['pipeline']
+    else:
+      pipeline = (
+        self.channel(entity.kind()).pipeline(transaction=True))
+
+    # provision ID early if there is none
+    if not entity.key.id:
+      entity.key.id = self.allocate_ids(entity.__keyclass__, entity.kind())
+
+    with pipeline as pipe:
+
+      # delegate write up the chain
+      written_key = super(IndexedModelAdapter, self)._put(entity,
+                                                        pipeline=pipe, **kwargs)
+
+      # proxy to `generate_indexes` and write indexes
+      origin, meta, property_map, graph = (
+        self.generate_indexes(entity.key, entity, _indexed_properties))
+
+      self.write_indexes((origin, meta, property_map), graph,
+                          pipeline=pipe, **kwargs)
+
+      # collapse pipelines
+      pipe.execute()
+      return written_key  # delegate up the chain for entity write
 
   @classmethod
   def put(cls, key, entity, model, pipeline=None):
@@ -1374,7 +1428,7 @@ class RedisAdapter(DirectedGraphAdapter):
     result_entities = []  # otherwise, build entities and return
 
     # fetch keys
-    with cls.channel(kind.kind()).pipeline() as pipeline:
+    with cls.channel(kind.kind()).pipeline(transaction=False) as pipeline:
 
       # fill pipeline
       _seen_results, _queued = 0, collections.deque()

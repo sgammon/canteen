@@ -772,6 +772,8 @@ class GraphModelAdapter(IndexedModelAdapter):
         :returns: Map ``dict`` of properties to index. """
 
     _map = IndexedModelAdapter._pluck_indexed(entity)
+
+    # don't index graph properties - they are resovled via graph indexes
     if hasattr(entity.__class__, '__edge__') and entity.__class__.__edge__:
       if 'peers' in _map: del _map['peers']
       if 'target' in _map: del _map['target']

@@ -31,11 +31,13 @@ class AdaptedKey(KeyMixin):
   """ Provides bridged methods between `model.Key` and the Adapter API. """
 
   ## = Public Methods = ##
-  def get(self):
+  def get(self, adapter=None):
 
     """ Retrieve a previously-constructed key from available persistence
         mechanisms. """
 
+    if adapter:
+      return adapter._get(self)
     return self.__adapter__._get(self)
 
   def delete(self):
@@ -131,7 +133,7 @@ class AdaptedModel(ModelMixin):
 
   ## = Public Class Methods = ##
   @classmethod
-  def get(cls, key=None, name=None, **kwargs):
+  def get(cls, key=None, name=None, adapter=None, **kwargs):
 
     """ Retrieve a persisted version of this model via the current model
         adapter.
@@ -147,15 +149,18 @@ class AdaptedModel(ModelMixin):
       raise ValueError('Must pass either a Key or'
                        ' key name into'
                        ' `%s.get`.' % cls.kind())  # pragma: no cover
+
+    adapter = adapter or cls.__adapter__
+
     if name:
       # if we're passed a name, construct a key with the local kind
-      return cls.__adapter__._get(cls.__keyclass__(cls.kind(), name), **kwargs)
+      return adapter._get(cls.__keyclass__(cls.kind(), name), **kwargs)
     if isinstance(key, basestring):
       # assume URL-encoded key, this is user-facing
       key = cls.__keyclass__.from_urlsafe(key)
     elif isinstance(key, (list, tuple)):
       key = cls.__keyclass__(*key)  # an ordered partslist is fine too
-    return cls.__adapter__._get(key, **kwargs)
+    return adapter._get(key, **kwargs)
 
   @classmethod
   def query(cls, *args, **kwargs):

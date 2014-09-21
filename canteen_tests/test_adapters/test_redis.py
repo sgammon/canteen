@@ -61,7 +61,7 @@ if fakeredis:
       s = SampleEntity(key=model.Key(SampleEntity, 'sample'),
                        string='hi',
                        number=5)
-      x = s.put()
+      x = s.put(adapter=self.subject())
 
       assert s.string == 'hi'
       assert s.number == 5
@@ -75,9 +75,9 @@ if fakeredis:
       """ Test deleting a basic entity from Redis with `RedisAdapter` """
 
       s, x, SampleEntity = self.test_put_entity()
-      s.delete()
+      s.delete(adapter=self.subject())
 
-      ss = SampleEntity.get(x)
+      ss = SampleEntity.get(x, adapter=self.subject())
       assert not ss, "should have deleted entity but instead got '%s'" % ss
 
 

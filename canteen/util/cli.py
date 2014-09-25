@@ -19,7 +19,6 @@
 
 # stdlib
 import sys
-import inspect
 import argparse
 import textwrap
 
@@ -73,10 +72,10 @@ class Tool(object):
         # is it a list of arguments?
         if isinstance(value, (list, tuple)) and key is 'arguments':
 
-          def _add_argument(_parser, _flag, _config):  # pragma: no cover
+          def _add_argument(_parser, _flag, _cfg):  # pragma: no cover
             if isinstance(_flag, tuple):
-              return _parser.add_argument(*_flag, **_config)
-            return _parser.add_argument(_flag, **_config)
+              return _parser.add_argument(*_flag, **_cfg)
+            return _parser.add_argument(_flag, **_cfg)
 
           for bundle in value:
             if len(bundle) == 2:
@@ -94,25 +93,23 @@ class Tool(object):
             ## bind helptext from __doc__
             sub = subparsers.add_parser((getattr(obj, 'name') if (
               hasattr(obj, 'name')) else obj.__name__).lower(), **{
-              'conflict_handler': 'resolve',
-              'help': textwrap.dedent(getattr(obj, '__doc__').strip()) if (
+                'conflict_handler': 'resolve',
+                'help': textwrap.dedent(getattr(obj, '__doc__').strip()) if (
                 hasattr(obj, '__doc__') and (
                   getattr(obj, '__doc__') is not None)) else None})
 
             sub.set_defaults(func=obj.execute)
-
             return sub
 
           _subtools.append((value, _add_subparser))
 
-        elif not key.startswith('__') and inspect.isfunction(value):
+        elif not key.startswith('__'):
 
-          # it's a method - should be static dammit
-          properties[key] = staticmethod(value)
-
-        elif not key.startswith('__') and not inspect.isfunction(value):
-          # well those are the only two options
-          continue  # pragma: no cover
+          if not isinstance(value, classmethod) and callable(value):
+            properties[key] = staticmethod(value)
+          else:
+            # let it through if it's marked as a classmethod
+            properties[key] = value
 
       # construct class
       klass = super(mcs, mcs).__new__(mcs, name, bases, properties)
@@ -166,9 +163,9 @@ class Tool(object):
     self.parser = parser  # assign local parser
 
     # local args
-    for callable, flag, _config in (
+    for _callable, flag, _config in (
       config.get('objects', {}).get('arguments', [])):
-      callable(parser, flag, _config)  # initialize each argument
+      _callable(parser, flag, _config)  # initialize each argument
 
     # local subtools
     if config.get('objects', {}).get('subtools', []):
@@ -182,6 +179,25 @@ class Tool(object):
       self(*_root_tool.parse_known_args())
     elif autorun:  # pragma: no cover
       self(_root_tool.parse_args())
+
+  @classmethod
+  def execute(cls, arguments):  # pragma: no cover
+
+    """ Execute the local ``Tool`` subclass against command-line-style args
+        at ``arguments``, which are passed in from ``argparse``.
+
+        :param arguments: Arguments object passed-in from ``argparse``, as an
+          instance of :py:class:`argparse.Namespace`, resulting from a call to
+          ``parser.parse_args``.
+
+        :return: Must return a truthy value (such as ``True``) to indicate that
+          whatever operation was requested completed successfully, or a falsy
+          value otherwise (such as ``False``). Failure values produce a Unix
+          exit code of ``1`` when running on the CLI, versus a code ``0`` for
+          success/truthy values. """
+
+    raise NotImplementedError('Command line tool "%s"'
+                              ' is not implemented.' % repr(cls))
 
   def __call__(self, arguments, unknown=None):  # pragma: no cover
 

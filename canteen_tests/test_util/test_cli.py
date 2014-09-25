@@ -36,6 +36,8 @@ class CLIToolsTests(FrameworkTest):
 
           """ execution flow """
 
+    assert isinstance(Sample.__dict__['execute'], staticmethod), (
+      "by default tool execution methods should be static")
     return Sample
 
   def test_construct_subtool(self):
@@ -50,10 +52,14 @@ class CLIToolsTests(FrameworkTest):
 
         """ sub-sample CLI tool """
 
-        def execute(arguments):
+        @classmethod
+        def execute(cls, arguments):
 
             """ sample """
 
+    assert isinstance(Sample.Subsample.__dict__['execute'], classmethod), (
+      "classmethods should be allowed as tool execution flows, instead got"
+      " '%s'" % repr(Sample.Subsample.execute))
     return Sample
 
   def test_construct_arguments(self):

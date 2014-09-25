@@ -502,7 +502,7 @@ class RedisAdapter(DirectedGraphAdapter):
               fakeredis and isinstance(target, fakeredis.FakePipeline)):
         getattr(target, operation.lower())(*args, **kwargs)
         return target
-      if operation == cls.Operations.HASH_SET:
+      if operation == cls.Operations.HASH_SET:  # pragma: no cover
         r = getattr(target, operation.lower())(*args, **kwargs)
         if r in (0, 1):
           # count 0 and 1 as success, as it indicates an overwrite,
@@ -672,28 +672,25 @@ class RedisAdapter(DirectedGraphAdapter):
         :param model: Schema :py:class:`model.Model` associated with the target
           ``entity`` being persisted.
 
+        :param pipeline: Existing pipeline of queued commands to append to, if
+          applicable.
+
         :returns: Result of the lower-level write operation. """
 
     from canteen import model as _model
 
     # reduce entity to dictionary
     serialized = entity if isinstance(entity, dict) else (
-      entity.to_dict(convert_datetime=False))
+      entity.to_dict(convert_datetime=False,
+                     convert_keys=True,
+                     convert_models=True))
     joined, flattened = key
 
     # clean key types
     _cleaned = {}
     for k, v in serialized.iteritems():
       prop = getattr(model, k)
-      if k in frozenset(('peers', 'target')) and (
-          issubclass(model, _model.Edge)):
-        _cleaned[k] = [iv.urlsafe() for iv in v]
-      elif k == 'source' and issubclass(model, _model.Edge) and (
-          isinstance(v, _model.Key)):
-        _cleaned[k] = v.urlsafe()
-      elif isinstance(v, (int, long, basestring, float)):
-        _cleaned[k] = v
-      elif isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
+      if isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
         _cleaned[k] = v.isoformat()
       else:
         _cleaned[k] = v

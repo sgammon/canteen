@@ -48,7 +48,8 @@ if __debug__:
 
   class BaseTest(unittest.TestCase):
 
-    """  """
+    """ Provides base code testing functionality, both for framework testing
+        and testing of applications written with Canteen. """
 
     __appconfig__ = None  # class-level assignment of app config state
     __orig_testing__ = None  # original CANTEEN_TESTING flag from environ
@@ -56,7 +57,10 @@ if __debug__:
     @classmethod
     def setUpClass(cls):  # pragma: no cover
 
-      """  """
+      """ Test class setup hook, in this case used for forcing the env var
+          ``CANTEEN_TESTING`` to exist.
+
+          :returns: ``None``. """
 
       if 'CANTEEN_TESTING' not in os.environ:  # pragma: no cover
         cls.__orig_testing__ = False  # no original flag
@@ -66,7 +70,10 @@ if __debug__:
     @classmethod
     def tearDownClass(cls):  # pragma: no cover
 
-      """  """
+      """ Test class teardown hook, in this case used to remove the env var
+          ``CANTEEN_TESTING`` if it was forced into existence.
+
+          :returns: ``None``. """
 
       if not cls.__orig_testing__:  # pragma: no cover
         del os.environ['CANTEEN_TESTING']
@@ -92,7 +99,7 @@ if __debug__:
         'wrappers': library.load('wrappers')
       })
 
-      def dispatch_endpoint(self):
+      def dispatch_endpoint(self):  # pragma: no cover
 
         """ Internal function to spawn a throwaway app instance for issuing a
             one-shot dispatch.
@@ -102,7 +109,7 @@ if __debug__:
 
         return spawn(None, config=config.Config(**self.__appconfig__))
 
-      def _spawn_client(self, wsgi_target=None):
+      def _spawn_client(self, wsgi_target=None):  # pragma: no cover
 
         """ Internal function to spawn a throwaway :py:mod:`werkzeug`-based HTTP
             :py:class:`werkzeug.test.Client` instance, for the purpose of
@@ -119,7 +126,7 @@ if __debug__:
           wsgi_target or self.__werkzeug__.testapp.test_app,
           semantics.HTTPSemantics.HTTPResponse))
 
-      def dispatch(self, app, method, *args, **kwargs):
+      def dispatch(self, app, method, *args, **kwargs):  # pragma: no cover
 
         """ Perform a WSGI dispatch against ``app``, with HTTP ``method`` and
             pass position ``args`` and keyword ``kwargs``.
@@ -154,14 +161,16 @@ if __debug__:
 
   class AppTest(BaseTest):
 
-    """  """
+    """ Provides an extension point for application developers to write tests
+        against applications written for ``Canteen``. """
 
     __root__, __owner__, __metaclass__ = True, 'AppTest', meta.Proxy.Registry
 
 
   class FrameworkTest(BaseTest):
 
-    """  """
+    """ Provides an extension point for Canteen developers (on the framework
+        itself) to create tests for builtin functionality. """
 
     __root__, __owner__, __metaclass__ = (
       True, 'FrameworkTest', meta.Proxy.Registry)
@@ -173,7 +182,17 @@ if __debug__:
           format='text',
           verbosity=1, **kwargs):  # pragma: nocover
 
-    """  """
+    """ Run a suite of test cases with an optional output plan, and optionally
+        scoping to only framework or application tests.
+
+         :param output:
+         :param suites:
+         :param scope:
+         :param format:
+         :param verbosity:
+         :param kwargs:
+
+         :returns: """
 
     # fill testsuite with found testcases
     master_suite, loader = [], unittest.TestLoader()
@@ -192,7 +211,13 @@ if __debug__:
 
     def filter_suite(suite):
 
-      """  """
+      """ Filter whole testsuites from being run by this tool if they don't
+          contain any substantive tests.
+
+          :param suite: Testsuite to filter.
+
+          :returns: ``True`` if the testsuite should be run, ``False``
+            otherwise. """
 
       if not suite.countTestCases():
         return False
@@ -234,7 +259,6 @@ if __debug__:
     runner = unittest.TextTestRunner(stream=output or sys.stdout,
                                      verbosity=verbosity, **kwargs)
     return runner.run(master_suite)
-
 
   def clirunner(arguments, root=None):  # pragma: nocover
 

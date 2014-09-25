@@ -28,23 +28,17 @@ from canteen.util import decorators
 
 
 try:
-  import zlib;
-
-  _compressor = zlib
+  import zlib; _compressor = zlib
 except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
 try:
-  import lz4;
-
-  _compressor = lz4
+  import lz4; _compressor = lz4
 except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
 try:
-  import snappy;
-
-  _compressor = snappy
+  import snappy; _compressor = snappy
 except ImportError:  # pragma: no cover
   pass  # pragma: no cover
 
@@ -160,7 +154,7 @@ class ModelAdapter(object):
     # optionally allow adapter to encode key
     encoded = self.encode_key(joined, flattened)
 
-    if not encoded:
+    if not encoded:  # pragma: no cover
       # otherwise, use regular base64 via `AbstractKey`
       encoded = key.urlsafe(joined)
 

@@ -19,6 +19,7 @@
 from __future__ import print_function
 
 
+# noinspection PyPep8Naming
 class classproperty(property):
 
   """ Custom decorator for class-level property getters.
@@ -26,6 +27,7 @@ class classproperty(property):
       ``@memoize``, as long as ``@memoize`` is used as
       the inner decorator. """
 
+  # noinspection PyMethodOverriding
   def __get__(self, instance, owner):
 
     """ Return the property value at the class level.
@@ -65,6 +67,7 @@ def singleton(target):
                      ' as singletons. Got: "%s".' % target)  # pragma: no cover
 
 
+# noinspection PyPep8Naming
 class bind(object):
 
   """ Encapsulated binding config for an injectable meta-implementor of
@@ -104,6 +107,7 @@ class bind(object):
 
     return "<binding '%s'>" % self.__alias__ or self.__target__.__name__
 
+  # noinspection PyUnresolvedReferences
   def __call__(self, target):
 
     """ Dispatch this binding (the second half of a closured decorator flow) by

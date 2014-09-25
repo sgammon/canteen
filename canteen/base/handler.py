@@ -360,38 +360,6 @@ class RealtimeHandler(Handler):
       connection receives a message from the client. It takes two parameters -
       the ``message`` itself and whether it is ``binary`` or not. """
 
-  __socket__ = None  # object to receive messages from and send messages to
-
-  def __init__(self, environ=None,
-               start_response=None,
-               runtime=None,
-               request=None,
-               response=None, **context):
-
-
-    """ Initialize a new ``RealtimeHandler`` object with proper ``environ``
-        details and inform it of larger world around it. For detailed docs
-        about this method, see ``Handler.__init__``.
-
-        :param environ: WSGI environment, provided by active runtime. ``dict``
-          in standard WSGI format.
-
-        :param start_response: Callable to begin the response cycle.
-          Usually a vanilla ``function``.
-
-        :param runtime: Currently-active Canteen runtime. Always an instance of
-          :py:class:`canteen.core.runtime.Runtime` or a subclass thereof.
-
-        :param request: Object to use for ``self.request``. Usually an instance
-          of :py:class:`werkzeug.wrappers.Request`.
-
-        :param response: Object to use for ``self.response``. Usually an
-          instance of :py:class:`werkzeug.wrappers.Response`. """
-
-    self.__socket__ = None  # storage for socket object
-    super(RealtimeHandler, self).__init__(*(
-      environ, start_response, runtime, request, response), **context)
-
   def dispatch(self, **url_args):
 
     """ Adapt regular handler dispatch to support an acyclic/realtime-style
@@ -411,8 +379,7 @@ class RealtimeHandler(Handler):
 
     try:
       # websocket upgrade and session
-      self.__socket__ = None
-      self.realtime.on_connect(self.runtime, self.request)
+      self.realtime.on_connect(self.on_connect)
 
       # bind local on_message and begin realtime flow
       self.realtime.on_message(*(

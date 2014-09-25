@@ -343,7 +343,7 @@ class DictMixin(ModelMixin):
 
 
       # pull with property default
-      _prop_default = self.__class__.__dict__[name]._default
+      _prop_default = self.__class__.__dict__[name].default
       name, value = map((name, self._get_value(name, default=_prop_default)))
 
       # run filter fn over (name, vlaue)
@@ -356,49 +356,62 @@ class DictMixin(ModelMixin):
       if not _default_include:
         if name not in include: continue
 
-      if value is _property_descriptor._sentinel:  # property is unset
+      if value is _property_descriptor.sentinel:  # property is unset
         # if it matches an item in a custom include list,
         # and/or we don't want all properties...
         if not _all and not ((not _default_include) and name in include):
           continue  # skip if all properties not requested
         else:
           if not self.__explicit__:  # None == sentinel in implicit mode
-            value = None
-      if isinstance(value, (model.Model, model.Key)):
-        if _property_descriptor._options.get('embedded'):
-          if isinstance(value, model.Key):
-            raise RuntimeError('Cannot reference embedded submodel'
-                               ' by key "%s".' % repr(value))
-          dictionary[name] = value.to_dict()
-        else:
-          if isinstance(value, model.Model) and not value.key:
-            raise RuntimeError('Cannot reference non-embedded submodel'
-                               ' "%s" with empty key.' % repr(value))
+            dictionary[name] = None
+            continue
 
-          # no embedded status means it should be left as-is
-          elif _property_descriptor._options.get('embedded') is None:
+      _bundle = []
 
-            # @TODO(sgammon): decide sensible logic here
+      # validate inner value which may be repeated
+      for _val in ((value,) if not isinstance(value, (list, tuple)) else value):
 
-            # if mapping is an explicit key, conver it to a string
-            if _property_descriptor._basetype is model.Key and (
-                  convert_keys):
-              dictionary[name] = value.urlsafe()
-            else:
-              dictionary[name] = value
-
+        if isinstance(_val, (model.Model, model.Key)):
+          if _property_descriptor.options.get('embedded'):
+            if isinstance(_val, model.Key):
+              raise RuntimeError('Cannot reference embedded submodel'
+                                 ' by key "%s".' % repr(_val))
+            _bundle.append(_val.to_dict() if convert_models else _val)
           else:
-            if isinstance(value, model.Key) and convert_keys:
-              dictionary[name] = value.urlsafe()
-            elif isinstance(value, model.Model) and convert_models:
-              dictionary[name] = value.to_dict()
+            if isinstance(_val, model.Model) and not _val.key:
+              raise RuntimeError('Cannot reference non-embedded submodel'
+                                 ' "%s" with empty key.' % repr(_val))
+
+            # no embedded status means it should be left as-is
+            elif _property_descriptor.options.get('embedded') is None:
+
+              # @TODO(sgammon): decide sensible logic here
+
+              # if mapping is an explicit key, conver it to a string
+              if _property_descriptor.basetype is model.Key and (
+                    convert_keys):
+                _bundle.append(_val.urlsafe())
+              else:
+                _bundle.append(_val)
+
             else:
-              dictionary[name] = value
-      elif isinstance(value, (datetime.date, datetime.datetime)):
+              if isinstance(value, model.Key) and convert_keys:
+                _bundle.append(_val.urlsafe())
+              elif isinstance(value, model.Model) and convert_models:
+                _bundle.append(_val.to_dict())
+              else:
+                _bundle.append(_val)
+        elif isinstance(value, (datetime.date, datetime.datetime)):
+          _bundle.append((
+            _val if not convert_datetime else _val.isoformat()))
+        else:
+          _bundle.append(_val)
+
+      if _property_descriptor.repeated:
         dictionary[name] = (
-          value if not convert_datetime else value.isoformat())
+          tuple(_bundle) if isinstance(value, tuple) else _bundle)
       else:
-        dictionary[name] = value
+        dictionary[name] = _bundle.pop()
     return dictionary
 
   @classmethod

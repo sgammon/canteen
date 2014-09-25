@@ -54,7 +54,7 @@ from canteen.util import struct as datastructures
 
 ## == Test Models == ##
 
-class Car(model.Model):
+class TestCar(model.Model):
 
   """ An automobile. """
 
@@ -72,7 +72,9 @@ class TestPerson(model.Vertex):
   firstname = basestring, {'indexed': True}
   lastname = basestring, {'indexed': True}
   active = bool, {'default': True}
-  cars = Car, {'repeated': True}
+  cars = TestCar, {'repeated': True}
+  cars_ref = model.Key, {'repeated': True}
+  cars_embedded = TestCar, {'repeated': True, 'embedded': True}
 
 
 class Friendship(TestPerson > TestPerson):
@@ -92,7 +94,7 @@ class ModelTests(FrameworkTest):
     """ Test constructing a `Model` manually """
 
     # construct our car record
-    car = Car(make='BMW', model='M3', year=2013, color='white')
+    car = TestCar(make='BMW', model='M3', year=2013, color='white')
 
     # construct our person record
     person = TestPerson()
@@ -100,12 +102,12 @@ class ModelTests(FrameworkTest):
     person.cars = [car]
 
     # perform tests
-    self.assertIsInstance(car, Car)
+    self.assertIsInstance(car, TestCar)
     self.assertIsInstance(person, TestPerson)
     self.assertEqual(person.firstname, 'John')
     self.assertIsInstance(person.cars, list)
     self.assertEqual(len(person.cars), 1)
-    self.assertIsInstance(person.cars[0], Car)
+    self.assertIsInstance(person.cars[0], TestCar)
 
     # test defaults
     self.assertEqual(person.active, True)
@@ -146,7 +148,7 @@ class ModelTests(FrameworkTest):
 
     """ Test proper inheritance structure for `Model` """
 
-    self.assertTrue(issubclass(Car, model.Model))
+    self.assertTrue(issubclass(TestCar, model.Model))
     self.assertTrue(issubclass(TestPerson, model.Model))
     self.assertTrue(issubclass(model.Model, model.AbstractModel))
 
@@ -406,6 +408,95 @@ class ModelTests(FrameworkTest):
       self.assertEqual(mapped_dict['active-cool'], True)
     return mapped_dict
 
+  def test_model_to_dict_convert_keys(self):
+
+    """ Test flattening a `Model` instance with key references to a dict """
+
+    # sample person
+    p = TestPerson(
+      key=model.Key(TestPerson, 'john'), firstname='John', lastname='Doe')
+
+    # john's cars
+    bmw = TestCar(
+      key=model.Key(TestCar, 'bmw'),
+      make='BMW', model='M3', color='white', year=1998)
+    civic = TestCar(
+      key=model.Key(TestCar, 'civic'),
+      make='Honda', model='Civic', color='black', year=2001)
+
+    p.cars_ref = (bmw.key, civic.key)
+
+    _john_raw = p.to_dict(convert_keys=False)  # without convert keys
+    _john_converted = p.to_dict(convert_keys=True)  # with convert_keys
+
+    assert bmw.key in _john_raw['cars_ref'], (
+      "expected key for car `BMW` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert civic.key in _john_raw['cars_ref'], (
+      "expected key for car `civic` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert bmw.key.urlsafe() in _john_converted['cars_ref'], (
+      "expected converted key for car `BMW` but found none"
+      " in object: '%s'." % _john_converted)
+
+    assert civic.key.urlsafe() in _john_converted['cars_ref'], (
+      "expected converted key for car `civic` but found none"
+      " in object: '%s'." % _john_converted)
+
+  def test_model_to_dict_convert_models(self):
+
+    """ Test flattening a `Model` instance with submodels to a dict """
+
+    # sample person
+    p = TestPerson(
+      key=model.Key(TestPerson, 'john'), firstname='John', lastname='Doe')
+
+    # john's cars
+    bmw = TestCar(
+      key=model.Key(TestCar, 'bmw'),
+      make='BMW', model='M3', color='white', year=1998)
+    civic = TestCar(
+      key=model.Key(TestCar, 'civic'),
+      make='Honda', model='Civic', color='black', year=2001)
+
+    p.cars_ref = (bmw.key, civic.key)
+    p.cars_embedded = (bmw, civic)
+
+    _john_raw = p.to_dict(convert_keys=False, convert_models=False)
+    _john_converted = p.to_dict(convert_keys=True, convert_models=True)
+
+    assert bmw in _john_raw['cars_embedded'], (
+      "expected object for car `BMW` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert civic in _john_raw['cars_embedded'], (
+      "expected object for car `civic` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert bmw.key in _john_raw['cars_ref'], (
+      "expected key for car `BMW` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert civic.key in _john_raw['cars_ref'], (
+      "expected key for car `civic` but found none"
+      " in object: '%s'." % _john_raw)
+
+    assert bmw.key.urlsafe() in _john_converted['cars_ref'], (
+      "expected converted key for car `BMW` but found none"
+      " in object: '%s'." % _john_converted)
+
+    assert civic.key.urlsafe() in _john_converted['cars_ref'], (
+      "expected converted key for car `civic` but found none"
+      " in object: '%s'." % _john_converted)
+
+    assert len(_john_converted['cars_embedded']) == 2
+    for i in _john_converted['cars_embedded']:
+      assert isinstance(i, dict), (
+        "submodels are expected to convert to dicts"
+        " when `convert_models` is active")
+
   def test_JSON_model_format(self):
 
     """ Test serializing a `Model` into a JSON struct """
@@ -663,7 +754,7 @@ class ModelTests(FrameworkTest):
     properties = p._get_value(None)
 
     # should be a list of tuples
-    self.assertEqual(len(properties), 4)
+    self.assertEqual(len(properties), 6)
     self.assertIsInstance(properties, list)
     self.assertIsInstance(properties[0], tuple)
 
@@ -898,17 +989,17 @@ class ModelTests(FrameworkTest):
 
     """ Test class-level property access on `Model` subclasses """
 
-    assert isinstance(Car.make, model.Property)
-    assert 'make' in Car.make.__repr__()
-    assert 'Property' in Car.make.__repr__()
+    assert isinstance(TestCar.make, model.Property)
+    assert 'make' in TestCar.make.__repr__()
+    assert 'Property' in TestCar.make.__repr__()
 
   def test_class_level_item_access(self):
 
     """ Test class-level item access on `Model` subclasses """
 
-    assert isinstance(Car['make'], model.Property)
-    assert 'make' in Car['make'].__repr__()
-    assert 'Property' in Car['make'].__repr__()
+    assert isinstance(TestCar['make'], model.Property)
+    assert 'make' in TestCar['make'].__repr__()
+    assert 'Property' in TestCar['make'].__repr__()
 
   def test_graph_class_existence(self):
 

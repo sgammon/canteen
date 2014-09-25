@@ -425,7 +425,7 @@ class AbstractKey(object):
       value = value.key  # pragma: no cover
     if name == 'id' and isinstance(value, basestring) and ':' in value:
       raise ValueError('Keynames may not contain the ":" character.'
-                       ' Got: "%s".' % value)
+                       ' Got: "%s".' % value)  # pragma: no cover
     setattr(self, '__%s__' % name, value)
     return self
 
@@ -585,7 +585,7 @@ class AbstractModel(object):
 
           if any((char not in string.lowercase for char in prop[1:])) and (
               isinstance(spec, type) and issubclass(spec, BidirectionalEnum)):
-            modelclass[prop] = spec
+            modelclass[prop] = spec  # pragma: no cover
             continue  # camel-case properties should be skipped for init
 
           # build a descriptor object and data slot
@@ -1243,7 +1243,7 @@ class Property(object):
 
   __metaclass__ = abc.ABCMeta  # enforce definition of `validate` for subclasses
   __slots__ = _PROPERTY_SLOTS  # setup slots for property options
-  _sentinel = EMPTY  # default sentinel for basetypes/values
+  _sentinel = sentinel = EMPTY  # default sentinel for basetypes/values
 
   ## = Internal Methods = ##
   def __init__(self, name, basetype,
@@ -1293,32 +1293,32 @@ class Property(object):
     if isinstance(instance, Model):  # proxy to internal entity method.
 
       is_empty = (
-        instance._get_value(self.name, default=Property._sentinel) is (
-          Property._sentinel))
-      if (self._options.get('embedded') is True) and (
-              isinstance(self._basetype, type)) and (
-              issubclass(self._basetype, Model)):
+        instance._get_value(self.name, default=Property.sentinel) is (
+          Property.sentinel))
+      if (self.options.get('embedded') is True) and (
+              isinstance(self.basetype, type)) and (
+              issubclass(self.basetype, Model)):
 
         # if we're an embedded submodel and so far we're unset, initialize
         # the property first with an empty instance
         if is_empty and not instance.__explicit__:
           ## @TODO(sgammon): embedded models that know about their encapsulators
-          instance._set_value(self.name, self._basetype(), False)
+          instance._set_value(self.name, self.basetype(), False)
 
         elif is_empty and instance.__explicit__:
           # if we have an empty or missing submodel in explicit mode, return
           # value directly, which should be the empty sentinel
-          return Property._sentinel
+          return Property.sentinel
 
       # grab value, returning special
       # a) property default or
       # b) sentinel if we're in explicit mode and it is unset
-      if self._default != Property._sentinel:  # we have a set default
-        value = instance._get_value(self.name, default=self._default)
+      if self.default != Property.sentinel:  # we have a set default
+        value = instance._get_value(self.name, default=self.default)
       else:
-        value = instance._get_value(self.name, default=Property._sentinel)
+        value = instance._get_value(self.name, default=Property.sentinel)
 
-      return None if (not value and (value == Property._sentinel) and
+      return None if (not value and (value == Property.sentinel) and
                       instance.__explicit__ is False) else value
 
     # otherwise, class-level access is always the property in question
@@ -1358,17 +1358,17 @@ class Property(object):
     value = instance._get_value(self.name)  # retrieve value
 
     # check required-ness
-    if (value in (None, self._sentinel)):
-      if self._required:
+    if value is None or value is self.sentinel:
+      if self.required:
         raise exceptions.PropertyRequired(self.name, instance.kind())
       # empty value, non-required, all good :)
       if value is self._sentinel: return True
 
     if isinstance(value, (list, tuple, set, frozenset)):  # check multi-ness
-      if not self._repeated:
+      if not self.repeated:
         raise exceptions.PropertyNotRepeated(self.name, instance.kind())
     else:
-      if self._repeated:
+      if self.repeated:
         raise exceptions.PropertyRepeated(self.name, instance.kind())
       value = (value,)  # make value iterable
 
@@ -1381,22 +1381,22 @@ class Property(object):
       #    - being a valid model and kind (if embedded)
       #    - being a valid key (if not embedded)
       # 4) the value is a `Key` and we are an `Edge` seeking a `VertexKey`
-      if self._basetype is None or (
-        (v is not self._sentinel) and isinstance(v, (
-                                      self._basetype, type(None)))):
+      if self.basetype is None or (
+        (v is not self.sentinel) and isinstance(v, (
+                                      self.basetype, type(None)))):
         continue
-      if isinstance(self._basetype, type):
-        if issubclass(self._basetype, Model):
-          if self._options.get('embedded') and isinstance(v, self._basetype):
+      if isinstance(self.basetype, type):
+        if issubclass(self.basetype, Model):
+          if self.options.get('embedded') and isinstance(v, self.basetype):
             continue  # embedded & compliant model
-          elif not self._options.get('embedded') and isinstance(v, Key):
+          elif not self.options.get('embedded') and isinstance(v, Key):
             continue  # non-embedded & compliant key
-        elif issubclass(self._basetype, BidirectionalEnum):
-          if v in self._basetype:
+        elif issubclass(self.basetype, BidirectionalEnum):
+          if v in self.basetype:
             continue  # consider bidirectional enums
 
       raise exceptions.InvalidPropertyValue(*(
-        self.name, instance.kind(), type(v).__name__, self._basetype.__name__))
+        self.name, instance.kind(), type(v).__name__, self.basetype.__name__))
     return True  # validation passed! :)
 
   def __repr__(self):

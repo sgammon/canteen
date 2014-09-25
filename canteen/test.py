@@ -179,7 +179,7 @@ if __debug__:
   def run(output=None,
           suites=None,
           scope=(AppTest, FrameworkTest),
-          format='text',
+          _format='text',
           verbosity=1, **kwargs):  # pragma: nocover
 
     """ Run a suite of test cases with an optional output plan, and optionally
@@ -188,7 +188,7 @@ if __debug__:
          :param output:
          :param suites:
          :param scope:
-         :param format:
+         :param _format:
          :param verbosity:
          :param kwargs:
 
@@ -209,17 +209,17 @@ if __debug__:
       for _suite in suites:
         master_suite.append(_suite)
 
-    def filter_suite(suite):
+    def filter_suite(_s):
 
       """ Filter whole testsuites from being run by this tool if they don't
           contain any substantive tests.
 
-          :param suite: Testsuite to filter.
+          :param _s: Testsuite to filter.
 
           :returns: ``True`` if the testsuite should be run, ``False``
             otherwise. """
 
-      if not suite.countTestCases():
+      if not _s.countTestCases():
         return False
       return True
 
@@ -227,7 +227,13 @@ if __debug__:
 
     def merge_suite(left, right):
 
-      """  """
+      """ Merge two testsuites' containing tests, into one testsuite.
+
+          :param left: The first testsuite to merge from.
+          :param right: The other testsuite to merge from.
+
+          :returns: :py:class:`unittest.TestSuite` instance merged of all tests
+            contained in ``left`` and ``right``. """
 
       _master = []
       for case in [test for test in left] + [test for test in right]:
@@ -246,25 +252,31 @@ if __debug__:
       filter(filter_suite, master_suite))))
 
     # allow for XML format
-    if format == 'xml':
+    if _format == 'xml':
       if output is None:
         output = ".develop/tests"
       try:
         # noinspection PyPackageRequirements
         import xmlrunner
-      except ImportError:
-        raise RuntimeError('Cannot generate XML output without `xmlrunner`.')
-      else:
         return xmlrunner.XMLTestRunner(output=output).run(master_suite)
+      except ImportError:
+        xmlrunner = False
+        raise RuntimeError('Cannot generate XML output without `xmlrunner`.')
     runner = unittest.TextTestRunner(stream=output or sys.stdout,
                                      verbosity=verbosity, **kwargs)
     return runner.run(master_suite)
 
   def clirunner(arguments, root=None):  # pragma: nocover
 
-    """  """
+    """ Discover and run known testsuites. Optionally scope to a certain
+        ``root`` directory, or provide alternate output options.
 
-    output, format = None, 'text'
+        :param arguments: Command-line arguments.
+        :param root: Root directory to run tests from.
+
+        :returns: Nothing, as ``sys.exit`` is called from this tool. """
+
+    output, _format = None, 'text'
 
     if not __debug__:
       raise RuntimeError('Cannot run tests with -O or -OO.')
@@ -277,9 +289,9 @@ if __debug__:
               " FORMAT and OUTPUT, or just FORMAT.")
         sys.exit(1)
       if len(arguments) == 2:
-        format, output = tuple(arguments)
+        _format, output = tuple(arguments)
       else:
-        format = arguments[0]
+        _format = arguments[0]
 
     discovered = None
     if root:
@@ -288,9 +300,9 @@ if __debug__:
 
     try:
       run(**{
-        'output': output or (sys.stdout if format is 'text' else None),
+        'output': output or (sys.stdout if _format is 'text' else None),
         'suites': discovered,
-        'format': format,
+        'format': _format,
         'verbosity': 5 if 'TEST_VERBOSE' in os.environ else (
           0 if 'TEST_QUIET' in os.environ else 1)
       })

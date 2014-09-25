@@ -27,6 +27,28 @@ from canteen.util import config
 from canteen.util import decorators
 
 
+try:
+  import zlib;
+
+  _compressor = zlib
+except ImportError:  # pragma: no cover
+  pass  # pragma: no cover
+
+try:
+  import lz4;
+
+  _compressor = lz4
+except ImportError:  # pragma: no cover
+  pass  # pragma: no cover
+
+try:
+  import snappy;
+
+  _compressor = snappy
+except ImportError:  # pragma: no cover
+  pass  # pragma: no cover
+
+
 ## Globals
 _adapters = {}
 _adapters_by_model = {}
@@ -41,21 +63,6 @@ _core_mixin_classes = (
 
 ## Computed Classes
 CompoundKey = CompoundModel = CompoundVertex = CompoundEdge = None
-
-try:
-  import zlib; _compressor = zlib
-except ImportError:  # pragma: no cover
-  pass  # pragma: no cover
-
-try:
-  import lz4; _compressor = lz4
-except ImportError:  # pragma: no cover
-  pass  # pragma: no cover
-
-try:
-  import snappy; _compressor = snappy
-except ImportError:  # pragma: no cover
-  pass  # pragma: no cover
 
 
 class ModelAdapter(object):
@@ -169,10 +176,13 @@ class ModelAdapter(object):
     else:
       if entity is None: return  # not found
 
+      if isinstance(entity, dict):  # inflate dict
+        entity['key'] = key
+        entity = self.registry[kind](_persisted=True, **entity)
+
       # inflate key + model and return
       key.__persisted__ = True
-      entity['key'] = key
-      return self.registry[kind](_persisted=True, **entity)
+      return entity
 
   def _put(self, entity, **kwargs):
 
@@ -329,7 +339,7 @@ class ModelAdapter(object):
                               ' called directly.')  # pragma: no cover
 
   @classmethod
-  def encode_key(cls, key, joined=None, flattened=None):
+  def encode_key(cls, key, joined, flattened):
 
     """ Encode a :py:class:`model.Key` for storage. This method is abstract and
         *should* be overridden by concrete implementors of
@@ -590,11 +600,11 @@ class IndexedModelAdapter(ModelAdapter):
         #  `__group__`, trimmed-target-root-key
 
         # append keyparent-based group prefix
-        root_key = [i for i in key.ancestry][0]
+        root_key = (i for i in key.ancestry).next()
 
         # encode root key
-        encoded_root_key = cls.encode_key(root_key) or root_key.urlsafe()
-
+        encoded_root_key = (
+          cls.encode_key(*root_key.flatten(True)) or root_key.urlsafe())
         _meta_indexes.append((cls._group_prefix, encoded_root_key))
 
     # add property index entries
@@ -607,7 +617,7 @@ class IndexedModelAdapter(ModelAdapter):
         prop, value = v
 
         # consider repeated properties
-        if not prop._repeated or not isinstance(value, (
+        if not prop.repeated or not isinstance(value, (
           tuple, list, set, frozenset)):
           value = [value]
 
@@ -622,7 +632,7 @@ class IndexedModelAdapter(ModelAdapter):
         for x in value:
           context = (cls._index_prefix, key.kind, k, x)
           _property_indexes.append((
-            cls._index_basetypes.get(prop._basetype, basestring), context))
+            cls._index_basetypes.get(prop.basetype, basestring), context))
 
         continue
 

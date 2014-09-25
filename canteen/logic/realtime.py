@@ -19,7 +19,6 @@ import hashlib
 
 # core and utils
 from ..base import logic
-from ..core import runtime
 from ..util import decorators
 
 
@@ -55,40 +54,12 @@ class RealtimeSocket(object):
     self.__local__, self.__remote__ = (
       local, remote)
 
-  @property
-  def id(self):
-
-    """ WIP """
-
-    return self.__id__
-
-  @property
-  def local(self):
-
-    """ WIP """
-
-    return self.__local__
-
-  @property
-  def remote(self):
-
-    """ WIP """
-
-    return self.__remote__
-
-  @property
-  def runtime(self):
-
-    """ WIP """
-
-    return self.__runtime__
-
-  @property
-  def established(self):
-
-    """ WIP """
-
-    return self.__established__
+  id, local, remote, runtime, established = (
+    property(lambda self: self.__id__),
+    property(lambda self: self.__local__),
+    property(lambda self: self.__remote__),
+    property(lambda self: self.__runtime__),
+    property(lambda self: self.__established__))
 
 
 @decorators.bind('realtime', namespace=True)

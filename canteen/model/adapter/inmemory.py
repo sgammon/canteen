@@ -145,7 +145,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
     encoded, flattened = key
 
     # pull from in-memory backend
-    entity = _datastore.get(encoded)
+    entity = _datastore.get(flattened)
     if entity is None: return  # not found
 
     _metadata['ops']['get'] += 1
@@ -176,6 +176,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     # encode key and flatten
     encoded, flattened = key
+    target = flattened
 
     # perform validation
     with entity:
@@ -200,18 +201,18 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
       # add to keys for kind
       kinded_keys = _metadata['kinds'][entity.key.kind].get('keys', set())
-      kinded_keys.add(encoded)
+      kinded_keys.add(target)
       _metadata['kinds'][entity.key.kind]['keys'] = kinded_keys
 
       # add to main keys index
-      _metadata['keys'].add(encoded)
+      _metadata['keys'].add(target)
 
       # save to datastore
-      _datastore[encoded] = entity.to_dict()
+      _datastore[target] = entity
 
       # store vertexes separately
       if getattr(model, '__vertex__', False):
-        _graph['nodes'][entity.key.kind].add(key)
+        _graph['nodes'][entity.key.kind].add(target)
 
       # store edges separately
       elif getattr(model, '__edge__', False):
@@ -268,20 +269,20 @@ class InMemoryAdapter(DirectedGraphAdapter):
       encoded, flattened = key
 
     # extract key parts
-    parent, kind, id = flattened
+    parent, kind, _id = flattened
 
     # if we have the key...
-    if encoded in _metadata[cls._key_prefix]:
+    if flattened in _metadata[cls._key_prefix]:
       try:
-        del _datastore[encoded]  # delete from datastore
+        del _datastore[flattened]  # delete from datastore
 
       except KeyError:  # pragma: no cover
-        _metadata[cls._key_prefix].remove(encoded)
+        _metadata[cls._key_prefix].remove(flattened)
         return False  # untrimmed key
 
       else:
         # update meta
-        _metadata[cls._key_prefix].remove(encoded)
+        _metadata[cls._key_prefix].remove(flattened)
         _metadata['ops']['delete'] = (
           _metadata['ops'].get('delete', 0) + 1)
 
@@ -359,10 +360,11 @@ class InMemoryAdapter(DirectedGraphAdapter):
           inspection. """
 
     global _metadata
+
     _write = {} if not execute else _metadata
 
     # extract indexes
-    encoded, meta, properties = writes
+    target, meta, properties = writes
 
     # write indexes one-by-one, generating reverse entries as we go
     for serializer, write in itertools.chain(
@@ -386,7 +388,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
           if isinstance(value, datetime.datetime):
             value = _to_timestamp(value)
 
-          write = (index, path, (value, encoded))
+          write = (index, path, (value, target))
 
         else:
           # init index hash (mostly covers custom indexes)
@@ -397,12 +399,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
             _write[index][(path, value)] = set()
 
           # write key to index
-          _write[index][(path, value)].add(encoded)
+          _write[index][(path, value)].add(target)
 
           # add reverse index
-          if encoded not in _write[cls._reverse_prefix]:  # pragma: no cover
-            _write[cls._reverse_prefix][encoded] = set()
-          _write[cls._reverse_prefix][encoded].add((index, path, value))
+          if target not in _write[cls._reverse_prefix]:  # pragma: no cover
+            _write[cls._reverse_prefix][target] = set()
+          _write[cls._reverse_prefix][target].add((index, path, value))
 
           continue
 
@@ -430,12 +432,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
           _mark = (dimension, '__sorted__')
           if _mark not in _write[index]:
             _write[index][_mark] = {}
-          _write[index][_mark][encoded] = value
+          _write[index][_mark][target] = value
 
         # add reverse index
-        if encoded not in _write[cls._reverse_prefix]:
-          _write[cls._reverse_prefix][encoded] = set()
-        _write[cls._reverse_prefix][encoded].add((index, dimension))
+        if target not in _write[cls._reverse_prefix]:
+          _write[cls._reverse_prefix][target] = set()
+        _write[cls._reverse_prefix][target].add((index, dimension))
         continue
 
       elif len(write) == 2:  # simple set index
@@ -454,13 +456,13 @@ class InMemoryAdapter(DirectedGraphAdapter):
         # only provision if value and index are different
         if index != value:
 
-          # add encoded key
-          _write[index][value].add(encoded)
+          # add flattened key
+          _write[index][value].add(target)
 
         # add reverse index
-        if encoded not in _write[cls._reverse_prefix]:
-          _write[cls._reverse_prefix][encoded] = set()
-        _write[cls._reverse_prefix][encoded].add(index)
+        if target not in _write[cls._reverse_prefix]:
+          _write[cls._reverse_prefix][target] = set()
+        _write[cls._reverse_prefix][target].add(index)
         continue
 
       elif len(write) == 1:  # simple key mapping
@@ -470,7 +472,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
         # special case: key index
         if index == cls._key_prefix:
-          _write[index].add(encoded)
+          _write[index].add(target)
           continue
 
         # provision index
@@ -478,12 +480,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
           _write[index] = {}
 
         # add value to index
-        _write[index][encoded] = set()  # provision with a one-index entry
+        _write[index][target] = set()  # provision with a one-index entry
 
         # add reverse index
-        if encoded not in _write[cls._reverse_prefix]:  # pragma: no cover
-          _write[cls._reverse_prefix][encoded] = set()
-        _write[cls._reverse_prefix][encoded].add((index,))
+        if target not in _write[cls._reverse_prefix]:  # pragma: no cover
+          _write[cls._reverse_prefix][target] = set()
+        _write[cls._reverse_prefix][target].add((index,))
         continue
 
       else:  # pragma: no cover
@@ -509,14 +511,12 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     global _metadata
 
-    # extract indexes
-    encoded, meta, graph = writes
+    target, meta, graph = writes  # extract indexes
 
     # pull reverse indexes
-    reverse = _metadata[cls._reverse_prefix].get(encoded, set())
+    reverse = _metadata[cls._reverse_prefix].get(target, set())
 
-    # clear reverse indexes
-    _cleaned = set()
+    _cleaned = set()  # clear reverse indexes
     if len(reverse) or len(meta):
       for i in reverse | set(meta):
 
@@ -537,7 +537,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
           if isinstance(path, tuple):
             if index in _metadata and (path, value) in _metadata[index]:
-              _metadata[index][(path, value)].remove(encoded)
+              _metadata[index][(path, value)].remove(target)
 
               # if there's no keys left in the index, trim it
               if len(_metadata[index][(path, value)]) == 0:
@@ -548,7 +548,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
           # (mostly covers custom indexes)
           if isinstance(path, basestring):  # pragma: no cover
             if index in _metadata and path in _metadata[index]:
-              _metadata[index][path].remove(encoded)
+              _metadata[index][path].remove(target)
 
               # if there's no keys left in the entry, trim it
               if len(_metadata[index][path]) == 0:
@@ -565,13 +565,13 @@ class InMemoryAdapter(DirectedGraphAdapter):
             # check sorted-ness
             svalue = (value, '__sorted__')
             if svalue in _metadata[index]:
-              sorted_entry = _metadata[index][svalue].get(encoded)
+              sorted_entry = _metadata[index][svalue].get(target)
               if sorted_entry:
                 _metadata[index][value].remove(sorted_entry)
 
             else:
               # remove from set at item in mapping
-              _metadata[index][value].remove(encoded)
+              _metadata[index][value].remove(target)
 
             # if there's no keys left in the index, trim it
             if len(_metadata[index][value]) == 0:  # pragma: no cover
@@ -582,14 +582,32 @@ class InMemoryAdapter(DirectedGraphAdapter):
         elif len(i) == 1:  # simple key mapping
           if i[0] == '__key__':
             continue  # skip keys, that's done by `delete()`
-          if encoded in _metadata[i[0]]:
-            del _metadata[i[0]][encoded]
+          if target in _metadata[i[0]]:
+            del _metadata[i[0]][target]
 
-    if encoded in _metadata[cls._reverse_prefix]:
+    if target in _metadata[cls._reverse_prefix]:
       # last step: remove reverse index for key
-      del _metadata[cls._reverse_prefix][encoded]
+      del _metadata[cls._reverse_prefix][target]
 
     return _cleaned
+
+  @classmethod
+  def encode_key(cls, joined, flattened):
+
+    """ Encode a :py:class:`model.Key` for storage. For ``InMemoryAdapter``,
+        simply use the flattened tuple as an internal representation of the
+        key.
+
+        :param key: Target :py:class:`model.Key` to encode.
+
+        :param joined: Joined/stringified key.
+
+        :param flattened: Flattened ``tuple`` (raw) key.
+
+        :returns: The encoded :py:class:`model.Key`, or ``False`` to
+              yield to the default encoder. """
+
+    return flattened
 
   @classmethod
   def execute_query(cls, kind, spec, options, **kwargs):  # pragma: no cover
@@ -640,7 +658,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     ## apply ancestry first
     if ancestry_parent:
-      _ekey = ancestry_parent.urlsafe()
+      _ekey = cls.encode_key(*ancestry_parent.flatten(True))
       _group_index = _metadata[cls._group_prefix].get(_ekey)
       if _group_index: _special_indexes.append((False, (
           query.KeyFilter(_ekey, type=query.KeyFilter.ANCESTOR), _group_index)))
@@ -764,10 +782,6 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     result_entities = []
 
-    ## inflate results (full models)
-    _seen = 0
-    _flatten = lambda _k: _k.urlsafe() if isinstance(_k, model.Key) else _k
-
     if not _data_frame and _inmemory_filters:
       # corner case: no initial data frame but inmemory filters
       #  force-initialize data frame with kind index, or if we're unlucky
@@ -778,37 +792,24 @@ class InMemoryAdapter(DirectedGraphAdapter):
       else: _data_frame = _metadata['keys']
 
 
-    for key, entity in ((k, _datastore.get(_flatten(k))) for k in _data_frame):
+    for n, (key, entity) in enumerate(((k, _datastore.get(k)) for k in _data_frame)):
 
       # @TODO(sgammon) log ghosts?
       if not entity: continue  # skip missing entities
-      if not isinstance(key, model.Key):
-        key = model.Key.from_urlsafe(key, _persisted=True)
 
-      if options.limit and _seen >= options.limit:
-        break
-
-      # attach key, decode entity and construct
-      entity['key'] = key
-
-      # resolve kind class for key and inflate
-      if key.kind not in cls.registry and kind.kind() != key.kind:
-        raise RuntimeError('Unknown or unregistered key kind: "%s".' % key.kind)
-      elif key.kind == kind.kind():
-        obj = kind(_persisted=True, **entity)
-      else:
-        obj = cls.registry.get(key.kind, kind)(_persisted=True, **entity)
+      # stop if options say so, skip if the options say so
+      if options.limit and n >= options.limit: break
+      if options.offset and n <= options.offset: continue
+      # @TODO(sgammon): make sure we don't get any off-by-ones
 
       # collapse in-memory filters
       for _inner_f in _inmemory_filters:
-        if not _inner_f(obj):
+        if not _inner_f(entity):
           break
       else:
-        _seen += 1
-        result_entities.append(obj)
+        result_entities.append(entity)
 
-    if not len(result_entities) > 1:
-      return result_entities  # no need to sort, obvs
+    if not result_entities: return result_entities  # no need to sort, obvs
 
     ## apply sorts
     if sorts:
@@ -840,7 +841,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
         _rvs, _fwd = lambda d: reversed(sorted(d)), lambda d: sorted(d)
 
-        if sort.target._basetype in (basestring, str, unicode):
+        if sort.target.basetype in (basestring, str, unicode):
           sorter = (_rvs if (sort.operator is query.ASCENDING) else _fwd)
 
         else:

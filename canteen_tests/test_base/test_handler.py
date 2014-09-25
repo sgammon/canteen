@@ -46,8 +46,7 @@ class BaseHandlerTest(test.FrameworkTest):
       environ, callback, _runtime, request, response = (
         _environ, lambda: True, rtime.Runtime(object()),
         semantics.HTTPSemantics.new_request(_environ),
-        semantics.HTTPSemantics.new_response()
-      )
+        semantics.HTTPSemantics.new_response())
 
       # allow environ overrides
       if _environ: environ.update(_environ)
@@ -69,16 +68,14 @@ class BaseHandlerTest(test.FrameworkTest):
         result.__setitem__('headers', headers)),
       rtime.Runtime(object()),
       Request(environ),
-      Response()
-    )
+      Response())
 
     canteen_style = _impl(*(
       environ,
       callback,
       _runtime,
       request,
-      response
-    ))
+      response))
 
     return canteen_style, request, response, _runtime
 

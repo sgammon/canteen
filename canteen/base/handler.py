@@ -19,14 +19,13 @@
 """
 
 # stdlib
-import abc
 import itertools
 
 # canteen core & util
 from ..core import injection
-from ..util import decorators
 
 
+# noinspection PyUnresolvedReferences
 class Handler(object):
 
   """ Base class structure for a ``Handler`` of some request or desired action.
@@ -98,7 +97,7 @@ class Handler(object):
 
     # setup HTTP/dispatch stuff
     self.__status__, self.__headers__, self.__content_type__ = (
-      200,  # default response stauts
+      200,  # default response status
       {},  # default repsonse headers
       'text/html; charset=utf-8')  # default content type
 
@@ -215,13 +214,17 @@ class Handler(object):
 
     }
 
-  def respond(self, content=None):
+  def respond(self, content=None, direct=False):
 
     """ Respond to this ``Handler``'s request with raw ``str`` or ``unicode``
         content. UTF-8 encoding happens if necessary.
 
         :param content: Content to respond to. Must be ``str``, ``unicode``, or
           a similar string buffer object.
+
+        :param direct: Flag indicating that ``self`` should be returned, rather
+          than ``self.response``. Bool, defaults to ``False`` as this
+          technically breaks WSGI.
 
         :returns: Generated (filled-in) ``self.response`` object. """
 
@@ -234,7 +237,7 @@ class Handler(object):
                   ('status_code' if isinstance(self.status, int) else 'status'),
                     self.status) or (
                   (i.encode('utf-8').strip() for i in self.response.response),
-                    self.response)
+                        self.response) if not direct else self
 
   def render(self, template,
                    headers=None,
@@ -266,6 +269,9 @@ class Handler(object):
           than ``self.response``. Bool, defaults to ``False`` as this
           technically breaks WSGI.
 
+        :param kwargs: Additional items to add to the template context.
+          Overrides all other sources of context.
+
         :returns: Rendered template content, added to ``self.response``. """
 
     from canteen.util import config
@@ -295,17 +301,21 @@ class Handler(object):
         template,
         _merged_context)), True
 
-    return self.respond()
+    return self.respond(direct=_direct)
 
   def dispatch(self, **url_args):
 
-    ''' WIP '''
+    """ Dispatch a WSGI request through this ``Handler``. Expected to be an
+        HTTP-style (cyclical) dispatch flow.
 
-      # resolve method to call - try lowercase first
-    method = getattr(self, self.request.method)
-    _response = method(**url_args)
-    if _response is not None:
-      self.__response__ = _response
+        :param url_args: Arguments provided from the URI that should be passed
+          along to any resulting handler calls.
+
+        :returns: After filling the local response object (at ``self.response``)
+          returns it for inspection or reply. """
+
+    self.__response__ = (
+      getattr(self, self.request.method)(**url_args)) or self.__response__
     return self.__response__
 
   def __call__(self, url_args, direct=False):
@@ -326,22 +336,74 @@ class Handler(object):
     # run prepare hook, if specified
     if hasattr(self, 'prepare'): self.prepare(url_args, direct=direct)
 
-    # dispatch local handler, expected to fill `self.__response__`
-    self.dispatch(**url_args)
+    self.dispatch(**url_args)  # dispatch local handler, fills `__response__`
 
     # run destroy hook, if specified
     if hasattr(self, 'destroy'): self.destroy(self.__response__)
-
     return self.__response__ if not direct else self
 
 
+# noinspection PyUnresolvedReferences
 class RealtimeHandler(Handler):
 
-  '''  '''
+  """ Provides structure for an acyclically-dispatched web handler, meant for
+      use in scenarios like WebSockets. Instead of handling things with
+      methods like ``GET`` or ``POST``, a ``RealtimeHandler`` can specify
+      hooks for two events - ``on_connect`` and ``on_message``.
+
+      The first, ``on_connect``, is dispatched when a realtime connection has
+      just been successfully negotiated. It is executed once the application
+      is ready to return an ``HTTP/1.1 Upgrade`` response, so that the
+      developer has a chance to specify subprotocols/extensions/etc.
+
+      The second hook, ``on_message``, is dispatched each time an established
+      connection receives a message from the client. It takes two parameters -
+      the ``message`` itself and whether it is ``binary`` or not. """
+
+  __socket__ = None  # object to receive messages from and send messages to
+
+  def __init__(self, environ=None,
+               start_response=None,
+               runtime=None,
+               request=None,
+               response=None, **context):
+
+
+    """ Initialize a new ``RealtimeHandler`` object with proper ``environ``
+        details and inform it of larger world around it. For detailed docs
+        about this method, see ``Handler.__init__``.
+
+        :param environ: WSGI environment, provided by active runtime. ``dict``
+          in standard WSGI format.
+
+        :param start_response: Callable to begin the response cycle.
+          Usually a vanilla ``function``.
+
+        :param runtime: Currently-active Canteen runtime. Always an instance of
+          :py:class:`canteen.core.runtime.Runtime` or a subclass thereof.
+
+        :param request: Object to use for ``self.request``. Usually an instance
+          of :py:class:`werkzeug.wrappers.Request`.
+
+        :param response: Object to use for ``self.response``. Usually an
+          instance of :py:class:`werkzeug.wrappers.Response`. """
+
+    self.__socket__ = None  # storage for socket object
+    super(RealtimeHandler, self).__init__(*(
+      environ, start_response, runtime, request, response), **context)
 
   def dispatch(self, **url_args):
 
-    ''' WIP '''
+    """ Adapt regular handler dispatch to support an acyclic/realtime-style
+        dispatch scheme. Accepts same arguments as ``super`` definition, but
+        dispatches *realtime*-style messages like ``on_connect`` and
+        ``on_message``, so long as the request looks like a WebSocket upgrade.
+
+        :param url_args: Arguments provided from the URI that should be passed
+          along to any resulting handler calls.
+
+        :returns: After filling the local response object (at ``self.response``)
+          returns it for inspection or reply. """
 
     # fallback to standard dispatch
     if self.realtime.hint not in self.environ:
@@ -349,7 +411,8 @@ class RealtimeHandler(Handler):
 
     try:
       # websocket upgrade and session
-      self.socket = self.realtime.on_connect(self.runtime, self.request)
+      self.__socket__ = None
+      self.realtime.on_connect(self.runtime, self.request)
 
       # bind local on_message and begin realtime flow
       self.realtime.on_message(*(
@@ -361,17 +424,46 @@ class RealtimeHandler(Handler):
     except NotImplementedError:
       return self.error(400)  # raised when a non-websocket handler is hit
 
-  def on_connect(self, socket):
+  @staticmethod
+  def on_connect():  # pragma: no cover
 
-    ''' WIP '''
+    """ Hook function that is dispatched upon successful handshake for a
+        realtime-style connection between a client and this server. Local
+        handler should be prepared by this point with all information necessary
+        to satisfy messages.
+
+        Implementors are expected to provide a method that makes use of object-
+        level context (i.e. not a static or classmethod).
+
+        :returns: ``NotImplemented`` by default, which simply indicates that
+          the implementor elects not to run code ``on_connect``. """
 
     return NotImplemented
 
-  def on_message(self, message):
+  def on_message(self, message, binary):  # pragma: no cover
 
-    ''' WIP '''
+    """ Hook that is dispatched per message sent from a live client. Called
+        subsequent to a connection being properly established from a previous
+        call to ``on_connect``.
 
-    raise NotImplementedError()
+        :param message: WebSocket message passed from the client.
+
+        :param binary: ``bool`` flag - ``True`` if ``message`` is binary,
+          ``False`` otherwise.
+
+        :raises NotImplementedError: By default, since not many people use
+          WebSockets and there's no such thing as a ``400`` without HTTP. :)
+
+        :returns: Not expected to return anything. If a return is used, any
+          value or iterable of values will be collapsed and sent to the client.
+          Optionally, the developer may implement ``on_message`` as a coroutine-
+          style Python generator, in which case new messages will be ``sent``
+          in from the client and messages to the client can be yielded upwards
+          to be sent. """
+
+    raise NotImplementedError('Handler "%s" fails to implement hook'
+                              ' `on_message` so it does not support'
+                              ' realtime-style communications.' % repr(self))
 
 
 __all__ = ('Handler',)

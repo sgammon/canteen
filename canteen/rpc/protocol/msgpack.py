@@ -21,8 +21,7 @@ from canteen.base import protocol
 ## Globals
 _content_types = (
   'application/msgpack',
-  'application/x-msgpack'
-)
+  'application/x-msgpack')
 
 
 with runtime.Library('msgpack') as (msglib, msgpack):

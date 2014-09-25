@@ -18,7 +18,7 @@
 # core + util
 from ..util import debug
 from ..util import decorators
-from ..core import hooks, runtime
+from ..core import runtime
 
 
 try:  # pragma: no cover

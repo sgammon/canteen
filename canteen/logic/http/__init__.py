@@ -14,19 +14,13 @@
 """
 
 # symbols
-from .etags import ETags
 from .agent import UserAgent
-from .caching import Caching
 from .cookies import Cookies
-from .redirects import Redirects
 from .semantics import HTTPSemantics, url
 
 
 # exports
 __all__ = ('url',
-           'ETags',
            'Cookies',
-           'Caching',
-           'Redirects',
            'UserAgent',
            'HTTPSemantics')

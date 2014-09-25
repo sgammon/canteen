@@ -14,7 +14,7 @@
 """
 
 # stdlib
-import json, time
+import json
 
 # core runtime
 from canteen.base import logic

@@ -162,8 +162,7 @@ class Compound(type):
         [origin[0]] +
         [i for i in filter(lambda x: x not in (object, type), origin[1:])] +
         [y for y in filter(lambda z: z in (object, type), origin[1:])] +
-        [delegate]
-      )
+        [delegate])
 
     return type.mro(cls)
 

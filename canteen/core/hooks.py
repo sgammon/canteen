@@ -134,8 +134,7 @@ class Context(object):
           positional argument. """
 
     self.__requested__, self.__rollup__, self.__notify__ = (
-      requested, rollup, notify
-    )
+      requested, rollup, notify)
 
   def __call__(self, func):
 
@@ -160,9 +159,9 @@ class Context(object):
           Accepts positional and keyword arguments on behalf of the wrapped
           ``func``.
 
-          :param *args: Positional arguments to pass to target hook responder.
+          :param args: Positional arguments to pass to target hook responder.
 
-          :param **context: Keyword arguments (considered as "context" in this,
+          :param context: Keyword arguments (considered as "context" in this,
             well, context) to pass to the target hook responder.
 
           :raises RuntimeError: If a case is encountered where a hook function

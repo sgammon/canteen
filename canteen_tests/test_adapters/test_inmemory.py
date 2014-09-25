@@ -26,6 +26,10 @@ from canteen.model.adapter import inmemory
 from .test_abstract import DirectedGraphAdapterTests
 
 
+## Globals
+_target = lambda k: k.flatten(True)[1]
+
+
 class InMemoryModel(model.Model):
 
   """ Test model. """
@@ -74,7 +78,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
       integer=[4, 5, 6, 7])
     m_k = m.put()
 
-    assert m_k.urlsafe() in inmemory._metadata['__key__']
+    assert _target(m_k) in inmemory._metadata['__key__']
 
     entities = []
 
@@ -111,7 +115,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     m = InMemoryModel(string="hello", integer=[1, 2, 3])
     m_k = m.put()
 
-    assert m_k.urlsafe() in inmemory._metadata['__key__']
+    assert _target(m_k) in inmemory._metadata['__key__']
 
     # make sure flags match
     assert m_k == m.key
@@ -120,8 +124,7 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     assert (not m.__dirty__)
 
     # simulate getting entity via urlsafe
-    explicit_key = model.Key.from_urlsafe(m_k.urlsafe())
-    entity = explicit_key.get()
+    entity = InMemoryModel.get(m_k)
 
     # make sure things match
     assert entity.string == "hello"
@@ -137,14 +140,14 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     m_k = m.put()
 
     # make sure it's known
-    assert m_k.urlsafe() in inmemory._metadata['__key__']
+    assert _target(m_k) in inmemory._metadata['__key__']
 
     # delete it
     res = m_k.delete()
 
     # make sure it's unknown and gone
     assert res
-    assert m_k.urlsafe() not in inmemory._metadata['__key__']
+    assert _target(m_k) not in inmemory._metadata['__key__']
 
   def test_delete_existing_entity_via_model(self):
 
@@ -155,14 +158,14 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     m_k = m.put()
 
     # make sure it's known
-    assert m_k.urlsafe() in inmemory._metadata['__key__']
+    assert _target(m_k) in inmemory._metadata['__key__']
 
     # delete it
     res = m.delete()
 
     # make sure it's unknown and gone
     assert res
-    assert m_k.urlsafe() not in inmemory._metadata['__key__']
+    assert _target(m_k) not in inmemory._metadata['__key__']
 
   def test_delete_invalid_entity(self):
 
@@ -172,14 +175,14 @@ class InMemoryAdapterTests(DirectedGraphAdapterTests):
     m_k = model.Key("SampleKind", "____InvalidKey____")
 
     # make sure it's unknown
-    assert m_k.urlsafe() not in inmemory._metadata['__key__']
+    assert _target(m_k) not in inmemory._metadata['__key__']
 
     # delete it
     res = m_k.delete()
 
     # make sure it's unknown, and we couldn't delete it
     assert (not res)
-    assert m_k.urlsafe() not in inmemory._metadata['__key__']
+    assert _target(m_k) not in inmemory._metadata['__key__']
 
   def test_allocate_ids(self):
 

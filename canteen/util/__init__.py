@@ -19,12 +19,7 @@
 from __future__ import print_function
 
 # stdlib
-import os
-import sys
-import time
 import pkgutil
-import datetime
-import importlib
 
 # submodules
 from .cli import *

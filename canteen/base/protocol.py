@@ -27,7 +27,13 @@
     @Protocol.register('jsonrpc', ('application/json', 'text/json'))
     class JSONRPC(Protocol):
 
-      """
+  :author: Sam Gammon <sg@samgammon.com>
+  :copyright: (c) Sam Gammon, 2014
+  :license: This software makes use of the MIT Open Source License.
+            A copy of this license is included as ``LICENSE.md`` in
+            the root of the project.
+
+"""
 
 # stdlib
 import abc
@@ -43,10 +49,10 @@ with runtime.Library('protorpc') as (library, protorpc):
   messages, protojson, remote = library.load(*(
     'messages',
     'protojson',
-    'remote'
-  ))
+    'remote'))
 
 
+  # noinspection PyMethodParameters
   class Protocol(object):
 
     """ Base ``Protocol`` class for adding serialization dialects to the RPC
@@ -66,7 +72,6 @@ with runtime.Library('protorpc') as (library, protorpc):
 
     ## == Multi-protocol Tools == ##
 
-    # noinspection PyMethodParameters
     @decorators.classproperty
     def all(cls):
 
@@ -75,12 +80,13 @@ with runtime.Library('protorpc') as (library, protorpc):
           protocol classes to bundle into a :py:mod:`protorpc` ``Protocols``
           object.
 
+          :param cls: Current ``cls``, as this is a class-level property.
+
           :returns: Yields ``Protocol`` implementations one at a time. """
 
       for protocol in cls.__protocols__.itervalues():
         yield protocol
 
-    # noinspection PyMethodParameters
     @decorators.classproperty
     def mapping(cls):
 
@@ -88,11 +94,12 @@ with runtime.Library('protorpc') as (library, protorpc):
           container, which resolves the proper ``Protocol`` object to dispatch
           an RPC with, based on the HTTP ``Content-Type`` header.
 
+          :param cls: Current ``cls``, as this is a class-level property.
+
           :returns: :py:class:`protorpc.remote.Protocols` object containing all
             registered :py:class:`Protocol` objects. """
 
-      # construct a protocol container
-      container = remote.Protocols()
+      container = remote.Protocols()  # construct a protocol container
 
       for protocol in cls.all:
 
@@ -121,6 +128,9 @@ with runtime.Library('protorpc') as (library, protorpc):
 
           :param types: Content types to use this mapper for. Iterable of
             ``str`` or ``unicode`` ``Content-Type`` values to match on.
+
+          :param config: Keyword arguments are accepted as extra config to be
+            passed to the underlying ``Protocol`` subclass.
 
           :returns: Closured wrapper to register the protocol and return it. """
 
@@ -151,18 +161,18 @@ with runtime.Library('protorpc') as (library, protorpc):
 
     ## == Protocol Properties == ##
 
-    # noinspection PyMethodParameters
     @decorators.classproperty
     def name(cls):
 
       """ Class-level accessor for the 'short name' of this ``Protocol`` class.
           For example, ``jsonrpc``.
 
+          :param cls: Current ``cls``, as this is a class-level property.
+
           :returns: ``str`` short name for this :py:class:`Protocol`. """
 
       return cls.__label__
 
-    # noinspection PyMethodParameters
     @decorators.classproperty
     def content_type(cls):
 
@@ -170,11 +180,12 @@ with runtime.Library('protorpc') as (library, protorpc):
           :py:class:`Protocol` should respond to. The first entry in the
           available options is used as the primary ``Content-Type``.
 
+          :param cls: Current ``cls``, as this is a class-level property.
+
           :returns: Primary ``str`` ``Content-Type`` value. """
 
       return cls.__content_types__[0]
 
-    # noinspection PyMethodParameters
     @decorators.classproperty
     def alternative_content_types(cls):
 
@@ -182,6 +193,8 @@ with runtime.Library('protorpc') as (library, protorpc):
           :py:class:`Protocol` should respond to. Alternative content types
           will be responded to, but not used for responses (the 'primary'
           ``Content-Type`` is used as the response's type).
+
+          :param cls: Current ``cls``, as this is a class-level property.
 
           :returns: ``list`` of ``str`` ``Content-Type``s. """
 

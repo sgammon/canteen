@@ -123,7 +123,7 @@ if __debug__:
 
       # == info == #
       name="canteen",
-      version="0.2-alpha",
+      version="0.3-alpha",
       description="Minimally complicated, maximally blasphemous"
                   " approach to Python development",
 

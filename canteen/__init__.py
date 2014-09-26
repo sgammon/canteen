@@ -15,7 +15,7 @@
 
 """
 
-debug, __version__ = __debug__, (1, 0)
+debug, __version__ = __debug__, (0, 3)
 
 # stdlib
 import __builtin__; export = None

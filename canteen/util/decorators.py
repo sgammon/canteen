@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: decorator utils
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  decorator utils
+  ~~~~~~~~~~~~~~~
 
   useful (and sometimes critical) decorators, for use inside and
   outside :py:mod:`canteen`.
@@ -14,19 +14,23 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
-## ``classproperty`` - use like ``@property``, but at the class-level.
+from __future__ import print_function
+
+
+# noinspection PyPep8Naming
 class classproperty(property):
 
-  ''' Custom decorator for class-level property getters.
+  """ Custom decorator for class-level property getters.
       Usable like ``@property`` and chainable with
       ``@memoize``, as long as ``@memoize`` is used as
-      the inner decorator. '''
+      the inner decorator. """
 
+  # noinspection PyMethodOverriding
   def __get__(self, instance, owner):
 
-    ''' Return the property value at the class level.
+    """ Return the property value at the class level.
 
         :param instance: Current encapsulating object
         dispatching via the descriptor protocol,
@@ -38,201 +42,87 @@ class classproperty(property):
         level.
 
         :returns: Result of a ``classmethod``-wrapped,
-        ``property``-decorated method. '''
+        ``property``-decorated method. """
 
     return classmethod(self.fget).__get__(None, owner)()
 
 
-## ``memoize`` - cache the output of a property descriptor call
-class memoize(property):
-
-  ''' Custom decorator for property memoization. Usable
-      like ``@property`` and chainable with ``@classproperty``,
-      the utility decorator above. '''
-
-  _value = None
-  __initialized__ = False
-
-  def __get__(self, instance, owner):
-
-    ''' If we have a cached value attached to this
-        context, return it.
-
-        :param instance: Current encapsulating object
-        dispatching via the descriptor protocol, or
-        ``None`` if we are being dispatched from the
-        class level.
-
-        :param owner: Owner type for encapsulating
-        object, if dispatched at the instance level.
-
-        :raises: Re-raises all exceptions encountered
-        in the case of an unexpected state during
-        delegated property dispatch.
-
-        :returns: Cached value, if any. If there is
-        no cached value, defers to decorated method. '''
-
-    if not self.__initialized__:
-      if isinstance(self.fget, classproperty):
-        self._value = classmethod(self.fget.fget).__get__(None, owner)()
-      else:
-        self._value = self.fget.__get__(instance, owner)()
-      self.__initialized__ = True
-    return self._value
-
-
-## `` ``
-class cached(object):
-
-  '''  '''
-
-  __func__ = None
-  __cache__ = {}
-
-  def __init__(self, callable):
-
-    '''  '''
-
-    self.__func__ = callable
-
-  def wrap(self, instance):
-
-    '''  '''
-
-    def cache(*args, **kwargs):
-      ps, kw = tuple(args), tuple(kwargs.items())
-      if (ps, kw) not in self.__cache__:
-        self.__cache__[(ps, kw)] = self.__func__(instance, *args, **kwargs)
-      return self.__cache__[(ps, kw)]
-
-    return cache
-
-  def __get__(self, instance, owner):
-
-    '''  '''
-
-    return self.wrap(instance)
-
-
-## ``configured`` - markup a class for use with canteen.
-def configured(debug=False, path=None):
-
-    ''' Prepare to inject config/path values
-        at ``debug`` and ``path``.
-
-        :param debug: Default value for class-level
-        ``debug`` flag. Overridden in config. Defaults
-        to ``False``.
-
-        :param path: String path to configuration blob
-        in main appconfig. Expected to be ``basestring``.
-        Defaults to Python module/name classpath of
-        injectee.
-
-        :returns: Closure that constructs an injected
-        target class. '''
-
-    # resolve appconfig
-    try:
-        import config as appconfig
-    except ImportError:
-        class Config(object):
-            debug = True
-            config = {}
-        appconfig = Config()
-
-    # build injection closure
-    def inject(klass):
-
-        ''' Injection closure that prepares ``klass``
-            with basic apptools structure.
-
-            :param klass: Target class slated for injection.
-            :returns: Injected class structure. '''
-
-        def _config(cls):
-
-            ''' Named config pipe. Resolves configuration
-                at the local class' :py:attr:`cls._config_path`,
-                if any, which is usually injected by apptools
-                utils or provided manually.
-
-                :returns: Configuration ``dict``, from main appconfig,
-                or default ``dict`` of ``{'debug': True}``. '''
-
-            #return appconfig.config.get(path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__)), {'debug': True})
-
-        def _logging(cls):
-
-            ''' Named logging pipe. Prepares custom Logbook/Python-backed
-                ``Logger`` via config path and class name. Allows fine
-                grained control of logging output, even at the individual
-                class level.
-
-                :returns: Customized :py:class:`debug.AppToolsLogger` class,
-                attached with injectee's module path and name (or config
-                path, if configured). '''
-
-            #from apptools.util import debug
-
-            # calculate configuration path
-            #_config_path = path or cls._config_path if hasattr(cls, '_config_path') else '.'.join((cls.__module__, cls.__name__))
-            #_csplit = _config_path.split('.')
-
-            #return debug.AppToolsLogger(**{
-            #    'path': '.'.join(_csplit[:-1]),
-            #    'name': _csplit[-1]
-            #})._setcondition(cls.config.get('debug', True))
-
-        # attach injected properties and classmethods
-        #klass._config_path = path or '.'.join((klass.__module__, klass.__name__))
-        klass.config, klass.logging = memoize(classproperty(_config)), memoize(classproperty(_logging))
-        return klass
-
-    return inject
-
-
 def singleton(target):
 
-  '''  '''
+  """ Mark a ``target`` class as a singleton, for use with the dependency
+      injection system. Classes so-marked will be factoried on first-access and
+      subsequently returned for all matching dependency requests.
+
+      :param target: Target class to treat as a singleton.
+
+      :raises RuntimeError: If something other than a class is marked for
+        singleton mode.
+
+      :returns: Decorated ``target`` class, after it has been marked. """
 
   if isinstance(target, type):
     setattr(target, '__singleton__', True)  # indicate this is a singleton class
     return target
-  else:
-    raise RuntimeError('Only classes may be marked/decorated as singletons. Got: "%s".' % target)
+  raise RuntimeError('Only classes may be marked/decorated'
+                     ' as singletons. Got: "%s".' % target)  # pragma: no cover
 
 
-## `` ``
+# noinspection PyPep8Naming
 class bind(object):
 
-  '''  '''
+  """ Encapsulated binding config for an injectable meta-implementor of
+      ``meta.Proxy.Component``. Allows specification of simple string names to
+      be matched during dependency injection. """
 
   __alias__ = None  # injection alias (i.e. `source.<alias> == <target>`)
   __target__ = None  # target for injection - i.e. what should be injected
   __config__ = None  # optional *args and **kwargs to wrap ``config`` (above)
-  __namespace__ = True  # do we namespace this property under it's superbind? (methods only)
+  __namespace__ = True  # do we namespace this property under it's superbind?
 
   def __init__(self, alias=None, namespace=True, *args, **kwargs):
 
-    '''  '''
+    """ Initialize this binding.
+
+        :param alias: String alias for the target object to be bound. Defaults
+          to ``None``, in which case the target function or class' ``__name__``
+          will be used.
+
+        :param namespace: ``bool`` flag to activate namespacing. Used on methods
+          to explicitly bind them, but namespace them under the class binding
+          they are mounted from.
+
+        :param *args:  """
 
     self.__alias__, self.__config__, self.__namespace__ = (
       alias,
       (args, kwargs) if (args or kwargs) else None,
-      namespace  # wrap `decorators.config` (optional)
-    )
+      namespace)  # wrap `decorators.config` (optional)
 
-  def __repr__(self):
+  def __repr__(self):  # pragma: no cover
 
-    '''  '''
+    """ Generate a pleasant string representation for this binding.
+
+        :returns: String representation for this binding, in the format
+          ``<binding 'name'>``. """
 
     return "<binding '%s'>" % self.__alias__ or self.__target__.__name__
 
+  # noinspection PyUnresolvedReferences
   def __call__(self, target):
 
-    '''  '''
+    """ Dispatch this binding (the second half of a closured decorator flow) by
+        scanning the target for subbindings (if applicable) and preparing (and
+        subsequently attaching) an object to describe configuration.
+
+        :param target: Target object (usually a ``function`` or ``class``) to
+          *decorate* by scanning for sub-bindings and attaching a object
+          describing any injectable resources.
+
+        :raises TypeError: If a ``target`` is passed that is not a valid
+          meta-implementor of ``Proxy.Registry`` or ``Proxy.Component``.
+
+        :returns: Decorated ``target``, after scanning for bindings and
+          attaching any appropriate configuration objects. """
 
     from ..core import meta  # no deps in util. ever. :)
 
@@ -240,7 +130,8 @@ class bind(object):
     self.__alias__ = self.__alias__ or target.__name__
 
     # install aliases
-    target.__binding__, target.__target__, self.__target__ = self, self.__alias__, target
+    target.__binding__, target.__target__, self.__target__ = (
+      self, self.__alias__, target)
 
     # are we decorating a class?
     if isinstance(target, type):
@@ -275,99 +166,23 @@ class bind(object):
               v.__register__(target)
 
         # attach bindings to target class
-        target.__aliases__, target.__bindings__ = _aliases, frozenset(_bindings) if _bindings else None
+        target.__aliases__, target.__bindings__ = (
+          _aliases, frozenset(_bindings) if _bindings else None)
 
         # bind locally, and internally
-        return config(target, *self.__config__[0], **self.__config__[1]) if self.__config__ else target
+        return target  # args no longer supported @TODO(sgammon): look at this
 
       # only registry-enabled class trees can use ``bind``
       raise TypeError('Only meta-implementors of `meta.Proxy.Registry`'
                       ' (anything meta-deriving from `Registry` or `Component`'
-                      ' can be bound to injection names.')
+                      ' can be bound to injection names.')  # pragma: no cover
 
     # allow wrapping of hook responders
     from ..core import hooks
-    if self.__config__ and self.__config__[1] and isinstance(self.__config__[1]['wrap'], hooks.HookResponder):
+    if self.__config__ and self.__config__[1] and (
+      isinstance(self.__config__[1]['wrap'], hooks.HookResponder)):
       self.__config__[1]['wrap'].__binding__ = self
 
     # are we decorating a method?
-    return self.__config__[1]['wrap'](target) if (self.__config__ and 'wrap' in self.__config__[1]) else target
-
-
-## `` ``
-def cacheable(key, ttl=None, expire=None, passthrough=__debug__):
-
-  '''  '''
-
-  from canteen.core.api import cache
-
-  # process expiration
-  if ttl and expire:
-    raise RuntimeError('Cannot provide both a TTL and absolute expiration for cacheable item "%s".' % key)
-
-  elif ttl and isinstance(ttl, int):
-    expiration = time.time() + ttl
-
-  elif expire and isinstance(expire, int):
-    expiration = expire  # integer absolute expiration
-
-  elif expire and isinstance(expire, datetime.datetime):
-    expiration = time.mktime(expire.timetuple())
-
-  elif (not ttl) and (not expire):
-    expiration = None
-
-  else:
-    raise RuntimeError('Invalid TTL or Expire value given for cacheable item "%s".' % key)
-
-  # make our injector and responder
-  def injector(func):
-
-    '''  '''
-
-    def responder(*args, **kwargs):
-
-      '''  '''
-
-      if passthrough:  # optionally passthrough and don't check cache
-        return func(*args, **kwargs)
-
-      # check expiration - flush if we have to
-      if expiration and not (time.time() < expiration):
-
-        print "Cache item expired: '%s'." % key
-
-        cache.CacheAPI.delete(key)
-        val = None
-      else:
-        val = cache.CacheAPI.get(key)
-
-      # refresh the cache if we have to
-      if not val:
-
-        print "Cache miss: '%s'." % key
-
-        val = func(*args, **kwargs)
-
-        if val:
-          cache.CacheAPI.set(key, val)
-
-      else:
-        print "Cache hit: '%s'." % key
-
-      return val
-
-    return responder
-
-  return injector
-
-
-__all__ = (
-  'classproperty',
-  'memoize',
-  'cached',
-  'configured',
-  'bind',
-  'cacheable',
-  'singleton'
-)
+    return self.__config__[1]['wrap'](target) if (
+      self.__config__ and 'wrap' in self.__config__[1]) else target

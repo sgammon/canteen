@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: dispatch tests
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  dispatch tests
+  ~~~~~~~~~~~~~~
 
   tests WSGI dispatch gateway and assorted relevant machinery.
 
@@ -13,4 +13,4 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""

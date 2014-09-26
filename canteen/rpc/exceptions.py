@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: RPC exceptions
-  ~~~~~~~~~~~~~~~~~~~~~~~
+  RPC exceptions
+  ~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -11,24 +11,28 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
+
+from . import ServerException
+from . import ClientException
+from . import Exception as Error
 
 
-class Error(Exception):
+class InternalRPCException(Error):
 
-  ''' Base class for all errors in service handlers module. '''
-
-
-class ServiceConfigurationError(Error):
-
-  ''' When service configuration is incorrect. '''
+    """ Base class for all errors in service handlers module. """
 
 
-class RequestError(Error):
+class ServiceConfigurationError(InternalRPCException):
 
-  ''' Error occurred when building request. '''
+    """ When service configuration is incorrect. """
 
 
-class ResponseError(Error):
+class RequestError(ClientException):
 
-  ''' Error occurred when building response. '''
+    """ Error occurred when building request. """
+
+
+class ResponseError(ServerException):
+
+    """ Error occurred when building response. """

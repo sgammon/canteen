@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: datastructure utils
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  datastructures
+  ~~~~~~~~~~~~~~
 
   lightweight datastructures for use inside and outside
   :py:class:`canteen`.
@@ -14,88 +14,81 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # stdlib
-import abc, logging
+import abc
 
 # canteen util
 from . import decorators
 
 
+## Globals
+_ENUM_TYPES = int, long, float, basestring, bool
+
+
 class Sentinel(object):
 
-  ''' Create a named sentinel object. '''
+  """ Create a named sentinel object. """
 
-  name = None
-  hash = None
-  _falsy = False
+  name, hash, _falsy = None, None, False
 
   def __init__(self, name, falsy=False):
 
-    ''' Construct a new sentinel.
+    """ Construct a new ``Sentinel``, which is essentially just a symbolic
+        object at a simple string name. Two ``Sentinel``s with the same name
+        evaluate to be *equal* to each other.
 
-      :param name:
-      :param falsy:
-      :returns: '''
+        :param name: Simple string name for the new ``Sentinel``-to-be.
 
-    self.name, self.hash, self._falsy = name, int((''.join(str(ord(c)) for c in name))), falsy
+        :param falsy: Whether the resulting ``Sentinel`` object should evaluate
+          as *falsy* (if it is to stand-in for ``None`` or ``False``, for
+          instance). """
 
-  def __hash__(self):
+    self.name, self.hash, self._falsy = (
+      name, int((''.join(str(ord(c)) for c in name))), falsy)
 
-    ''' Hash value for this sentinel.
+  # hash value for this sentinel
+  __hash__ = lambda self: self.hash
 
-        :returns: '''
+  # equality comparator
+  __eq__ = lambda self, other: (
+    isinstance(other, self.__class__) and other.hash == self.hash)
 
-    return self.hash
+  # string representation
+  __repr__ = lambda self: '<Sentinel "%s">' % self.name
 
-  def __eq__(self, other):
+  # stringification value
+  __str__ = __unicode__ = lambda self: self.name
 
-    ''' Equality comparator for this sentinel.
-
-        :returns: '''
-
-    if isinstance(other, self.__class__):
-      return other.hash == self.hash
-    return False
-
-  def __repr__(self):
-
-    ''' Represent this sentinel as a string.
-
-      :returns: '''
-
-    return '<Sentinel "%s">' % self.name
-
-  def __nonzero__(self):
-
-    ''' Test whether this sentinel is falsy.
-
-      :returns: '''
-
-    return (not self._falsy)
+  # falsyness
+  __nonzero__ = lambda self: (not self._falsy)
 
 
 # Sentinels
-_EMPTY, _TOMBSTONE = Sentinel("EMPTY", True), Sentinel("TOMBSTONE", True)
+EMPTY, _TOMBSTONE = (
+  Sentinel("EMPTY", True),
+  Sentinel("TOMBSTONE", True))
 
 
 class UtilStruct(object):
 
-  ''' Abstract class for a utility object. '''
+  """ Abstract class for a utility object. """
 
   __metaclass__ = abc.ABCMeta
 
   ## Init -- Accept structure fill
   def __new__(cls, *args, **kwargs):
 
-    ''' Class constructor that enforces abstractness
-        at the root of the class tree.
+    """ Class constructor that enforces abstractness at the root of the class
+        tree.
 
-        Raises :py:exc:`NotImplementedError` if the
-        root class :py:class:`UtilStruct` is constructed
-        directly. Otherwise, returns a new instance
-        of the requested class. '''
+        :param *args:
+        :param **kwargs:
+
+        :raises NotImplementedError: If the root class :py:class:`UtilStruct` is
+          constructed directly. Otherwise, returns a new instance of the
+          requested class. """
 
     if cls.__name__ is 'UtilStruct':
       raise NotImplementedError('Cannot construct `UtilStruct` directly as'
@@ -105,13 +98,15 @@ class UtilStruct(object):
   @abc.abstractmethod
   def fillStructure(self, struct, case_sensitive=False, **kwargs):
 
-    ''' Abstract method that fills a local object with data, usually
-        from initialization.
+    """ Abstract method that fills a local object with data, usually from
+        initialization.
 
         :param struct:
         :param case_sensitive:
         :param kwargs:
-        :returns: '''
+
+        :raises:
+        :returns: """
 
     raise NotImplementedError('`UtilStruct.fillStructure` is abstract and must'
                               ' be implemented by a subclass.')
@@ -119,59 +114,44 @@ class UtilStruct(object):
 
 class ObjectProxy(UtilStruct):
 
-  ''' Same handy object as above, but stores the entries in an
-    _entries attribute rather than the class dict.  '''
+  """ Same handy object as above, but stores the entries in an _entries
+      attribute rather than the class dict.  """
 
-  _entries = None
-  _case_sensitive = None
+  _entries = _case_sensitive = None
 
   def __init__(self, struct=None, case_sensitive=False, **kwargs):
 
-    ''' If handed a dictionary (or something) in init, send it to
-      fillStructure (and do the same for kwargs).
+    """ If handed a dictionary (or something) in init, send it to fillStructure
+        (and do the same for kwargs).
 
-      :param struct:
-      :param case_sensitive:
-      :param kwargs:
-      :raises TypeError:
-      :returns: '''
+        :param struct:
+        :param case_sensitive:
+        :param kwargs:
+
+        :raises TypeError:
+
+        :returns: """
 
     self._entries, self._case_sensitive = {}, case_sensitive
     if struct:
       if kwargs: struct.update(kwargs)
       self.fillStructure(struct, case_sensitive=case_sensitive)
 
-  def i_filter(self, target):
-
-    ''' Account for case sensitivity.
-
-        :param target: String parameter name
-        to filter.
-
-        :returns: Case insensitive version
-        of ``target`` if case sensitivity
-        is deactivated. '''
-
-    if self._case_sensitive:
-      return target
-    return str(target).lower()
-
   def fillStructure(self, fill, case_sensitive=False, **kwargs):
 
-    ''' If handed a dictionary, will fill self with
-        those entries. Usually called from ``__init__``.
+    """ If handed a dictionary, will fill self with those entries. Usually
+        called from ``__init__``.
 
         :param fill: Structure to fill self with.
 
-        :param case_sensitive: Whether we should
-        initialize while ignoring case.
+        :param case_sensitive: Whether we should initialize while ignoring case.
 
-        :param kwargs: Keyword arguments to be applied
-        to ``struct`` as override.
+        :param kwargs: Keyword arguments to be applied to ``struct`` as
+          override.
 
-        :returns: ``self``. '''
+        :returns: ``self``. """
 
-    self.case_sensitive = case_sensitive
+    self._case_sensitive = case_sensitive
     if fill:
       if kwargs: fill.update(kwargs)
       for k, v in (fill.iteritems() if isinstance(fill, dict) else iter(fill)):
@@ -180,112 +160,73 @@ class ObjectProxy(UtilStruct):
 
   def __getitem__(self, name):
 
-    ''' 'x = struct[name]' override.
+    """ 'x = struct[name]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param name:
+        :raises KeyError:
+        :returns: """
 
     filtered = self.i_filter(name)
-    if filtered not in self._entries:
-      raise KeyError("Cannot locate name '%s' in ObjectProxy '%s'." % (name, self))
-    return self._entries[filtered]
+    if filtered not in self._entries and name not in self._entries:
+      raise KeyError("Cannot locate name '%s'"
+                     " in ObjectProxy '%s'." % (name, self))
+    return self._entries.get(filtered, self._entries.get(name))
 
   def __getattr__(self, name):
 
-    ''' 'x = struct.name' override.
+    """ 'x = struct.name' override.
 
-      :param name:
-      :raises AttributeError
-      :returns: '''
+        :param name:
+        :raises AttributeError
+        :returns: """
 
     filtered = self.i_filter(name)
-    if filtered not in self._entries:
-      raise AttributeError("Could not find the attribute '%s' on the specified ObjectProxy." % name)
-    return self._entries[filtered]
+    if filtered not in self._entries and name not in self._entries:
+      raise AttributeError("Could not find the attribute '%s'"
+                           " on the specified ObjectProxy." % name)
+    return self._entries.get(filtered, self._entries.get(name))
 
-  def __contains__(self, name):
+  # filter for case sensitivity
+  i_filter = lambda self, target: (
+    (self._case_sensitive and target) or str(target).lower())
 
-    ''' 'x in struct' override.
+  # contains override
+  __contains__ = contains = lambda self, name: (
+    self.i_filter(name) in self._entries)
 
-      :param name:
-      :returns: '''
+  # dict-style buffered access
+  keys = lambda self: self._entries.keys()
+  values = lambda self: self._entries.values()
+  items = lambda self: self._entries.items()
 
-    return self.i_filter(name) in self._entries
-
-  def keys(self):
-
-    ''' return all keys in this struct.
-
-      :returns: '''
-
-    return self._entries.keys()
-
-  def values(self):
-
-    ''' return all values in this struct.
-
-      :returns: '''
-
-    return self._entries.values()
-
-  def items(self):
-
-    ''' return all (k, v) pairs in this struct.
-
-      :returns: '''
-
-    return self._entries.items()
-
-  def iterkeys(self):
-
-    ''' return each key in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.iterkeys()
-
-  def itervalues(self):
-
-    ''' return each value in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.itervalues()
-
-  def iteritems(self):
-
-    ''' return all (k, v) pairs in this struct,
-        one at a time, generator-style.
-
-        :yields: '''
-
-    return self._entries.iteritems()
+  # dict-style streaming access
+  iterkeys = lambda self: self._entries.iterkeys()
+  itervalues = lambda self: self._entries.itervalues()
+  iteritems = lambda self: self._entries.iteritems()
 
 
 class WritableObjectProxy(ObjectProxy):
 
-  ''' Same handy object as `ObjectProxy`, but allows appending things at runtime. '''
+  """ Same handy object as `ObjectProxy`, but allows appending things at
+      runtime. """
 
   def __setitem__(self, name, value):
 
-    ''' 'struct[name] = x' override.
+    """ 'struct[name] = x' override.
 
-      :param name:
-      :param value:
-      :returns: '''
+        :param name:
+        :param value:
+        :returns: """
 
     self._entries[name] = value
 
   def __setattr__(self, name, value):
 
-    ''' 'struct.name = x' override.
+    """ 'struct.name = x' override.
 
-      :param name:
-      :param value:
-      :returns: '''
+        :param name:
+        :param value:
+        :returns: """
 
     if name in ('_entries', '_case_sensitive', '__slots__'):
       return object.__setattr__(self, name, value)
@@ -293,385 +234,269 @@ class WritableObjectProxy(ObjectProxy):
 
   def __delattr__(self, name):
 
-    ''' 'del struct.name' override.
+    """ 'del struct.name' override.
 
-      :param name:
-      :raises AttributeError:
-      :returns: '''
+        :param name:
+        :raises AttributeError:
+        :returns: """
 
     if self.i_filter(name) not in self._entries:
-      raise AttributeError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+      raise AttributeError("Could not find the entry '%s'"
+                           " on the specified ObjectProxy." % name)
     del self._entries[self.i_filter(name)]
 
   def __delitem__(self, name):
 
-    ''' 'del struct[name]' override.
+    """ 'del struct[name]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param name:
+        :raises KeyError:
+        :returns: """
 
     if self.i_filter(name) not in self._entries:
-      raise KeyError("Could not find the entry '%s' on the specified ObjectProxy." % name)
+      raise KeyError("Could not find the entry '%s'"
+                     " on the specified ObjectProxy." % name)
     del self._entries[self.i_filter(name)]
 
 
 class CallbackProxy(ObjectProxy):
 
-  ''' Handy little object that takes a dict and makes
-    it accessible via var[item], but returns the
-    result of an invoked ``callback(item)``. '''
+  """ Handy little object that takes a dict and makes it accessible via
+      var[item], but returns the result of an invoked ``callback(item)``. """
 
   _entries = None  # cached entries
   callback = None  # callback func
 
-  def __init__(self, callback, struct={}, **kwargs):
+  # noinspection PyMissingConstructor
+  def __init__(self, callback, struct=None, **kwargs):
 
-    ''' Map the callback and fillStructure if we
-      get one via `struct`.
+    """ Map the callback and fillStructure if we get one via `struct`.
 
-      :param callback:
-      :param struct:
-      :param kwargs:
-      :returns: '''
+        :param callback: Callable to produce return values, given the ``item``
+          or ``attr`` desired. If this ``CallbackProxy`` has a set of registered
+          ``self._entries``, and the requested ``item`` or ``attr`` is valid,
+          the value at ``item`` or ``attr`` in ``self._entries`` will be passed
+          as the first and only argument to ``callback`` when looking for a
+          return value. If this ``CallbackProxy`` is unregistered, the desired
+          ``item`` or ``attr`` name is passed as the first and only argument to
+          ``callback``.
 
+        :param struct: Structure (``dict``) of items to register in this
+          ``CallbackProxy``'s local ``self._entries`` registry. If this
+          structure is provided, it will be validated against for ``item`` or
+          ``attr`` requests, and will be handed to the ``callback`` function
+          as described above.
+
+        :param **kwargs: ``key=value`` pairs to override in ``struct`` before
+          registering in ``self._entries``. """
+
+    struct = struct or {}
     self.callback = callback
 
     self._entries = struct
     if kwargs: self._entries.update(kwargs)
 
-  def __getitem__(self, name):
+  def __getitem__(self, item):
 
-    ''' 'x = struct[name]' override.
+    """ 'x = struct[item]' override.
 
-      :param name:
-      :raises KeyError:
-      :returns: '''
+        :param item: Item to fetch via ``self.callback``. If there are
+          registered entries on the local ``CallbackProxy``, ``item`` must be
+          present as a key, and the value at ``item`` is passed to the local
+          ``self.callback`` for resolving a value.
 
-    if self._entries:
-      if name not in self._entries:
-        raise KeyError("Could not retrieve item '%s' from CallbackProxy '%s'." % (name, self))
-      return self.callback(self._entries.get(name))
-    return self.callback(name)
+        :raises KeyError: Raised if this ``CallbackProxy`` has registered
+          ``self._entries`` and ``item`` is not present as a key. ``KeyError``s
+          raised from ``self.callback`` are also bubbled.
 
-  def __getattr__(self, name):
+        :returns: Result of ``self.callback(self._entries[item])`` if this
+          ``CallbackProxy`` has registered ``self._entries``, or the result of
+           ``self.callback(item)`` if there are no registered
+           ``self._entries``. """
 
-    ''' 'x = struct.name' override.
+    if self._entries and item not in self._entries:
+      raise KeyError("Could not retrieve item '%s'"
+                     " from CallbackProxy '%s'." % (item, self))
+    return self.callback((self._entries.get(item) if self._entries else item))
 
-      :param name:
-      :raises AttributeError:
-      :returns: '''
+  def __getattr__(self, attr):
 
-    if self._entries:
-      if not name or (name not in self._entries):
-        raise AttributeError("CallbackProxy could not resolve entry '%s'." % name)
-      return self.callback(self._entries.get(name))
-    return self.callback(name)
+    """ 'x = struct.attr' override.
 
-  def __call__(self, *args, **kwargs):
+        :param attr: String attribute name to fetch from this ``CallbackProxy``,
+          either via the result of ``self.callback(self._entries[attr])`` if
+          there are registered ``self._entries`` or otherwise the result of
+          ``self.callback(attr)``.
 
-    ''' 'struct()' override.
+        :raises AttributeError: Raised if this ``CallbackProxy`` has registered
+          ``self._entries`` and ``item`` is not present as a key.
+          ``AttributeError``s raised from ``self.callback`` are also bubbled.
 
-      :returns: '''
+        :returns: Result of the ``callback`` dispatch as described above. """
 
-    return self.callback(*args, **kwargs)
+    if self._entries and attr not in self._entries:
+      raise AttributeError("CallbackProxy could not resolve entry '%s'." % attr)
+    return self.callback((self._entries.get(attr) if self._entries else attr))
 
+  def __contains__(self, item):
 
-class ObjectDictBridge(UtilStruct):
+    """ 'x in struct' override.
 
-  ''' Treat an object like a dict, or an object! Assign an object
-    with `ObjectDictBridge(<object>)`. Then access properties
-    with `bridge[item]` or `bridge.item`. '''
+       :param item: Item to check the local container for.
 
-  target = None  # target object
+       :return: Whether or not ``item`` is held by ``self._entries``, or
+         ``False`` if it could not be found (or if this ``CallbackProxy`` has no
+         registered ``self._entries`` table). """
 
-  def __init__(self, target_object=None):
+    return self._entries and item in self._entries
 
-    ''' constructor.
-
-      :param target_object:
-      :returns: '''
-
-    super(ObjectDictBridge, self).__setattr__('target', target_object)
-
-  def __getitem__(self, name):
-
-    ''' 'x = struct[name]' override.
-
-      :param name:
-      :raise KeyError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return getattr(self.target, name)
-      except AttributeError, e:
-        raise KeyError(str(e))
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __setitem__(self, name):
-
-    ''' 'struct[name] = x' override.
-
-      :param name:
-      :raises KeyError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return setattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __delitem__(self, name):
-
-    ''' 'del struct[name]' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return delattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __getattr__(self, name):
-
-    ''' 'x = struct.name' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return getattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __setattr__(self, name):
-
-    ''' 'struct.name = x' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return setattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __delattr__(self, name):
-
-    ''' 'del struct.name' override.
-
-      :param name:
-      :raises KeyError:
-      :raises AttributeError:
-      :returns: '''
-
-    if self.target is not None:
-      try:
-        return delattr(self.target, name)
-      except Exception, e:
-        raise e
-    else:
-      raise KeyError('No object target set for ObjectDictBridge.')
-
-  def __contains__(self, name):
-
-    ''' Indicates whether this ObjectDictBridge
-      contains the given key.
-
-      :param name:
-      :returns: '''
-
-    try:
-      getattr(self.target, name)
-    except AttributeError:
-      return False
-    return True
-
-  def get(self, name, default_value=None):
-
-    ''' dict-like safe get (`obj.get(name, default)`).
-
-      :param name:
-      :param default_value:
-      :returns: '''
-
-    try:
-      return getattr(self.target, name)
-    except:
-      return default_value
-    return default_value
+  # `struct()` override
+  __call__ = lambda self, *args, **kwargs: self.callback(*args, **kwargs)
 
 
-@decorators.singleton
 class BidirectionalEnum(object):
 
-  ''' Small and simple datastructure for mapping
-    static flags to smaller values. '''
+  """ Small and simple datastructure for mapping static names to symbolic
+      values. Interoperable with the RPC and model layers. """
 
-  class __metaclass__(abc.ABCMeta):
+  __singleton__, __slots__ = True, tuple()
 
-    ''' Metaclass for property-gather-enabled classes. '''
+  class __metaclass__(type):
 
-    def __new__(cls, name, chain, mappings):
+    """ Metaclass for property-gather-enabled classes. """
 
-      ''' Read mapped properties, store on the
-        object, along with a reverse mapping.
+    def __new__(mcs, name, chain, _map):
 
-        :param name:
-        :param chain:
-        :param mappings:
-        :returns: '''
+      """ Read mapped properties, store on the object, along with a reverse
+          mapping.
 
-      if name == 'ProxiedStructure':
-        return type(name, chain, mappings)
+          :param name: Name of the ``BidirectionalEnum`` subtype to factory.
+          :param chain: Inheritance chain for target subtype.
+          :param _map: ``dict`` map of ``key = value`` attribute pairs.
 
-      # Init calculated data attributes
-      mappings['_pmap'] = {}
-      mappings['_plookup'] = []
+          :raises RuntimeError: If a non-unique ``key`` or ``value`` is given
+            as part of the ``BidirectionalEnum``-to-be's ``map``.
 
-      # Define __contains__ proxy
-      def _contains(proxied_o, flag_or_value):
+          :returns: Constructed ``BidirectionalEnum`` subclass. """
 
-        ''' Bidirectionally-compatible __contains__
-          replacement.
+      # init calculated data attributes
+      _pmap, _keys, _plookup = (
+          _map['_pmap'], _map['_keys'], _map['_plookup']) = (
+            {}, [], set())
 
-          :param proxied_o:
-          :param flag_or_value:
-          :returns: '''
+      # set class-level enum properties
+      for key, value in _map.iteritems():
+        if not key.startswith('_') and isinstance(value, _ENUM_TYPES):
+          if value in _plookup:  # pragma: no cover
+            raise RuntimeError('Cannot map non-unique (double-validated)'
+                               ' `BidirectionalEnum` value %s.' % value)
+          if key in _plookup:  # pragma: no cover
+            raise RuntimeError('Cannot map non-unique (double-validated)'
+                               ' `BidirectionalEnum` key %s.' % value)
 
-        return flag_or_value in proxied_o._plookup
+          # things look good: add the value
+          _keys.append(key)
+          _pmap[key] = value
+          _pmap[value] = key
+          _plookup.add(key)
+          _plookup.add(value)
 
-      # Define __getitem__ proxy
-      def _getitem(proxied_o, fragment):
+      _map['_keys'] = tuple(_keys)
+      return type.__new__(mcs, name, chain, _map)
 
-        ''' Attempt to resolve the fragment by a
-          forward, then reverse resolution chain.
+    def __iter__(cls):
 
-          :param proxied_o:
-          :param fragment:
-          :returns: '''
+      """ Iterate over all enumerated values.
 
-        if proxied_o.__contains__(fragment):
-          return proxied_o._pmap.get(fragment)
+         :returns: ``(k, v)`` tuples for each enumerated item and value, one at
+          a time. """
 
-      # Define __setitem__ proxy
-      def _setitem(proxied_o, n, v):
+      for k in cls._keys:
+        yield k, getattr(cls, k)
 
-        ''' Block setitem calls, because this is a
-          complicated object that is supposed
-          to be a modelling tool only.
+    def __getitem__(cls, item):
 
-          :param proxied_o:
-          :param n:
-          :param v:
-          :raises NotImplementedError: '''
+      """ Fetch an item from the local ``BidirectionalEnum`` (forward resolve).
 
-        raise NotImplementedError('Not implemented')
+          :raises KeyError: If ``item`` is not a valid item registered on the
+            local ``BidirectionalEnum``.
 
-      # Map properties into data and lookup attributes
-      map(lambda x: [mappings['_pmap'].update(dict(x)), mappings['_plookup'].append([x[0][0], x[1][0]])],
-        (((attr, value), (value, attr)) for attr, value in mappings.items() if not attr.startswith('_')))
+          :returns: Bound value at the (forward-resolved) item on the local
+            ``BidirectionalEnum``. """
 
-      if '__getitem__' not in mappings:
-        mappings['__getitem__'] = _getitem
-      if '__setitem__' not in mappings:
-        mappings['__setitem__'] = _setitem
-      if '__contains__' not in mappings:
-        mappings['__contains__'] = _contains
+      return cls._pmap[item]
 
-      return super(cls, cls).__new__(cls, name, chain, mappings)
+    def __contains__(cls, item):
 
-  @classmethod
-  def reverse_resolve(cls, code):
+      """ Check if an ``item`` is a registered member or value of the local
+          ``BidirectionalEnum``.
 
-    ''' Resolve a mapping, by it's integer/string code.
+          :param item: Item to check for membership against the local enum.
 
-      :param code:
-      :returns: '''
+          :return: ``bool`` - ``True`` if ``item`` is a valid member with a
+            bound value retrievable via item or attribute syntax or a value with
+            a bound key retreivable via ``reverse_resolve``, otherwise
+            ``False``. """
 
-    if code in cls._pmap:
-      return cls._pmap[code]
-    return False
+      return item in cls._plookup
 
-  @classmethod
-  def forward_resolve(cls, flag):
+    def __setitem__(cls, item, value):
 
-    ''' Resolve a mapping, by it's string property name.
+      """ Disallow writing to items registered in the ``BidirectionalEnum``,
+          as it is an immutable type.
 
-      :param flag:
-      :returns: '''
+          :param item: Item to write.
+          :param value: Value to write at ``item``.
 
-    if flag in cls._pmap:
-      return cls.__getattr__(flag)
-    return False
+          :raises NotImplementedError: Always, as ``BidirectionalEnum`` is an
+            immutable type. """
 
-  @classmethod
-  def resolve(cls, flag): return cls.forward_resolve(flag)
+      raise NotImplementedError('`%s` is an immutable type'
+                                ' and cannot be written to with item'
+                                ' syntax. ' % cls.__name__)
 
-  @classmethod
-  def __serialize__(cls):
+    def __setattr__(cls, attr, value):
 
-    ''' Flatten down into a structure suitable for
-      storage/transport.
+      """ Disallow writing to attributes registered in the ``BidirectionalEnum``,
+          as it is an immutable type.
 
-      :returns: '''
+          :param attr: Attribute to write.
+          :param value: Value to write at ``attr``.
 
-    return dict([(k, v) for k, v in dir(cls) if not k.startswith('_')])
+          :raises NotImplementedError: Always, as ``BidirectionalEnum`` is an
+            immutable type. """
 
-  @classmethod
-  def __json__(cls):
+      raise NotImplementedError('`%s` is an immutable type'
+                                ' and cannot be written to with attribute'
+                                ' syntax. ' % cls.__name__)
 
-    ''' Flatten down and serialize into JSON.
+  def __new__(cls):
 
-      :returns: '''
+    """ Disallow direct construction of ``BidirectionalEnum`` objects.
 
-    return cls.__serialize__()
+        :raises TypeError: ``BidirectionalEnum`` is both an abstract class
+          (itself) and an object that is always used as its type. Thus, objects
+          of ``BidirectionalEnum`` are not allowed to be created and attempts
+          to do so always result in ``TypeError``s. """
 
-  @classmethod
-  def __repr__(cls):
+    raise TypeError('`%s` objects are abstract'
+                    ' and only usable as type objects.' % cls.__name__)
 
-    ''' Display a string representation of
-      a flattened self.
+  # forward and reverse resolve
+  reverse_resolve = (
+    classmethod(lambda cls, code: cls._pmap.get(code, False)))
+  forward_resolve = resolve = (
+    classmethod(lambda cls, flag: cls.__getattr__(flag, False)))
 
-      :returns: '''
+  # serialization and string repr
+  __json__ = classmethod(lambda cls: cls.__serialize__())
+  __serialize__ = (
+    classmethod(lambda cls: dict(((k, v) for k, v in cls._plookup if not (
+      k.startswith('_'))))))
 
-    return '::'.join([
+  __repr__ = classmethod(lambda cls: ('::'.join([
       "<%s" % cls.__name__,
       ','.join([
-        block for block in ('='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
-      "BiDirectional>"
-      ])
-
-
-__all__ = (
-  'Sentinel',
-  '_EMPTY',
-  '_TOMBSTONE',
-  'UtilStruct',
-  'ObjectProxy',
-  'WritableObjectProxy',
-  'CallbackProxy',
-  'ObjectDictBridge',
-  'BidirectionalEnum'
-)
+        block for block in (
+          '='.join([str(k), str(v)]) for k, v in cls.__serialize__().items())]),
+      "BiDirectional>"])))

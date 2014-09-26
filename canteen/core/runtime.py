@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: runtime core
-  ~~~~~~~~~~~~~~~~~~~~~
+  core runtime
+  ~~~~~~~~~~~~
 
   platform internals and logic to discover/load/inject.
 
@@ -13,7 +13,9 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
+
+from __future__ import print_function
 
 # stdlib
 import os
@@ -21,15 +23,20 @@ import sys
 import abc
 import inspect
 import importlib
+import threading
 
 # core API
 from .meta import Proxy
 from .injection import Bridge
 
 
+## Globals
+__runtime__ = threading.local()
+
+
 class Runtime(object):
 
-  '''  '''
+  """  """
 
   # == Public Properties == #
 
@@ -39,34 +46,36 @@ class Runtime(object):
   application = None  # WSGI application callable or delegate
 
   # == Private Properties == #
-  __hooks__ = {}  # mapped hookpoints and methods to call
-  __owner__ = "Runtime"  # metabucket owner name for subclasses
+  __hooks__ = {}  # mapped hook points and methods to call
+  __owner__ = "Runtime"  # meta bucket owner name for subclasses
   __wrapped__ = None  # wrapped dispatch method calculated on first request
   __singleton__ = False  # many runtimes can exist, _so power_
   __metaclass__ = Proxy.Component  # this should be injectable
-  __precedence__ = False  # marked if a specific a runtime should win in selection
-  precedence = property(lambda self: self.__precedence__)  # protect writes to precedence
+  __precedence__ = False  # marked if a specific runtime should win in selection
+  precedence = property(lambda self: self.__precedence__)  # protect writes
 
   # == Abstract Properties == #
-  @abc.abstractproperty
-  def base_exception(self):
+  @staticmethod
+  def base_exception():
 
-    '''  '''
+    """  """
 
     return False
 
   @classmethod
   def spawn(cls, app):
 
-    '''  '''
+    """  """
 
-    # if we're running as ``Runtime``, resolve a runtime first
-    return (cls.resolve() if cls is Runtime else cls)(app)
+    global __runtime__
+    if not getattr(__runtime__, 'active', None):
+      __runtime__.active = (cls.resolve() if cls is Runtime else cls)(app)
+    return __runtime__.active
 
   @classmethod
   def resolve(cls):
 
-    '''  '''
+    """  """
 
     # @TODO(sgammon): figure out how to prioritize/select a runtime
     _default, _preferred = None, []
@@ -84,18 +93,18 @@ class Runtime(object):
     return _default  # WSGIref
 
   @classmethod
-  def set_precedence(cls, status=True):
+  def set_precedence(cls, status=False):
 
-    '''  '''
+    """  """
 
-    cls.__precedence__ = True
-    return cls
+    return setattr(cls, '__precendence__', status) or cls
 
   @classmethod
-  def add_hook(cls, hook, (context, func)):
+  def add_hook(cls, hook, context_and_func):
 
-    '''  '''
+    """  """
 
+    context, func = context_and_func
     assert isinstance(hook, basestring), "hook name must be a string"
     if hook not in cls.__hooks__: cls.__hooks__[hook] = []
     cls.__hooks__[hook].append((context, func))
@@ -104,7 +113,7 @@ class Runtime(object):
   @classmethod
   def get_hooks(cls, point):
 
-    '''  '''
+    """  """
 
     if point in cls.__hooks__:
       for i in cls.__hooks__[point]:
@@ -114,11 +123,12 @@ class Runtime(object):
   @classmethod
   def execute_hooks(cls, points, *args, **kwargs):
 
-    '''  '''
+    """  """
 
     if isinstance(points, basestring): points = (points,)
     for point in points:
       for context, hook in cls.get_hooks(point):
+        # noinspection PyBroadException
         try:
           # run as classmethod
           if isinstance(hook, classmethod):
@@ -131,12 +141,15 @@ class Runtime(object):
           else:
 
             # must have a singleton if we're running in object context
-            if not hasattr(context, '__singleton__') or not context.__singleton__:
-              raise RuntimeError('Cannot execute hook method "%s" without matching singleton context.' % hook)
+            if not (
+              hasattr(context, '__singleton__') or not context.__singleton__):
+              raise RuntimeError('Cannot execute hook method "%s"'
+                                 ' without matching singleton context.' % hook)
 
             # resolve singleton by context name
             obj = Proxy.Component.singleton_map.get(context.__name__)
-            if not obj: raise RuntimeError('No matching singleton for hook method "%s".' % hook)
+            if not obj: raise RuntimeError('No matching singleton'
+                                           ' for hook method "%s".' % hook)
 
             # run in singleton context
             hook(point, obj, *args, **kwargs)
@@ -148,22 +161,21 @@ class Runtime(object):
 
   def __init__(self, app):
 
-    '''  '''
+    """  """
 
     self.application, self.bridge = (
       app,
-      Bridge()
-    )
+      Bridge())
 
   def initialize(self):
 
-    '''  '''
+    """  """
 
     self.execute_hooks('initialize', runtime=self)
 
   def configure(self, config):
 
-    '''  '''
+    """  """
 
     self.config = config
     self.initialize()  # let subclasses initialize
@@ -171,7 +183,7 @@ class Runtime(object):
 
   def serve(self, interface, port, bind_only=False):
 
-    '''  '''
+    """  """
 
     server = self.bind(interface, port)
 
@@ -180,13 +192,13 @@ class Runtime(object):
 
     try:
       server.serve_forever()
-    except (KeyboardInterrupt, Exception) as e:
-      print "Exiting."
+    except (KeyboardInterrupt, Exception):
+      print("Exiting.")
       sys.exit(0)
 
   def bind_environ(self, environ):
 
-    '''  '''
+    """  """
 
     from ..logic import http
     self.routes = http.HTTPSemantics.route_map.bind_to_environ(environ)
@@ -194,12 +206,39 @@ class Runtime(object):
     return (
       http.HTTPSemantics,
       http.HTTPSemantics.new_request(environ),
-      http.HTTPSemantics.new_response()
-    )
+      http.HTTPSemantics.new_response())
+
+  def handshake(self, key, origin=None):
+
+    """ WIP """
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+  def send(self, payload, binary=False):
+
+    """ WIP """
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+  def send(self):
+
+    """ WIP """
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+  def receive(self):
+
+    """ WIP """
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
 
   def dispatch(self, environ, start_response):
 
-    '''  '''
+    """ WIP """
 
     from ..base import handler as base_handler
 
@@ -207,8 +246,7 @@ class Runtime(object):
     context = {
       'environ': environ,
       'start_response': start_response,
-      'runtime': self
-    }
+      'runtime': self}
 
     # call dispatch hooks
     self.execute_hooks('dispatch', **context)
@@ -242,11 +280,12 @@ class Runtime(object):
         'code': 404,
         'error': True,
         'exception': None,
-        'response': None
-      })
+        'response': None})
 
       # dispatch error hook for 404
       self.execute_hooks(('error', 'complete'), **context)
+
+      # noinspection PyCallByClass,PyTypeChecker
       http.error(404)
 
     # class-based pages/handlers
@@ -276,25 +315,27 @@ class Runtime(object):
         _response = context['response'] = response.__class__(content, **{
           'status': status,
           'headers': headers,
-          'mimetype': content_type
-        })
+          'mimetype': content_type})
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
         return _response(environ, start_response)
 
+      # unpack response
       status, headers, content_type, content = (
         context['status'],
         context['headers'],
         context['content_type'],
         context['content']
-      ) = result.status, result.headers, result.content_type, result.response  # unpack response
+      ) = result.status, result.headers, result.content_type, result.response
 
       # call response hooks
       self.execute_hooks(('response', 'complete'), **context)
 
       # send start_response
-      start_response(result.status, [(k.encode('utf-8').strip(), v.encode('utf-8').strip()) for k, v in result.headers])
+      start_response(result.status, [(
+        k.encode('utf-8').strip(), v.encode('utf-8').strip()
+      ) for k, v in result.headers])
 
       # buffer and return (i guess) @TODO(sgammon): can we do this better?
       return iterator or result.response  # it's a werkzeug Response
@@ -305,14 +346,13 @@ class Runtime(object):
       # make a neat little shim, containing our runtime
       def _foreign_runtime_bridge(status, headers):
 
-        '''  '''
+        """  """
 
         # call response hooks
         context['status'], context['headers'], context['response'] = (
           status,
           headers,
-          None
-        )
+          None)
 
         self.execute_hooks(('response', 'complete'), **context)
         return start_response(status, headers)
@@ -323,7 +363,7 @@ class Runtime(object):
       _foreign_runtime_bridge.start_response = start_response
       context['start_response'] = _foreign_runtime_bridge
 
-      # call handler hooks, initialize foreign handler with replaced start_response
+      # call hooks, initialize foreign handler with replaced start_response
       self.execute_hooks('handler', **context)
       return handler(environ, _foreign_runtime_bridge)
 
@@ -353,11 +393,12 @@ class Runtime(object):
 
         # call response hooks
         context['headers'], context['content'] = (
-          result.headers, result.response
-        )
+          result.headers, result.response)
 
         self.execute_hooks(('response', 'complete'), **context)
-        return response(environ, start_response)  # it's a Response class - call it to start_response
+
+        # it's a Response class - delegate to attached start_response
+        return response(environ, start_response)
 
       # a tuple bound to a URL - static response
       elif isinstance(result, tuple):
@@ -369,8 +410,7 @@ class Runtime(object):
           ) = result
 
           headers = context['headers'] = [
-            ('Content-Type', 'text/html; charset=utf-8')
-          ]
+            ('Content-Type', 'text/html; charset=utf-8')]
 
           # call response hooks
           self.execute_hooks(('response', 'complete'), **context)
@@ -387,7 +427,8 @@ class Runtime(object):
           if isinstance(headers, dict):
             headers = headers.items()
             if 'Content-Type' not in headers:
-              headers['Content-Type'] = context['headers']['Content-Type'] = 'text/html; charset=utf-8'
+              headers['Content-Type'] = context['headers']['Content-Type'] = (
+                'text/html; charset=utf-8')
 
           # call response hooks
           self.execute_hooks(('response', 'complete'), **context)
@@ -400,7 +441,7 @@ class Runtime(object):
           context['status'],
           context['headers'],
           context['response']
-        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], result
+        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')]
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
@@ -411,11 +452,8 @@ class Runtime(object):
     if not callable(handler):
       if isinstance(handler, basestring):
 
-        status, headers = (
-          context['status'],
-          context['headers'],
-          context['response']
-        ) = '200 OK', [('Content-Type', 'text/html; charset=utf-8')], handler
+        context['status'], context['headers'], context['response'] = (
+          '200 OK', [('Content-Type', 'text/html; charset=utf-8')], result)
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
@@ -425,7 +463,7 @@ class Runtime(object):
 
   def wrap(self, dispatch):
 
-    '''  '''
+    """  """
 
     if not self.__wrapped__:
 
@@ -437,35 +475,41 @@ class Runtime(object):
 
       # profiler support
       if 'profiler' in dev_config:
-        if dev_config['profiler'].get('enable', False):
+        profiler_cfg = dev_config['profiler']
+
+        if profiler_cfg.get('enable', False):
 
           ## grab a profiler
           try:
             import cProfile as profile
-          except ImportError as e:
+          except ImportError:
             import profile
 
           ## calculate dump file path
-          profile_path = dev_config['profiler'].get('dump_file', os.path.abspath(os.path.join(os.getcwd(), '.develop', 'app.profile')))
+          profile_path = profiler_cfg.get('dump_file', os.path.abspath(
+            os.path.join(*(os.getcwd(), '.develop', 'app.profile'))))
 
           ## current profile
-          _current_profile = profile.Profile(**dev_config['profiler'].get('profile_kwargs', {}))
+          pkwargs = profiler_cfg.get('profile_kwargs', {})
+          _current_profile = profile.Profile(**pkwargs)
 
           ## handle flushing mechanics
-          if dev_config['profiler'].get('on_request', True):
+          if profiler_cfg.get('on_request', True):
 
             def maybe_flush_profile():
 
-              '''  '''
+              """  """
 
               _current_profile.dump_stats(profile_path)
 
           else:
-            raise RuntimeError('Cross-request profiling is currently unsupported.')  # @TODO(sgammon): cross-request profiling
+            # @TODO(sgammon): cross-request profiling
+            raise RuntimeError('Cross-request profiling'
+                               ' is currently unsupported.')
 
           def _dispatch(*args, **kwargs):
 
-            ''' Wrapper to enable profiler support. '''
+            """ Wrapper to enable profiler support. """
 
             ## dispatch
             response = _current_profile.runcall(dispatch, *args, **kwargs)
@@ -476,22 +520,33 @@ class Runtime(object):
 
     return self.__wrapped__
 
-  @abc.abstractmethod
-  def bind(self, interface, address):
+  def bind(self, interface, port):
 
-    '''  '''
+    """  """
 
     raise NotImplementedError
 
+  def callback(self, start_response):
+
+    """  """
+
+    def responder(status, headers):
+
+      """  """
+
+      return start_response(status, headers)
+
+    return responder
+
   def __call__(self, environ, start_response):
 
-    '''  '''
+    """  """
 
     try:
-      return self.wrap(self.dispatch)(environ, start_response)
+      return self.wrap(self.dispatch)(environ, self.callback(start_response))
 
     except self.base_exception as exc:
-      return exc(environ, start_response)  # it's an acceptable exception that can be returned as a response
+      return exc(environ, start_response)  # it's an acceptable exception
 
     except Exception:
       raise  # just raise it k?
@@ -499,19 +554,19 @@ class Runtime(object):
 
 class Library(object):
 
-  '''  '''
+  """  """
 
   name = None  # string name of the library
   strict = False  # whether to hard-fail on ImportError
   package = None  # reference to the actual library package/module
   exception = None  # captured ImportError or AttributeError exception, if any
-  supported = None  # boolean flag indicating whether this lib is supported or not
+  supported = None  # boolean indicating whether this lib is supported or not
 
   __owner__, __metaclass__ = "Library", Proxy.Component
 
   def __init__(self, package, strict=False):
 
-    '''  '''
+    """  """
 
     if isinstance(package, basestring):
       self.name = package
@@ -521,7 +576,7 @@ class Library(object):
 
   def load(self, *subpackages):
 
-    '''  '''
+    """  """
 
     loaded = []
     for package in subpackages:
@@ -532,7 +587,7 @@ class Library(object):
 
   def __enter__(self):
 
-    '''  '''
+    """  """
 
     if not self.package and (self.supported is None):
       try:
@@ -547,15 +602,9 @@ class Library(object):
 
   def __exit__(self, exception_cls, exception, traceback):
 
-    '''  '''
+    """  """
 
     if exception:
       if self.strict: return False
 
     return True
-
-
-__all__ = (
-  'Runtime',
-  'Library'
-)

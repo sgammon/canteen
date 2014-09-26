@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: adapter core tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  tests core adapter functionality, like MRO-based method
-  injection into regular :py:class:`model.Key` and
-  :py:class:`model.Model` classes.
+  HTTP agent logic tests
+  ~~~~~~~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -15,4 +11,4 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""

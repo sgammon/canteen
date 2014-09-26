@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
   canteen: tests
   ~~~~~~~~~~~~~~
@@ -14,20 +14,15 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 if __debug__:
 
-  # stdlib
-  import os
-
   # test tools
-  from canteen import util
   from canteen import test
 
   # import testsuite
   from . import test__init__
-  from . import test__main__
   from . import test_core
   from . import test_dispatch
   from . import test_rpc
@@ -39,11 +34,11 @@ if __debug__:
 
   class SanityTest(test.FrameworkTest):
 
-    ''' Run some basic sanity tests. '''
+    """ Run some basic sanity tests. """
 
     def test_math_sanity(self):
 
-      ''' Make sure that math still works (lol). '''
+      """ Test that math still works (lol) """
 
       self.assertEqual(1 + 1, 2)
       self.assertEqual(2 - 1, 1)
@@ -53,11 +48,12 @@ if __debug__:
 
     def test_assert_sanity(self):
 
-      ''' Make sure ``assert`` statements are working as expected. '''
+      """ Test `assert` behavior """
 
       try:
         assert 1 == 2
       except AssertionError:
         pass
-      else:
-        raise RuntimeError('Assertions are disabled. Something is wrong, as `__debug__` is truthy.')
+      else:  # pragma: no cover
+        raise RuntimeError('Assertions are disabled. Something is wrong, '
+                           ' as `__debug__` is truthy.')

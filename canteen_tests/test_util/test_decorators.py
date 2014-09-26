@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: decorator tests
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  decorator tests
+  ~~~~~~~~~~~~~~~
 
   tests for canteen's decorator utilities.
 
@@ -13,4 +13,4 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""

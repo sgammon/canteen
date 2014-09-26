@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: uwsgi runtime
-  ~~~~~~~~~~~~~~~~~~~~~~
+  uwsgi runtime
+  ~~~~~~~~~~~~~
 
   integrates :py:mod:`canteen` with :py:mod:`uwsgi`.
 
@@ -13,15 +13,20 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
-# core + util
+# core
+from ..core import runtime
+
+# util
 from ..util import debug
 from ..util import decorators
-from ..core import hooks, runtime
+
+# logic
+from ..logic.realtime import TERMINATE
 
 
-try:
+try:  # pragma: no cover
 
   with runtime.Library('uwsgi', strict=True) as (library, uwsgi):
 
@@ -32,19 +37,52 @@ try:
     @decorators.bind('uwsgi')
     class uWSGI(runtime.Runtime):
 
-      '''  '''
+      """ WIP """
 
-      @classmethod
-      def register_rpc(cls, method):
+      def callback(self, start_response):
 
-        '''  '''
+        """  """
 
-        pass  # @TODO(sgammon): register methods
+        def responder(status, headers):
+
+          """  """
+
+          try:
+            return start_response(status, headers)
+          except IOError:
+            return
+
+        return responder
+
+      def handshake(self, key, origin=None):
+
+        """ WIP """
+
+        uwsgi.websocket_handshake(key, origin)
+
+      def send(self, payload, binary=False):
+
+        """ WIP """
+
+        return (uwsgi.websocket_send if not binary else (
+              uwsgi.websocket_send_binary))(payload)
+
+      def receive(self, blocking=True):
+
+        """ WIP """
+
+        try:
+          return uwsgi.websocket_recv_nb if not blocking else (
+                    uwsgi.websocket_recv)()
+
+        except IOError:
+          return TERMINATE
+
+      def close(self):
+
+        """ WIP """
 
 
-    uWSGI.set_precedence(True)  # if we make it here, we're running *inside* uWSGI
+    uWSGI.set_precedence(True)  # we're running *inside* uWSGI guys
 
-except ImportError:
-  pass
-
-__all__ = tuple()
+except ImportError: pass

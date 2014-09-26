@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: core tests
-  ~~~~~~~~~~~~~~~~~~~
+  core tests
+  ~~~~~~~~~~
 
   tests canteen's core, which contains abstract/meta code for constructing
   and gluing together the rest of canteen.
@@ -14,19 +14,11 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
-# stdlib
-import os
+if __debug__:
 
-if 'TEST_REIMPORT' in os.environ:  # pragma: nocover
-  from canteen_tests.test_core import test_runtime
-  from canteen_tests.test_core import test_meta
-  from canteen_tests.test_core import test_injection
-
-
-__all__ = (
-  'test_runtime',
-  'test_injection',
-  'test_meta'
-)
+  __all__ = ('test_runtime',
+             'test_injection',
+             'test_meta',
+             'test_hooks')

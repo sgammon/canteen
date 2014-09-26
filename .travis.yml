@@ -8,7 +8,10 @@ install:
   - pip install -r dev_requirements.txt --use-mirrors
   - pip install coveralls --use-mirrors
 
-script: make package
+script: make all BINROOT=
 
 after_success:
   coveralls
+
+notifications:
+  slack: momentum-labs:qdIanVeSHF2oFXDY0GbNxofo#automata

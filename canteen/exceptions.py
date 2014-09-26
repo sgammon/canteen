@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: exceptions
-  ~~~~~~~~~~~~~~~~~~~
+  exceptions
+  ~~~~~~~~~~
 
   contains exceptions exported by :py:mod:`canteen`.
 
@@ -13,12 +13,8 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 
 class Error(Exception):
-
-	''' Top-level error for all of :py:mod:`canteen`. '''
-
-
-__all__ = ('Error',)
+    """ Top-level error for all of :py:mod:`canteen`. """

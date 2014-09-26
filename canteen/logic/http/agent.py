@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen user-agent logic
-  ~~~~~~~~~~~~~~~~~~~~~~~~
+  HTTP agent logic
+  ~~~~~~~~~~~~~~~~
 
   :author: Sam Gammon <sg@samgammon.com>
   :copyright: (c) Sam Gammon, 2014
@@ -11,7 +11,7 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""
 
 # canteen core & util
 from canteen.base import logic
@@ -21,78 +21,116 @@ from canteen.util import decorators
 
 class Vendor(struct.BidirectionalEnum):
 
-  '''  '''
+  """ Enumerated common vendors that can be found in an HTTP client or browser's
+      ``User-Agent`` string. """
 
-  GOOGLE = 0  # Chrome
-  MOZILLA = 1  # Firefox
-  MICROSOFT = 2  # IE
-  OPERA = 3  # Opera
-  APPLE = 4  # Apple
-  OPEN = 5  # Open source
-  OTHER = 6  # Anything else
+  GOOGLE = 0x0  # Chrome
+  MOZILLA = 0x1  # Firefox
+  MICROSOFT = 0x2  # IE
+  OPERA = 0x3  # Opera
+  APPLE = 0x4  # Apple
+  OPEN = 0x5  # Open source
+  OTHER = 0x6  # Anything else
 
 
 class AgentInfo(object):
 
-  '''  '''
+  """ Base class structure that removes object slots in favor of an extendable,
+      fully-static object structure. Used for indivisual objects that retain or
+      specify details about an HTTP client's ``User-Agent`` string. """
 
   __slots__ = tuple()
 
   def dump(self):
 
-    '''  '''
+    """ Dump the local data carried by this ``AgentInfo`` object or subclass
+        object.
+
+        :returns: Dictionary (``dict``) of held ``key => value`` pairs. """
 
     return dict(((k, getattr(self, k, None)) for k in self.__slots__))
 
   def __repr__(self):
 
-    '''  '''
+    """ Generate a pleasant string representation for this unit of
+        ``AgentInfo``.
+
+        :returns: Human-readable string representation of this object. """
 
     return "%s(%s)" % (
       self.__class__.__name__.replace('Agent', ''),
       ', '.join(
-        ('='.join((i, str(getattr(self, i) if (hasattr(self, i)) else None))) for i in self.__slots__ if not i.startswith('__'))
-      )
-    )
+        ('='.join((
+          i,
+          str(getattr(self, i) if (
+            hasattr(self, i)) else None))) for i in (
+              self.__slots__) if not i.startswith('__'))))
 
 
 class AgentVersion(AgentInfo):
 
-  '''  '''
+  """ Holds parsed version information for a software HTTP client or browser,
+      found while scanning the ``User-Agent`` header. """
 
   __slots__ = (
     'major',  # major browser version (the `3` in 3.0)
     'minor',  # minor browser version (the `1` in 3.1)
-    'micro'  # micro browser version (the `5` in 3.1.5)
-  )
+    'micro')  # micro browser version (the `5` in 3.1.5)
 
   def __init__(self, major, minor=None, micro=None):
 
-    '''  '''
+    """ Initialize this version info container.
+
+        :param major: Major version.
+        :param minor: Minor version (optional, defaults to ``None``).
+        :param micro: Micro version (optional, defaults to ``None``). """
 
     self.major, self.minor, self.micro = major, minor, micro
 
 
 class AgentOS(AgentInfo):
 
-  '''  '''
+  """ Holds parsed operating system information for a software HTTP client or
+      browser, found while scanning the ``User-Agent`` string. """
 
   __slots__ = (
-    'name',  # `Mac OS X` for mac, `Windows XP` for Windows, etc
+    'name',  # `Mac OS X`, `Windows XP`, etc
     'vendor',  # vendor of the OS, from above
-    'version'  # detected version of the OS
-  )
+    'version')  # detected version of the OS
 
   def __init__(self, name, vendor, version):
 
-    '''  '''
+    """ Initialize this OS info container.
+
+        :param name: Name of the operating system running on the host described
+          by the subject ``User-Agent`` string.
+
+        :param vendor: Software vendor that produced the operating system
+          running on the host described by the ``User-Agent`` string.
+
+        :param version: Version information for the operating system running on
+          the host described by the ``User-Agent`` string. """
 
     self.name, self.vendor, self.version = name, vendor, version
 
   @classmethod
   def scan(cls, request, user_agent, detected):
 
-    '''  '''
+    """ Scan a target ``user_agent`` string, encapsulated by an HTTP
+        ``request``, for information about an HTTP client or browser's active
+        operating system.
+
+        :param request: HTTP request that carries with it the ``User-Agent``
+          header in question.
+
+        :param user_agent: Specifically, the ``User-Agent`` that the framework
+          wishes us to scan.
+
+        :param detected: Container of other information detected so-far in the
+          ``User-Agent`` detection process.
+
+        :returns: Spawned ``AgentOS`` info container describing any operating
+          system information in the ``User-Agent`` in question."""
 
     return cls(*{
         'bsd': ('BSD', Vendor.OPEN, AgentVersion(0)),
@@ -101,52 +139,90 @@ class AgentOS(AgentInfo):
         'windows': ('Windows', Vendor.MICROSOFT, AgentVersion(0)),
         'ipad': ('iOS', Vendor.APPLE, AgentVersion(0)),
         'iphone': ('iOS', Vendor.APPLE, AgentVersion(0))
-    }.get(user_agent.platform.lower().strip(), ('unknown', Vendor.OTHER, AgentVersion(0))))
+    }.get(user_agent.platform.lower().strip(), (
+      'unknown', Vendor.OTHER, AgentVersion(0))))
 
 
 class AgentCapabilities(AgentInfo):
 
-  '''  '''
+  """ Holds parsed or detected information about a software HTTP client or
+      browser's extra/interesting capabilities. """
 
   __slots__ = (
     'spdy',  # support for SPDY
     'quic',  # support for QUIC
     'webp',  # support for WebP
     'webm',  # support for WebM
+    'http2'  # support for HTTP2
   )
 
   def __init__(self, **kwargs):
 
-    '''  '''
+    """ Initialize this capabilities container.
+
+        :param **kwargs: Accepts keywords for supported flags, to set them as
+          active (``True``) or inactive (``False``). Currently, the supported
+          capabilities flags are all ``bool`` and consist of:
+
+          - ``spdy`` - is the client browser communicating over SPDY?
+          - ``quic`` - is the client browser communicating over QUIC?
+          - ``http2`` - is the client browser communicating over HTTP2?
+          - ``webp`` - does the client indicate support for WebP?
+          - ``webm`` - does the client indicate support for WebM?  """
 
     for datapoint in self.__slots__:
-      setattr(self, datapoint, kwargs[datapoint] if datapoint in kwargs else None)
+      setattr(self, datapoint, kwargs[datapoint] if datapoint in (
+        kwargs) else None)
 
   @classmethod
   def scan(cls, request, user_agent, detected):
 
-    '''  '''
+    """ Scan a target ``user_agent`` string, encapsulated by an HTTP
+        ``request``, for information about an HTTP client or browser's
+        indicated or implied capabilities.
+
+        :param request: HTTP request that contains the original ``User-Agent``
+          header to be scanned.
+
+        :param user_agent: Specifically, the ``User-Agent`` that the framework
+          wishes us to scan, should it be different from the original.
+
+        :param detected: Container of other information detected so-far in the
+          ``User-Agent`` scanning process.
+
+        :returns: Spawned ``AgentCapabilities`` object describing any detected
+          capabilities implied or indicated by the subject ``User-Agent``
+          string. """
 
     detected = {}  # detected capabilities
-    accept_string = request.headers['Accept'] if 'Accept' in request.headers else ''
+    accept_string = request.headers['Accept'] if 'Accept' in (
+      request.headers) else ''
 
     for datapoint, conditional in ((
 
       ('quic', user_agent.browser == 'chrome'),
       ('spdy', user_agent.browser in ('chrome', 'firefox', 'opera')),
       ('webm', user_agent.browser in ('chrome', 'firefox', 'opera')),
-      ('webp', user_agent.browser == 'chrome' or 'webp' in accept_string),
-
-      )):
+      ('webp', user_agent.browser == 'chrome' or 'webp' in accept_string))):
 
       detected[datapoint] = conditional
-
     return cls(**detected)
 
 
 class AgentFingerprint(AgentInfo):
 
-  '''  '''
+  """ Holds a full picture of detected information about a software HTTP client
+      or browser, scanned or inferred from various request headers such as
+      ``User-Agent`` and ``Accept``.
+
+      Encapsulates local information about:
+
+      - asset quality preferences indicated by browser
+      - general flags for whether a client is *modern* or *ancient*
+      - supported languages, character sets, mimetypes and encodings
+      - a client's OS (contained in an ``AgentOS`` instance)
+      - a client's inferred or indicated capabilities (in an
+        ``AgentCapabilities`` instance) """
 
   __slots__ = (
 
@@ -180,7 +256,7 @@ class AgentFingerprint(AgentInfo):
     'yahoo',  # is this Yahoo's crawler?
 
     # == Environment == #
-    'mobile',  # can we detect that this is a mobile device? (always truthy for tablets too)
+    'mobile',  # can we detect that this is a mobile device?
     'tablet',  # can we detect that this is a tablet?
     'desktop',  # or do we fallback to desktop?
     'crawler',  # is this a known crawler?
@@ -195,55 +271,76 @@ class AgentFingerprint(AgentInfo):
 
     # == Internals == #
     '__os__',  # holds an `AgentOS` object
-    '__supports__'  # holds an `AgentCapabilities` object
-
-  )
+    '__supports__')  # holds an `AgentCapabilities` object
 
   def __init__(self, **kwargs):
 
-    '''  '''
+    """ Initialize a new ``AgentFingerprint`` object.
+
+        :param **kwargs: Arbitrary container of parameters to write into the
+          new ``AgentFingerprint`` object. Valid options are specified in the
+          object's ``__slots__`` attribute. """
+
+    self.__os__, self.__supports__ = None, None
 
     for datapoint in self.__slots__:
-      setattr(self, datapoint, kwargs[datapoint] if datapoint in kwargs else None)
+      setattr(self, datapoint, kwargs[datapoint] if datapoint in (
+        kwargs) else None)
 
   @property
   def os(self):
 
-    '''  '''
+    """ Property accessor for detected operating system information.
 
-    if not hasattr(self, '__os__') or (hasattr(self, '__os__') and not self.__os__):
-      self.__os__ = AgentOS.scan(self)
+        :returns: ``AgentOS`` instance describing operating system information
+          for a given ``AgentFingerprint`` subject. """
+
     return self.__os__
 
   @property
   def supports(self):
 
-    '''  '''
+    """ Property accessor for inferred or indicated client capabilities.
 
-    if not hasattr(self, '__supports__') or (hasattr(self, '__supports__') and not self.__supports__):
-      self.__supports__ = AgentCapabilities.scan(self)
+        :returns: ``AgentCapabilities`` instance describing detected/supported
+          capabilities and features for a given ``AgentFingerprint``
+          subject. """
+
     return self.__supports__
 
   capabilities = supports
 
   @classmethod
-  def scan(cls, request, user_agent):
+  def scan(cls, request, ua):
 
-    '''  '''
+    """ Scan a target HTTP ``request`` and ``User-Agent`` string for various
+        pieces of information, such as an OS, browser/vendor, etc. Also scan
+        other request-based headers that can provide hints about supported
+        browser features and options.
 
-    detected = {}  # holds detected truths/guesses
+        :param request: Original HTTP request providing the ``User-Agent`` to
+          be scanned.
 
-    # copy over raw strings
-    accept = detected['accept'] = request.headers.get('accept')
-    string = detected['string'] = request.headers.get('user-agent')
+        :param ua: Specific ``User-Agent`` string requested for parsing by the
+          framework.
 
-    # copy over accept details
-    detected['charsets'], detected['encodings'], detected['languages'], detected['mimetypes'] = (
-      request.accept_charsets, request.accept_encodings, request.accept_languages, request.accept_mimetypes
-    )
+        :returns: Spawned ``AgentFingerprint`` instance describing any and all
+          information available to be parsed from the ``User-Agent`` and
+          ``Accept``-series request headers. """
+
+    detected = {
+      'accept': request.headers.get('accept'),
+      'string': request.headers.get('user-agent'),
+      'charsets': request.accept_charsets,
+      'encodings': request.accept_encodings,
+      'languages': request.accept_languages,
+      'mimetypes': request.accept_mimetypes
+    }  # holds detected truths/guesses
+
+    if ua is None: return cls(**{})
 
     # detect version first
-    version = detected['version'] = user_agent.version.split('.')
+    version = detected['version'] = ua.version.split('.')
     version_spec = []
 
     # take each version section as major, minor, micro
@@ -252,41 +349,44 @@ class AgentFingerprint(AgentInfo):
         break
       try:
         version_spec.append(int(grouping))
-      except:
+      except ValueError:
         break
 
     # if we detected *anything* as an int, add it as our version
-    version = detected['version'] = AgentVersion(*tuple(version_spec)) if version_spec else AgentVersion(0)
+    version = detected['version'] = AgentVersion(*tuple(
+      version_spec)) if version_spec else AgentVersion(0)
+    platform = ua.platform.lower().strip()
 
     # all others
     for datapoint, condition in ((
 
       ## Browser
-      ('chrome', user_agent.browser == 'chrome'),
-      ('firefox', user_agent.browser == 'firefox'),
-      ('seamonkey', user_agent.browser == 'seamonkey'),
-      ('safari', user_agent.browser == 'safari'),
-      ('opera', user_agent.browser == 'opera'),
-      ('msie', user_agent.browser == 'msie'),
-      ('googlebot', user_agent.browser == 'google'),
-      ('yahoo', user_agent.browser == 'yahoo'),
-      ('aol', user_agent.browser == 'aol'),
-      ('ask', user_agent.browser == 'ask'),
+      ('chrome', ua.browser == 'chrome'),
+      ('firefox', ua.browser == 'firefox'),
+      ('seamonkey', ua.browser == 'seamonkey'),
+      ('safari', ua.browser == 'safari'),
+      ('opera', ua.browser == 'opera'),
+      ('msie', ua.browser == 'msie'),
+      ('googlebot', ua.browser == 'google'),
+      ('yahoo', ua.browser == 'yahoo'),
+      ('aol', ua.browser == 'aol'),
+      ('ask', ua.browser == 'ask'),
 
       ## Engines
-      ('trident', user_agent.browser == 'msie'),
-      ('blink', user_agent.browser in ('chrome', 'opera')),
-      ('presto', user_agent.browser == 'opera' and version.major < 15),  # @TODO(sgammon): version specificity
-      ('webkit', user_agent.browser in ('safari', 'chrome', 'opera')),
-      ('spidermonkey', user_agent.browser in ('firefox', 'seamonkey')),
-      ('gecko', 'Gecko' in user_agent.string and ('WebKit' not in user_agent.string and 'Chrome' not in user_agent.string)),
+      ('trident', ua.browser == 'msie'),
+      ('blink', ua.browser in ('chrome', 'opera')),
+      ('presto', ua.browser == 'opera' and version.major < 15),
+      ('webkit', ua.browser in ('safari', 'chrome', 'opera')),
+      ('spidermonkey', ua.browser in ('firefox', 'seamonkey')),
+      ('gecko', 'Gecko' in ua.string and ('WebKit' not in ua.string and (
+                                          'Chrome' not in ua.string))),
 
       ## Environments
-      ('tablet', 'Tabl' in user_agent.string or 'iPad' in user_agent.string),
-      ('crawler', user_agent.browser in ('google', 'yahoo', 'aol', 'ask')),
-      ('mobile', 'Mobi' in user_agent.string or 'IEMobile' in user_agent.string or user_agent.platform.lower().strip() in ('ios', 'iphone', 'ipad'))
+      ('tablet', 'Tabl' in ua.string or 'iPad' in ua.string),
+      ('crawler', ua.browser in ('google', 'yahoo', 'aol', 'ask')),
+      ('mobile', 'Mobi' in ua.string or 'IEMobile' in ua.string or (
+                platform in ('ios', 'iphone', 'ipad'))))):
 
-      )):
       detected[datapoint] = condition
 
     # detect vendor
@@ -297,24 +397,24 @@ class AgentFingerprint(AgentInfo):
         Vendor.MICROSOFT: detected.get('msie'),
         Vendor.OPERA: detected.get('opera'),
         Vendor.APPLE: detected.get('safari'),
-        Vendor.OPEN: detected.get('seamonkey'),
-      }.iteritems():
+        Vendor.OPEN: detected.get('seamonkey')}.iteritems():
 
       if v: detected['vendor'] = k
 
     # desktop mode
-    detected['desktop'] = not any((detected.get('mobile'), detected.get('tablet')))
+    detected['desktop'] = not any((
+      detected.get('mobile'), detected.get('tablet')))
 
     # OS detection
-    detected['__os__'] = AgentOS.scan(request, user_agent, detected)
+    detected['__os__'] = AgentOS.scan(request, ua, detected)
 
     # capabilities detection
-    detected['__supports__'] = AgentCapabilities.scan(request, user_agent, detected)
+    detected['__supports__'] = AgentCapabilities.scan(request, ua, detected)
 
     # judge modern/ancient
-    detected['modern'] = (detected['chrome'] or detected['safari'] or detected['firefox'] or detected['opera']) and (
-      detected['__os__'].name in ('Mac OS X', 'Windows', 'Linux')
-    )
+    detected['modern'] = (detected['chrome'] or detected['safari'] or (
+      detected['firefox'] or detected['opera'])) and (
+      detected['__os__'].name in ('Mac OS X', 'Windows', 'Linux'))
 
     # calculate quality preferences
     detected['quality'] = {}
@@ -329,19 +429,21 @@ class AgentFingerprint(AgentInfo):
 @decorators.bind('http.agent')
 class UserAgent(logic.Logic):
 
-  '''  '''
+  """ Provides structured access to HTTP request headers. Interrogates values
+      such as ``User-Agent`` and ``Accept`` to infer or detect things such as a
+      client's OS, browser, and feature capabilities. """
 
-  def scan(self, request):
+  @staticmethod
+  def scan(request):
 
-    '''  '''
+    """ Scan an HTTP ``request`` for information about the other end of the
+        connection. Detect as much information as possible from headers such as
+        ``User-Agent`` and ``Accept``.
+
+        :param request: HTTP request to be scanned.
+
+        :returns: :py:class:`AgentFingerprint` instance containing any detected
+          information found in the ``User-Agent`` or ``Accept``-series request
+          headers. """
 
     return AgentFingerprint.scan(request, request.user_agent)
-
-
-__all__ = (
-  'AgentAPI',
-  'AgentVendor',
-  'AgentOS',
-  'AgentFingerprint',
-  'AgentCapabilities'
-)

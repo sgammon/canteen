@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 
-  canteen: test tests
-  ~~~~~~~~~~~~~~~~~~~
+  test tests
+  ~~~~~~~~~~
 
   tests, well, the upper class structure that powers unit and
   integration testing stuff.
@@ -14,4 +14,4 @@
             A copy of this license is included as ``LICENSE.md`` in
             the root of the project.
 
-'''
+"""

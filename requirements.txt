@@ -3,5 +3,7 @@ MarkupSafe
 Werkzeug
 protorpc
 coverage
+msgpack-python
 git+https://github.com/sgammon/protobuf.git#egg=protobuf
 git+https://github.com/sgammon/hamlish-jinja.git#egg=hamlish_jinja
+python-dateutil

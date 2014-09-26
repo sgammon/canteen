@@ -392,7 +392,7 @@ with core.Library('protorpc', strict=True) as (library, protorpc):
           :returns: Suitable HTTP response for an ``HTTP OPTIONS`` request. """
 
       # @TODO(sgammon): HTTP OPTIONS integration testing for services
-      return self.response('OPTIONS, POST')
+      return self.response('OPTIONS, POST')  # pragma: no cover
 
     def POST(self, version, service, method):  # pragma: no cover
 

@@ -691,7 +691,7 @@ class RedisAdapter(DirectedGraphAdapter):
     for k, v in serialized.iteritems():
       prop = getattr(model, k)
       if isinstance(v, (datetime.date, datetime.time, datetime.datetime)):
-        _cleaned[k] = v.isoformat()
+        _cleaned[k] = v.isoformat()  # pragma: no cover
       else:
         _cleaned[k] = v
 
@@ -789,7 +789,7 @@ class RedisAdapter(DirectedGraphAdapter):
     encoded, flattened = key
     try:
       joined, _ = model.Key.from_urlsafe(encoded).flatten(True)
-    except TypeError:
+    except TypeError:  # pragma: no cover
       joined = encoded
       encoded = cls.encode_key((joined, flattened))
 
@@ -980,7 +980,7 @@ class RedisAdapter(DirectedGraphAdapter):
     # resolve target (perhaps a pipeline?)
     if pipeline:  # pragma: no cover
       target = pipeline
-    else:
+    else:  # pragma: no cover
       target = cls.channel(cls._meta_prefix)
 
     handler, ekey_encoder, vkey_encoder = (

@@ -362,7 +362,7 @@ class RealtimeHandler(Handler):
 
   __socket__ = None  # space for currently-active realtime socket
 
-  def dispatch(self, **url_args):
+  def dispatch(self, **url_args):  # pragma: no cover
 
     """ Adapt regular handler dispatch to support an acyclic/realtime-style
         dispatch scheme. Accepts same arguments as ``super`` definition, but
@@ -388,7 +388,7 @@ class RealtimeHandler(Handler):
       return self.error(400)  # raised when a non-websocket handler is hit
 
   @staticmethod
-  def terminate(graceful=True):
+  def terminate(graceful=True):  # pragma: no cover
 
     """ Terminate the currently-active ``RealtimeSocket`` communication
         channel.

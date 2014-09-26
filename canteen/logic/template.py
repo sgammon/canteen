@@ -407,7 +407,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           path.join(destination, filename.replace('-', '_')))
 
         # @TODO(sgammon): compiling file
-        if self.debug:
+        if self.debug:  # pragma: no cover
           print('Compiling %s...' % filename)
 
         if path.isdir(source_name):

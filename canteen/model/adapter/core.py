@@ -37,7 +37,7 @@ class AdaptedKey(KeyMixin):
     """ Retrieve a previously-constructed key from available persistence
         mechanisms. """
 
-    if adapter:
+    if adapter:  # pragma: no cover
       return adapter._get(self)
     return self.__adapter__._get(self)
 
@@ -373,12 +373,13 @@ class DictMixin(ModelMixin):
 
         if isinstance(_val, (model.Model, model.Key)):
           if _property_descriptor.options.get('embedded'):
-            if isinstance(_val, model.Key):
+            if isinstance(_val, model.Key):  # pragma: no cover
               raise RuntimeError('Cannot reference embedded submodel'
                                  ' by key "%s".' % repr(_val))
             _bundle.append(_val.to_dict() if convert_models else _val)
           else:
-            if isinstance(_val, model.Model) and not _val.key:
+            if isinstance(_val, model.Model) and not (
+                  _val.key):  # pragma: no cover
               raise RuntimeError('Cannot reference non-embedded submodel'
                                  ' "%s" with empty key.' % repr(_val))
 
@@ -394,7 +395,7 @@ class DictMixin(ModelMixin):
               else:
                 _bundle.append(_val)
 
-            else:
+            else:  # pragma: no cover
               if isinstance(value, model.Key) and convert_keys:
                 _bundle.append(_val.urlsafe())
               elif isinstance(value, model.Model) and convert_models:

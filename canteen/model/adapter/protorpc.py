@@ -115,21 +115,21 @@ else:
       prop = property_map[name] = _model.__dict__[name]
 
       # copy in default if field has explicit default value
-      if prop._default != prop._sentinel:
-        _pkwargs['default'] = prop._default
+      if prop.default != prop.sentinel:
+        _pkwargs['default'] = prop.default
 
       # map in required and repeated kwargs
       _pkwargs['required'], _pkwargs['repeated'] = (
-        prop._required, prop._repeated)
+        prop.required, prop.repeated)
 
       # check for explicit field
-      if _field_kwarg in prop._options:
+      if _field_kwarg in prop.options:
 
         # grab explicit field, if any
-        explicit = prop._options.get(_field_kwarg, datastructures.EMPTY)
+        explicit = prop.options.get(_field_kwarg, datastructures.EMPTY)
 
         # explcitly setting `False` or `None` means skip this field
-        if (explicit is False or explicit is None):  # pragma: no cover
+        if explicit is False or explicit is None:  # pragma: no cover
           continue  # continue without incrementing: skipped field
 
         # if it's a tuple, it's a name/args/kwargs pattern
@@ -179,14 +179,14 @@ else:
                            " field: \"%s\"." % name)
 
       # check variant by dict
-      if prop._basetype == dict:
+      if prop.basetype == dict:
         _field_i += 1
         _model_message[name] = rpc.VariantField(_field_i)
         continue
 
       # check recursive submodels
-      elif isinstance(prop._basetype, type(type)) and (
-        issubclass(prop._basetype, model.AbstractModel)):
+      elif isinstance(prop.basetype, type(type)) and (
+        issubclass(prop.basetype, model.AbstractModel)):
 
         # shortcut: `model.Model` for `VariantField`s
         if prop._basetype is model.Model:
@@ -198,7 +198,7 @@ else:
 
         # recurse - it's a model class
         _field_i += 1
-        _pargs.append(prop._basetype.to_message_model())
+        _pargs.append(prop.basetype.to_message_model())
         _pargs.append(_field_i)
 
         # factory
@@ -206,7 +206,7 @@ else:
         continue
 
       # check for keys (implemented with `basestring` for now)
-      elif issubclass(prop._basetype, model.AbstractKey):
+      elif issubclass(prop.basetype, model.AbstractKey):
 
         # build field and advance
         _field_i += 1
@@ -215,27 +215,48 @@ else:
         _model_message[name] = pmessages.MessageField(*_pargs)
         continue
 
+      # check for enums
+      elif issubclass(prop.basetype, datastructures.BidirectionalEnum):
+
+        # build enum class, field, and advance
+        _field_i += 1
+        _enum = pmessages.Enum.__metaclass__.__new__(*(
+          pmessages.Enum.__metaclass__,
+          prop.basetype.__name__,
+          (pmessages.Enum,),
+          {k: v for k, v in prop.basetype}))
+        _pargs.append(_enum)
+        _pargs.append(_field_i)
+
+        if prop.default not in (
+            model.Property.sentinel, None):  # pragma: no cover
+          _pkwargs['default'] = (
+            prop.basetype.reverse_resolve(prop.default))
+
+        _model_message[name] = pmessages.EnumField(*_pargs, **_pkwargs)
+        continue
+
       # check builtin basetypes
-      elif prop._basetype in _builtin_basetypes:
+      elif prop.basetype in _builtin_basetypes:
 
         # build field and advance
         _field_i += 1
         _pargs.append(_field_i)
         _model_message[name] = (
-          _field_basetype_map[prop._basetype](*_pargs, **_pkwargs))
+          _field_basetype_map[prop.basetype](*_pargs, **_pkwargs))
         continue
 
       # check for builtin hook for message implementation
-      elif hasattr(prop._basetype, '__message__'):
+      elif hasattr(prop.basetype, '__message__'):
 
         # delegate field and advance
         _field_i += 1
         _pargs.append(_field_i)
-        _model_message[name] = prop._basetype.__message__(*_pargs, **_pkwargs)
+        _model_message[name] = prop.basetype.__message__(*_pargs, **_pkwargs)
         continue
 
       else:  # pragma: no cover
-        context = (name, _model.kind(), prop._basetype)
+        context = (name, _model.kind(), prop.basetype)
         raise ValueError("Could not resolve proper serialization for property"
                          " \"%s\" of model \"%s\" (found basetype \"%s\")." % (
                           context))
@@ -329,8 +350,8 @@ else:
 
         # convert date/time/datetime => string
         if isinstance(value, (datetime.date, datetime.time, datetime.datetime)):
-          values[prop] = value.isoformat()
-          continue
+          values[prop] = value.isoformat()  # pragma: no cover
+          continue  # pragma: no cover
 
         values[prop] = value  # otherwise, just set it
 

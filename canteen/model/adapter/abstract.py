@@ -526,7 +526,7 @@ class IndexedModelAdapter(ModelAdapter):
 
       if isinstance(prop._basetype, type) and (
               issubclass(prop._basetype, model.Model) and (
-              prop._options.get('embedded'))):
+              prop._options.get('embedded'))):  # pragma: no cover
         _map = IndexedModelAdapter._pluck_indexed(getattr(entity, k), k, _map)
 
       else:
@@ -733,7 +733,7 @@ class GraphModelAdapter(IndexedModelAdapter):
         # expand from urlsafe
         # @TODO(sgammon): this is disgusting what was i thinking
         # @TODO(sgammon): come up with a proper native repr for a key
-        key = model.Key(urlsafe=key)
+        key = model.Key(urlsafe=key)  # pragma: no cover
 
       joined, flattened = key.flatten(True)
       sanitized = map(lambda x: x is not None, flattened)
@@ -882,7 +882,8 @@ class GraphModelAdapter(IndexedModelAdapter):
 
             for target in entity.target:
 
-              if isinstance(target, Key) and not isinstance(target, VertexKey):
+              if isinstance(target, Key) and not (
+                  isinstance(target, VertexKey)):  # pragma: no cover
                 # @TODO(sgammon): unambiguous graph keys
                 target = VertexKey.from_urlsafe(target.urlsafe())
 
@@ -904,19 +905,20 @@ class GraphModelAdapter(IndexedModelAdapter):
             _indexed_pairs = set()
             for o, source in enumerate(entity.peers):
 
-              if isinstance(source, Key) and not isinstance(source, VertexKey):
+              if isinstance(source, Key) and not (
+                  isinstance(source, VertexKey)):  # pragma: no cover
                 # @TODO(sgammon): unambiguous graph keys
                 source = VertexKey.from_urlsafe(source.urlsafe())
 
               for i, target in enumerate(entity.peers):
 
-                if isinstance(target, Key) and not isinstance(target,
-                                                              VertexKey):
+                if isinstance(target, Key) and not (
+                    isinstance(target, VertexKey)):  # pragma: no cover
                   # @TODO(sgammon): unambiguous graph keys
                   target = VertexKey.from_urlsafe(target.urlsafe())
 
                 # skip if it's the same object in the pair
-                if o == i: continue
+                if o == i: continue  # pragma: no cover
 
                 # skip if we've already indexed the two, since we're undirected
                 # and one iteration past either will work for both

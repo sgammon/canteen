@@ -245,6 +245,33 @@ class ProtoRPCAdapterModuleTest(test.FrameworkTest):
     assert hasattr(message_class, 'color')
     assert message_class.color.type is SimpleEnum
 
+  def test_build_message_with_enum(self):
+
+    """ Test `build_message` with a message that contains an enum """
+
+
+    class Color(struct.BidirectionalEnum):
+
+      """ Sample enumeration of a bunch of colors. """
+
+      BLUE = 0x0
+      RED = 0x1
+      GREEN = 0x2
+
+
+    class SomeModel(model.Model):
+
+      """ Something involving colors. """
+
+      color = Color
+      name = str
+
+    message_class = protorpc.build_message(SomeModel)
+
+    assert hasattr(message_class, 'color')
+    assert hasattr(message_class, 'name')
+    assert message_class.color.type.BLUE is Color.BLUE
+
   def test_build_message_explicit_field_args_kwargs(self):
 
     """ Test `build_message` with an implementation of field args + kwargs """

@@ -187,7 +187,7 @@ class RealtimeSemantics(logic.Logic):
 
   hint = _SOCKET_KEY_ENV_ITEM
 
-  def stream(self, target, send):
+  def stream(self, target, send):  # pragma: no cover
 
     """ Prepare to consume a stream of packets/messages from ``target``, using
         ``send`` as a callback to transmit messages back to the client.
@@ -227,7 +227,7 @@ class RealtimeSemantics(logic.Logic):
     gen.next()
     return gen
 
-  def on_connect(self, handler):
+  def on_connect(self, handler):  # pragma: no cover
 
     """ Top-level ``on_connect`` logic that provides initialization for a
         ``RealtimeSocket`` session.
@@ -253,7 +253,7 @@ class RealtimeSemantics(logic.Logic):
     sock.set_state(sock.State.OPEN)  # set to open state after `on_connect`
     return sock
 
-  def on_message(self, handler, socket):
+  def on_message(self, handler, socket):  # pragma: no cover
 
     """ Top-level ``on_message` logic that provides dispatch for inbound
         realtime messages.
@@ -293,7 +293,7 @@ class RealtimeSemantics(logic.Logic):
       if not _terminate:  socket.set_state(socket.State.ERROR)
       self.on_close(handler, socket)
 
-  def on_close(self, handler, socket):
+  def on_close(self, handler, socket):  # pragma: no cover
 
     """ Top-level ``on_close`` logic that provides cleanup logic for realtime
         communication sessions.

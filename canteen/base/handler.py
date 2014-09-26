@@ -21,7 +21,7 @@
 # stdlib
 import itertools
 
-# canteen core & util
+# canteen core, util, logic
 from ..core import injection
 
 
@@ -386,6 +386,23 @@ class RealtimeHandler(Handler):
 
     except NotImplementedError:
       return self.error(400)  # raised when a non-websocket handler is hit
+
+  @staticmethod
+  def terminate(graceful=True):
+
+    """ Terminate the currently-active ``RealtimeSocket`` communication
+        channel.
+
+        :param graceful: ``bool`` parameter, whether to end the connection
+          gracefully or not.
+
+        :returns: ``TERMINATE`` sentinel, to be yielded so the connection can be
+          terminated. """
+
+    from canteen.logic import realtime
+
+    if graceful: return realtime.TERMINATE
+    raise realtime.TerminateSocket(graceful=False)
 
   @staticmethod
   def on_connect():  # pragma: no cover

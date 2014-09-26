@@ -27,6 +27,29 @@ from ..util import decorators
 _ORIGIN_ENV_ITEM = 'HTTP_ORIGIN'
 _SOCKET_KEY_ENV_ITEM = 'HTTP_SEC_WEBSOCKET_KEY'
 _FORWARDED_FOR_ENV_ITEM = 'HTTP_X_FORWARDED_FOR'
+TERMINATE = struct.Sentinel('TERMINATE')
+
+
+class TerminateSocket(Exception):
+
+  """ Exception that can be raised from the inner receive/send coroutine to
+      gracefully (or non-gracefully) close an active realtime communication
+      session. """
+
+  __graceful__ = False  # was this shutdown requested or forced?
+
+  def __init__(self, graceful=False):
+
+    """ Initialize this ``TerminateSocket`` exception.
+
+        :param graceful: ``bool`` flag indicating whether to gracefully close
+          the connection or force a close. ``True`` tries to close the socket
+          gracefully, ``False`` does not. """
+
+    self.__graceful__ = graceful
+
+  # ~~ accessors ~~ #
+  graceful = property(lambda self: self.__graceful__)
 
 
 class RealtimeSocket(object):
@@ -49,15 +72,13 @@ class RealtimeSocket(object):
     """ Enumerates available ``RealtimeSocket`` states, or the phases of a
         realtime communication session. """
 
-    INIT = 0x0
-    OPEN = 0x1
-    ACTIVE = 0x2
-    CLOSED = 0x3
-    ERROR = 0x4
+    INIT = 0x0  # socket has just been initialized
+    OPEN = 0x1  # socket is open but has not yet sent or received data
+    ACTIVE = 0x2  # socket has sent or received data and is currently active
+    CLOSED = 0x3  # socket was closed gracefully by the client or server
+    ERROR = 0x4  # socket was closed in an error state
 
-  def __init__(self, runtime,
-                     local=None,
-                     remote=None):
+  def __init__(self, runtime, local, remote):
 
     """ Initialize this ``RemoteSocket`` object with details about the current
         ``runtime`` and the connection's ``local`` and ``remote`` peers.
@@ -70,13 +91,33 @@ class RealtimeSocket(object):
         :param remote: Remote (client) address & port pair that is on the other
           side of the connection. """
 
-    self.__established__ = time.time()
-
-    self.__id__, self.__runtime__ = (
-      hashlib.sha1('::'.join((local, remote))).hexdigest(),
-      runtime)
-
     self.__local__, self.__remote__ = local, remote
+    self.__id__, self.__runtime__, self.__established__ = (
+      hashlib.sha1('::'.join((local, remote))).hexdigest(),
+      runtime,
+      int(time.time()))
+
+  def __hash__(self):
+
+    """ Return the local socket's ID.
+
+        :returns: This ``RealtimeSocket``'s ID for hashability. """
+
+    return self.__id__
+
+  def __repr__(self):
+
+    """ Return a humanized string representation of this ``RealtimeSocket``.
+
+        :returns: This ``RealtimeSocket``'s humanized ``repr``. """
+
+    return "%s(id=%s, state=%s, local=%s, remote=%s, established=%s)" % (
+      self.__class__.__name__,
+      self.__id__,
+      self.State.reverse_resolve(self.__state__),
+      self.__local__,
+      self.__remote__,
+      self.__established__)
 
   def set_state(self, state):
 
@@ -105,9 +146,27 @@ class RealtimeSocket(object):
     """ Send a payload, via the currently-active runtime, to the client-side of
         the current realtime communication session.
 
+        :param payload: Package of data to send to the client via the currently
+          active realtime communication session.
+
         :returns: ``None``. """
 
-    self.__runtime__.send(payload)
+    self.__runtime__.send(buffer(payload) if (
+      isinstance(payload, bytearray)) else payload,
+                          binary=isinstance(payload, bytearray))
+
+  def close(self, graceful=True):
+
+    """ Close the current realtime communication session (``graceful``ly or not,
+        at the end of this function, it shall be closed).
+
+        :param graceful: Attempt to close the connection with a ``FIN`` packet
+          instead of simply resetting it.
+
+        :returns: ``self``, for chainability. """
+
+    self.__runtime__.close(graceful)
+    return self
 
   # ~~ accessors ~~ #
   id, state, local, remote, runtime, established = (
@@ -158,8 +217,10 @@ class RealtimeSemantics(logic.Logic):
 
       while True:
         inbound = (yield)
+        if inbound is TERMINATE: raise TerminateSocket(graceful=True)
         if inbound is not None:
           for outbound in dispatch(inbound):
+            if outbound is TERMINATE: raise TerminateSocket(graceful=True)
             send(outbound)
 
     gen = responder(target)
@@ -187,10 +248,10 @@ class RealtimeSemantics(logic.Logic):
       'local': handler.request.host,
       'remote': handler.request.remote_addr})
 
-    sock.set_state(sock.State.OPEN)
-
-    # provide to handler
-    handler.on_connect()
+    sock.set_state(sock.State.INIT)  # set to init state initially
+    handler.on_connect()  # provide to handler hook
+    sock.set_state(sock.State.OPEN)  # set to open state after `on_connect`
+    return sock
 
   def on_message(self, handler, socket):
 
@@ -208,14 +269,29 @@ class RealtimeSemantics(logic.Logic):
     responder = self.stream(handler.on_message, socket.send)
     socket.set_state(socket.State.ACTIVE)
 
-    while True:
-      try:
-        inbound = socket.receive()
-        if inbound: responder.send(inbound)
+    _terminate = False  # terminate flag
+    try:
+      while not _terminate:
+        try:
+          inbound = socket.receive()
+          if inbound == TERMINATE: raise TerminateSocket(graceful=True)
+          elif inbound: responder.send(inbound)
 
-      except (GeneratorExit, StopIteration):
-        break
-    self.on_close(handler, socket)
+        except TerminateSocket as e:
+          if e.graceful: _terminate = True  # terminate on re-loop
+          else: raise  # re-raise and treat as an error
+
+        except (GeneratorExit, StopIteration):
+          break
+
+    except TerminateSocket:
+      # no way to gracefully terminate so
+      pass
+
+    finally:
+      # was not gracefully terminated
+      if not _terminate:  socket.set_state(socket.State.ERROR)
+      self.on_close(handler, socket)
 
   def on_close(self, handler, socket):
 

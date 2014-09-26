@@ -23,10 +23,15 @@ import sys
 import abc
 import inspect
 import importlib
+import threading
 
 # core API
 from .meta import Proxy
 from .injection import Bridge
+
+
+## Globals
+__runtime__ = threading.local()
 
 
 class Runtime(object):
@@ -62,8 +67,10 @@ class Runtime(object):
 
     """  """
 
-    # if we're running as ``Runtime``, resolve a runtime first
-    return (cls.resolve() if cls is Runtime else cls)(app)
+    global __runtime__
+    if not getattr(__runtime__, 'active', None):
+      __runtime__.active = (cls.resolve() if cls is Runtime else cls)(app)
+    return __runtime__.active
 
   @classmethod
   def resolve(cls):
@@ -209,6 +216,13 @@ class Runtime(object):
                               ' realtime dispatch semantics. ' % self)
 
   def send(self, payload, binary=False):
+
+    """ WIP """
+
+    raise NotImplementedError('Runtime "%s" does not support'
+                              ' realtime dispatch semantics. ' % self)
+
+  def send(self):
 
     """ WIP """
 
@@ -512,12 +526,24 @@ class Runtime(object):
 
     raise NotImplementedError
 
+  def callback(self, start_response):
+
+    """  """
+
+    def responder(status, headers):
+
+      """  """
+
+      return start_response(status, headers)
+
+    return responder
+
   def __call__(self, environ, start_response):
 
     """  """
 
     try:
-      return self.wrap(self.dispatch)(environ, start_response)
+      return self.wrap(self.dispatch)(environ, self.callback(start_response))
 
     except self.base_exception as exc:
       return exc(environ, start_response)  # it's an acceptable exception

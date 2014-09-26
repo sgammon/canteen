@@ -15,10 +15,15 @@
 
 """
 
-# core + util
+# core
+from ..core import runtime
+
+# util
 from ..util import debug
 from ..util import decorators
-from ..core import runtime
+
+# logic
+from ..logic.realtime import TERMINATE
 
 
 try:  # pragma: no cover
@@ -33,6 +38,21 @@ try:  # pragma: no cover
     class uWSGI(runtime.Runtime):
 
       """ WIP """
+
+      def callback(self, start_response):
+
+        """  """
+
+        def responder(status, headers):
+
+          """  """
+
+          try:
+            return start_response(status, headers)
+          except IOError:
+            return
+
+        return responder
 
       def handshake(self, key, origin=None):
 
@@ -51,12 +71,18 @@ try:  # pragma: no cover
 
         """ WIP """
 
-        return uwsgi.websocket_recv_nb if not blocking else (
-                  uwsgi.websocket_recv)()
+        try:
+          return uwsgi.websocket_recv_nb if not blocking else (
+                    uwsgi.websocket_recv)()
+
+        except IOError:
+          return TERMINATE
+
+      def close(self):
+
+        """ WIP """
 
 
-    # if we make it here, we're running *inside* uWSGI
-    uWSGI.set_precedence(True)
+    uWSGI.set_precedence(True)  # we're running *inside* uWSGI guys
 
-except ImportError:
-  pass
+except ImportError: pass

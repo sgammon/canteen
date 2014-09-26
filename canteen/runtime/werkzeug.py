@@ -92,7 +92,7 @@ with runtime.Library('werkzeug', strict=True) as (library, werkzeug):
         'use_evalex': True,
         'extra_files': None,
         'reloader_interval': 1,
-        'threaded': False,
+        'threaded': True,
         'processes': 1,
         'passthrough_errors': False,
         'ssl_context': None,

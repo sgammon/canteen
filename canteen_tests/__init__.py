@@ -18,11 +18,7 @@
 
 if __debug__:
 
-  # stdlib
-  import os
-
   # test tools
-  from canteen import util
   from canteen import test
 
   # import testsuite
@@ -34,14 +30,6 @@ if __debug__:
   from . import test_util
   from . import test_model
   from . import test_adapters
-  from .test__init__ import *
-  from .test_core import *
-  from .test_dispatch import *
-  from .test_rpc import *
-  from .test_test import *
-  from .test_util import *
-  from .test_model import *
-  from .test_adapters import *
 
 
   class SanityTest(test.FrameworkTest):

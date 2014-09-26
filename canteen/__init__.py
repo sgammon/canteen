@@ -21,16 +21,16 @@ debug, __version__ = __debug__, (1, 0)
 import __builtin__; export = None
 
 # yay modules!
-from . import (rpc,
-               core,
-               util,
-               test,
-               base,
-               logic,
-               model,
-               runtime,
-               dispatch,
-               exceptions)
+from . import core
+from . import rpc
+from . import util
+from . import test
+from . import base
+from . import model
+from . import logic
+from . import runtime
+from . import dispatch
+from . import exceptions
 
 # canteen :)
 from .rpc import *

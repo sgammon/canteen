@@ -360,6 +360,8 @@ class RealtimeHandler(Handler):
       connection receives a message from the client. It takes two parameters -
       the ``message`` itself and whether it is ``binary`` or not. """
 
+  __socket__ = None  # space for currently-active realtime socket
+
   def dispatch(self, **url_args):
 
     """ Adapt regular handler dispatch to support an acyclic/realtime-style
@@ -379,14 +381,8 @@ class RealtimeHandler(Handler):
 
     try:
       # websocket upgrade and session
-      self.realtime.on_connect(self.on_connect)
-
-      # bind local on_message and begin realtime flow
-      self.realtime.on_message(*(
-        self.runtime,
-        self.environ,
-        self.on_message,
-        self.runtime.send))
+      self.__socket__ = self.realtime.on_connect(self)
+      self.realtime.on_message(self, self.__socket__)
 
     except NotImplementedError:
       return self.error(400)  # raised when a non-websocket handler is hit
@@ -431,6 +427,22 @@ class RealtimeHandler(Handler):
     raise NotImplementedError('Handler "%s" fails to implement hook'
                               ' `on_message` so it does not support'
                               ' realtime-style communications.' % repr(self))
+
+  # noinspection PyUnusedLocal
+  @staticmethod
+  def on_close(graceful):  # pragma: no cover
+
+    """ Hook function that is dispatched upon closure of an existing realtime
+        communications session.
+
+        :param graceful: ``bool`` parameter indicating whether the connection
+          was closed gracefully (i.e. electively) or because of some error
+          condition.
+
+        :returns: ``NotImplemented`` by default, which simply indicates that
+          the implementor elects not to run code ``on_connect``. """
+
+    return NotImplemented
 
 
 __all__ = ('Handler',)

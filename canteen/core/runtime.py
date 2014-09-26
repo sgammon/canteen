@@ -199,27 +199,25 @@ class Runtime(object):
     return (
       http.HTTPSemantics,
       http.HTTPSemantics.new_request(environ),
-      http.HTTPSemantics.new_response()
-    )
+      http.HTTPSemantics.new_response())
 
   def handshake(self, key, origin=None):
 
-    ''' WIP '''
+    """ WIP """
 
     raise NotImplementedError('Runtime "%s" does not support'
                               ' realtime dispatch semantics. ' % self)
-
 
   def send(self, payload, binary=False):
 
-    ''' WIP '''
+    """ WIP """
 
     raise NotImplementedError('Runtime "%s" does not support'
                               ' realtime dispatch semantics. ' % self)
 
-  def receive(self, blocking=False):
+  def receive(self):
 
-    ''' WIP '''
+    """ WIP """
 
     raise NotImplementedError('Runtime "%s" does not support'
                               ' realtime dispatch semantics. ' % self)
@@ -234,8 +232,7 @@ class Runtime(object):
     context = {
       'environ': environ,
       'start_response': start_response,
-      'runtime': self
-    }
+      'runtime': self}
 
     # call dispatch hooks
     self.execute_hooks('dispatch', **context)
@@ -269,8 +266,7 @@ class Runtime(object):
         'code': 404,
         'error': True,
         'exception': None,
-        'response': None
-      })
+        'response': None})
 
       # dispatch error hook for 404
       self.execute_hooks(('error', 'complete'), **context)
@@ -305,8 +301,7 @@ class Runtime(object):
         _response = context['response'] = response.__class__(content, **{
           'status': status,
           'headers': headers,
-          'mimetype': content_type
-        })
+          'mimetype': content_type})
 
         # call response hooks
         self.execute_hooks(('response', 'complete'), **context)
@@ -343,8 +338,7 @@ class Runtime(object):
         context['status'], context['headers'], context['response'] = (
           status,
           headers,
-          None
-        )
+          None)
 
         self.execute_hooks(('response', 'complete'), **context)
         return start_response(status, headers)
@@ -385,8 +379,7 @@ class Runtime(object):
 
         # call response hooks
         context['headers'], context['content'] = (
-          result.headers, result.response
-        )
+          result.headers, result.response)
 
         self.execute_hooks(('response', 'complete'), **context)
 
@@ -403,8 +396,7 @@ class Runtime(object):
           ) = result
 
           headers = context['headers'] = [
-            ('Content-Type', 'text/html; charset=utf-8')
-          ]
+            ('Content-Type', 'text/html; charset=utf-8')]
 
           # call response hooks
           self.execute_hooks(('response', 'complete'), **context)

@@ -122,7 +122,8 @@ if jinja2:
 
       """ Test constructing an invalid `ModuleLoader` """
 
-      template.ModuleLoader('hahaidonotexistfuckyou', strict=False)
+      with self.assertRaises(jinja2.TemplateNotFound):
+        template.ModuleLoader('hahaidonotexistfuckyou')
 
     def test_construct_strict_invalid(self):
 

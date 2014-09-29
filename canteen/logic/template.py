@@ -527,6 +527,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
           module = importlib.import_module(module)
         except ImportError:
           # @TODO(sgammon): log if not found
+          if strict: raise
           raise jinja2.TemplateNotFound('Failed to locate compiled template'
                                         ' %s. %s' % (module, (
                                         'Strict mode was active.' if (
@@ -768,8 +769,6 @@ class Templates(logic.Logic):
         _path = (path.join(cwd),
                  path.join(cwd, 'templates'),
                  path.join(cwd, 'templates', 'source'))
-
-      import pdb; pdb.set_trace()
 
       # shim-in our loader system, unless it is overriden in config
       if 'loader' not in jinja2_cfg:

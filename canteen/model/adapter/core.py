@@ -164,6 +164,32 @@ class AdaptedModel(ModelMixin):
     return adapter._get(key, **kwargs)
 
   @classmethod
+  def get_multi(cls, keys=None, adapter=None, **kwargs):
+
+    """ Retrieve multiple entities from underlying storage in one-go, as if
+        they were retrieved individually via ``get``, but giving the engine
+        knowledge and control of what we're doing, which is fetching multiple
+        things.
+
+        :param keys: Iterable of :py:class:`model.Key` instances to fetch from
+          underlying storage.
+
+        :param adapter: Adapter to use in place of the ``cls`` ``Model``
+          subtype's default adapter, if any. ``None`` uses the default adapter
+          resolution flow, which is the default.
+
+        :param kwargs: Keyword arguments (implementation-specific) to be passed
+          to the underlying driver.
+
+        :return: Iterable of object results, with order preserved from ``keys``
+          requested for fetch. """
+
+    # resolve adapter, delegate to `get_multi`
+    for key, result in zip(keys, (adapter or cls.__adapter__)._get_multi(
+          keys, **kwargs)):
+      yield result
+
+  @classmethod
   def query(cls, *args, **kwargs):
 
     """ Start building a new `model.Query` object, if the underlying adapter

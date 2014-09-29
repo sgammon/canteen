@@ -26,10 +26,8 @@ from .abstract import DirectedGraphAdapter
 
 
 ## Globals
-_init = False
-_graph = {}
-_metadata = {}
-_datastore = {}
+_init, _graph, _metadata, _datastore = (
+  False, {}, {}, {})
 
 
 ## Constants
@@ -661,7 +659,8 @@ class InMemoryAdapter(DirectedGraphAdapter):
       _ekey = cls.encode_key(*ancestry_parent.flatten(True))
       _group_index = _metadata[cls._group_prefix].get(_ekey)
       if _group_index: _special_indexes.append((False, (
-          query.KeyFilter(_ekey, type=query.KeyFilter.ANCESTOR), _group_index)))
+          query.KeyFilter(model.Key.from_raw(_ekey),
+                          _type=query.KeyFilter.ANCESTOR), _group_index)))
 
     ## apply filters
     if filters or ancestry_parent:
@@ -770,7 +769,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
     elif not filters and not ancestry_parent:
       # no filters - working with _all_ models of a kind as base
-      _data_frame = _metadata[cls._kind_prefix].get(kind.__name__)
+      _data_frame = _metadata[cls._kind_prefix].get(kind.__name__, set())
 
     ## inflate results (keys only)
     if options.keys_only and not _inmemory_filters:
@@ -788,11 +787,13 @@ class InMemoryAdapter(DirectedGraphAdapter):
       #  enough to be doing a kindless query, the index of all available
       #  keys.
 
-      if kind: _data_frame = _metadata['kinds'].get(kind.__name__, {'keys': set()})['keys']
+      if kind:
+        _data_frame = (
+          _metadata['kinds'].get(kind.__name__, {'keys': set()})['keys'])
       else: _data_frame = _metadata['keys']
 
-
-    for n, (key, entity) in enumerate(((k, _datastore.get(k)) for k in _data_frame)):
+    for n, (key, entity) in (
+          enumerate(((k, _datastore.get(k)) for k in _data_frame))):
 
       # @TODO(sgammon) log ghosts?
       if not entity: continue  # skip missing entities
@@ -814,7 +815,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
     ## apply sorts
     if sorts:
 
-      def do_sort(sort, results):
+      def do_sort(_sort, results):
 
         """ Apply a ``sort`` operation to a set of query ``results``.
 
@@ -832,7 +833,7 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
         # build value index and map to keys
         for result in results:
-          val = getattr(result, sort.target.name, None)
+          val = getattr(result, _sort.target.name, None)
           if val is not None:
             if val not in _sort_values:
               _sort_i.add(val)  # add to known values
@@ -841,11 +842,11 @@ class InMemoryAdapter(DirectedGraphAdapter):
 
         _rvs, _fwd = lambda d: reversed(sorted(d)), lambda d: sorted(d)
 
-        if sort.target.basetype in (basestring, str, unicode):
-          sorter = (_rvs if (sort.operator is query.ASCENDING) else _fwd)
+        if _sort.target.basetype in (basestring, str, unicode):
+          sorter = (_rvs if (_sort.operator is query.ASCENDING) else _fwd)
 
         else:
-          sorter = (_fwd if (sort.operator is query.ASCENDING) else _rvs)
+          sorter = (_fwd if (_sort.operator is query.ASCENDING) else _rvs)
 
         # choose iterator and start sorting
         for value in sorter(_sort_i):

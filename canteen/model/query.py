@@ -407,6 +407,7 @@ class Query(AbstractQuery):
   kind = None  # model kind
   sorts = None  # sort directives
   options = None  # attached query options
+  adapter = None  # attached adapter, if any
   filters = None  # filter directives
 
   def __init__(self, kind=None, filters=None, sorts=None, **kwargs):
@@ -424,6 +425,8 @@ class Query(AbstractQuery):
         :param sorts: Array of ``Sort`` objects to add to the newly-prepared
           ``Query`` object. ``Sort``s can also be added via ``Query.sort``.
 
+        L:=
+
         :param **kwargs: Additional options to pass to ``QueryOptions``. If an
           item exists at ``kwargs['options']``, it is used *in place* of
           generated query options. """
@@ -433,6 +436,11 @@ class Query(AbstractQuery):
 
     sorts = sorts and ([sorts] if not (
       isinstance(sorts, (list, tuple))) else sorts) or None
+
+    # preload adapter for fetch/get
+    if 'adapter' in kwargs:
+      self.adapter = kwargs['adapter']
+      del kwargs['adapter']
 
     options = kwargs.get('options', QueryOptions(**kwargs))
     self.kind, self.filters, self.sorts, self.options = (
@@ -448,8 +456,7 @@ class Query(AbstractQuery):
       self.kind.kind(),
       '[' + ','.join((str(f) for f in self.filters)) + ']',
       '[' + ','.join((str(s) for s in self.sorts)) + ']',
-      self.options.__repr__()
-    )
+      self.options.__repr__())
 
   # @TODO(sgammon): async methods to execute
   def _execute(self, options=None, adapter=None, **kwargs):
@@ -477,6 +484,8 @@ class Query(AbstractQuery):
 
         :returns: Synchronously-retrieved results to this :py:class:`Query`. """
 
+    from canteen import model
+
     ## build query options
     if self.options and options:
       options = self.options.overlay(options)
@@ -490,19 +499,10 @@ class Query(AbstractQuery):
       raise NotImplementedError('Projection queries are not'
                                 ' yet supported.')  # pragma: no cover
 
-    if adapter:
-      return adapter._execute_query(self)
-
-    if self.kind:  # kinded query
-
-      # delegate to driver
-      return self.kind.__adapter__._execute_query(self)
-
-    else:
-
-      # kindless queries are not yet supported
-      raise NotImplementedError('Kindless queries are not'
-                                ' yet supported.')  # pragma: no cover
+    if adapter: return adapter._execute_query(self)
+    if self.adapter: return self.adapter._execute_query(self)
+    if self.kind: return self.kind.__adapter__._execute_query(self)
+    return model.Model.__adapter__._execute_query(self)
 
   def filter(self, expression):
 
@@ -799,7 +799,7 @@ class KeyFilter(Filter):
   def __init__(self, value,
                       AND=None,
                       OR=None,
-                      type=KEY_KIND):
+                      _type=KEY_KIND):
 
     """ Initialize this ``KeyFilter`` with either ``KIND`` or ``ANCESTOR``
         filter modes and a ``value`` to filter against.
@@ -810,11 +810,30 @@ class KeyFilter(Filter):
 
         :param OR: Subfilters to chain with a logical ``OR``.
 
-        :param type: Type of filter to create, defaults to ``KIND``, meaning it
+        :param _type: Type of filter to create, defaults to ``KIND``, meaning it
           is a filter against a key's kind name. The other option is
           ``ANCESTRY``, which filters against a key's ancetry path. """
 
-    super(KeyFilter, self).__init__(None, value, AND=AND, OR=OR, type=type)
+    from canteen import model
+
+    if not (isinstance(value, (model.Key, model.Model)) or (
+            isinstance(value, type) and issubclass(value, model.Model)) or (
+            value is None)):
+      raise ValueError('`KeyFilter` value must be a `Key`, model class,'
+                       ' or `None`. Instead, got: "%s".' % repr(value))
+
+    elif _type is self.KIND:
+      # extract kind name
+      value = value and (
+        value.kind() if not isinstance(value, model.Key) else value.kind)
+
+    elif _type is self.ANCESTOR:
+      # extract encoded ancestor
+      value = value and (
+        value.urlsafe() if (
+          isinstance(value, model.Key)) else value.key.urlsafe())
+
+    super(KeyFilter, self).__init__(None, value, AND=AND, OR=OR, type=_type)
 
   @property
   def generic_name(self):  # pragma: no cover

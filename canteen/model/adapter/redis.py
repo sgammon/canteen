@@ -1169,7 +1169,7 @@ class RedisAdapter(DirectedGraphAdapter):
           :py:class:`QueryOptions`, specifying options for the execution of
           this :py:class:`Query`.
 
-        :param **kwargs: Low-level options for handling this query, such as
+        :param kwargs: Low-level options for handling this query, such as
           ``pipeline`` (for pipelining support) and ``execute`` (to trigger a
           buffer flush for a generated or constructed pipeline or operation
           buffer).
@@ -1184,14 +1184,10 @@ class RedisAdapter(DirectedGraphAdapter):
     from canteen import model
     from canteen.model import query
 
-    if not kind:
-      # @TODO(sgammon): implement kindless queries
-      raise NotImplementedError('Kindless queries are not yet implemented'
-                                ' in `Redis`.')
-
     # extract filter and sort directives and build ancestor
     filters, sorts = spec
     _data_frame = []  # allocate results window
+    _base_kind = kind
 
     # calculate ancestry parent
     ancestry_parent = None
@@ -1202,224 +1198,257 @@ class RedisAdapter(DirectedGraphAdapter):
     elif isinstance(options.ancestor, model.Model):
       ancestry_parent = options.ancestor.key
 
-    _and_filters, _or_filters = [], []
+    _and_filters, _or_filters, kinded_key = (
+      [], [], model.Key(kind, parent=ancestry_parent))
 
-    if filters:
-      kinded_key = model.Key(kind, parent=ancestry_parent)
+    if not kind and not filters:  # it's a kindless query to start
+      filters.append(query.KeyFilter(None))
 
-      ## HUGE HACK: use generate_indexes to make index names.
-      # fix this plz
+    ## HUGE HACK: use generate_indexes to make index names.
+    # fix this plz
 
-      _filters, _filter_i_lookup = {}, set()
-      for _f in filters:
+    if kind and not filters:  # it's a vanilla kind query
+      filters.append(query.KeyFilter(kind))
 
-        # handle graph-based edge/neighbor filters first
-        if isinstance(_f, query.EdgeFilter):
+    _filters, _filter_i_lookup = {}, set()
+    for _f in filters:
 
-          # extract property values
-          _data = _f.value.data if (
-            isinstance(_f.value, model.Model._PropertyValue)) else _f.value
+      # handle graph-based edge/neighbor filters first
+      if isinstance(_f, query.EdgeFilter):
 
-          # graph prefix and search key
-          _index_key = [
-            cls._graph_prefix,
-            cls._index_basetypes[model.VertexKey](_data)[1]]
+        # extract property values
+        _data = _f.value.data if (
+          isinstance(_f.value, model.Model._PropertyValue)) else _f.value
 
-          # edge queries
-          if _f.kind is _f.EDGES:
+        # graph prefix and search key
+        _index_key = [
+          cls._graph_prefix,
+          cls._index_basetypes[model.VertexKey](_data)[1]]
 
-            # undirected edge queries
-            if _f.tails is None:
-              _index_key.append(cls._peers_token)
+        # edge queries
+        if _f.kind is _f.EDGES:
+
+          # undirected edge queries
+          if _f.tails is None:
+            _index_key.append(cls._peers_token)
+
+          else:
+            # directed edge queries
+            _index_key.append(cls._out_token if _f.tails else cls._in_token)
+
+        # neighbor queries
+        elif _f.kind is _f.NEIGHBORS:
+          _index_key.append(cls._neighbors_token)
+
+        else:  # pragma: no cover
+          raise RuntimeError('Invalid `EdgeFilter` kind: "%s".' % _f.kind)
+
+        # check for uniqueness and add to queued, unsorted filters
+        _filter_key = ('S', cls._magic_separator.join(_index_key))
+        if _filter_key not in _filter_i_lookup:
+          _filter_i_lookup.add(_filter_key)
+          _filters[_filter_key] = [(_f.operator, _f.value, _f.chain)]
+
+      elif isinstance(_f, query.KeyFilter):
+
+        # -- kind filters -- #
+        if _f.kind is query.KeyFilter.KIND:
+
+          ## kindless queries
+          if _f.value is None:
+            # query on main key index
+            _filter_key = ('S', cls._key_prefix)
+
+          ## kinded queries
+          else:
+            _filter_kind = _f.value.data
+
+            if isinstance(_filter_kind, basestring) and _filter_kind in (
+                  frozenset(('Edge', 'Vertex', 'Model'))):
+
+              # we are querying for all [edges,vertexes,models]
+              _filter_key = (
+                'S', {
+                  'Model': cls._key_prefix,
+                  'Edge': cls._edge_prefix,
+                  'Vertex': cls._vertex_prefix}.get(_filter_kind))
 
             else:
-              # directed edge queries
-              _index_key.append(cls._out_token if _f.tails else cls._in_token)
+              # query on kind indexes
+              _filter_key = (
+                'S', cls._magic_separator.join((cls._kind_prefix, )))
 
-          # neighbor queries
-          elif _f.kind is _f.NEIGHBORS:
-            _index_key.append(cls._neighbors_token)
+        # -- ancestry filters -- #
+        elif _f.kind is query.KeyFilter.ANCESTOR:
 
-          else:  # pragma: no cover
-            raise RuntimeError('Invalid `EdgeFilter` kind: "%s".' % _f.kind)
+          ## ancestor-less queries
+          if _f.value is None:
+            raise RuntimeError('Root entity filters are not yet supported'
+                               ' in Redis.')
 
-          # check for uniqueness and add to queued, unsorted filters
-          _filter_key = ('S', cls._magic_separator.join(_index_key))
-          if _filter_key not in _filter_i_lookup:
-            _filter_i_lookup.add(_filter_key)
-            _filters[_filter_key] = [(_f.operator, _f.value, _f.chain)]
+          ## ancestored queries
+          else:
+            # query on keygroups
+            _filter_key = ('S', cls._group_prefix, _f.value)
 
-        # then handle property/meta filters, etc
-        else:
-          origin, meta, property_map, graph_indexes = (
-            cls.generate_indexes(*(
-              kinded_key, None, {_f.target.name: (_f.target, _f.value.data)})))
+        # append key index merge
+        if _filter_key not in _filter_i_lookup:
+          _filter_i_lookup.add(_filter_key)
+          _filters[_filter_key] = [(_f.EQUALS, _f.value, _f.chain)]
 
-          for operation, index, config in cls.write_indexes(
+      # then handle property/meta filters, etc
+      else:
+        origin, meta, property_map, graph_indexes = (
+          cls.generate_indexes(*(
+            kinded_key, None, {_f.target.name: (_f.target, _f.value.data)})))
+
+        for operation, index, config in cls.write_indexes(
               (origin, [], property_map), graph_indexes, execute=False):
 
-            if operation == cls.Operations.SORTED_ADD:
-              _flag, _index_key, value = 'Z', index[1], index[2]
-            else:
-              _flag, _index_key, value = 'S', index[1], index[2]
+          if operation == cls.Operations.SORTED_ADD:
+            _flag, _index_key, value = 'Z', index[1], index[2]
+          else:
+            _flag, _index_key, value = 'S', index[1], index[2]
 
-          if (_flag, _index_key) not in _filter_i_lookup:
-            _filters[(_flag, _index_key)] = []
-            _filter_i_lookup.add((_flag, _index_key))
+        if (_flag, _index_key) not in _filter_i_lookup:
+          _filters[(_flag, _index_key)] = []
+          _filter_i_lookup.add((_flag, _index_key))
 
-          _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
+        _filters[(_flag, _index_key)].append((_f.operator, value, _f.chain))
 
-      # process sorted sets first: leads to lower cardinality
-      sorted_indexes = dict([
-        (index, _filters[index]) for index in (
-          filter(lambda x: x[0] == 'Z', _filters.iterkeys()))])
+    # process sorted sets first: leads to lower cardinality
+    sorted_indexes = dict([
+      (index, _filters[index]) for index in (
+        filter(lambda x: x[0] == 'Z', _filters.iterkeys()))])
 
-      unsorted_indexes = dict([
-        (index, _filters[index]) for index in (
-          filter(lambda x: x[0] == 'S', _filters.iterkeys()))])
+    unsorted_indexes = dict([
+      (index, _filters[index]) for index in (
+        filter(lambda x: x[0] == 'S', _filters.iterkeys()))])
 
-      if sorted_indexes:
+    if sorted_indexes:
 
-        for prop, _directives in sorted_indexes.iteritems():
+      for prop, _directives in sorted_indexes.iteritems():
 
-          _operator, _value, chain = _directives[0]
+        _operator, _value, chain = _directives[0]
 
-          if chain:
-            for subquery in chain:
-              if subquery.sub_operator is query.AND:
-                _and_filters.append(subquery)
-              if subquery.sub_operator is query.OR:
-                _or_filters.append(subquery)
+        if chain:
+          for subquery in chain:
+            if subquery.sub_operator is query.AND:
+              _and_filters.append(subquery)
+            if subquery.sub_operator is query.OR:
+              _or_filters.append(subquery)
 
-          # double-filters
-          if len(_filters[prop]) == 2:
+        # double-filters
+        if len(_filters[prop]) == 2:
 
-            # extract info
-            _operators = [operator for operator, value in _directives]
-            _values = [value for operator, value in _directives]
-            _, prop = prop
+          # extract info
+          _operators = [operator for operator, value in _directives]
+          _values = [value for operator, value in _directives]
+          _, prop = prop
 
-            # special case: maybe we can do a sorted range request
-            if (query.GREATER_THAN in _operators) or (
-                    query.GREATER_THAN_EQUAL_TO in _operators):
+          # special case: maybe we can do a sorted range request
+          if (query.GREATER_THAN in _operators) or (
+                  query.GREATER_THAN_EQUAL_TO in _operators):
 
-              if (query.LESS_THAN in _operators) or (
-                    query.LESS_THAN_EQUAL_TO in _operators):
+            if (query.LESS_THAN in _operators) or (
+                  query.LESS_THAN_EQUAL_TO in _operators):
 
-                # range value query over sorted index
-                greater, lesser = max(_values), min(_values)
-                _data_frame.append(cls.execute(*(
-                  cls.Operations.SORTED_RANGE_BY_SCORE,
-                  None,
-                  prop,
-                  lesser,
-                  greater,
-                  options.offset,
-                  options.limit)))
-
-                continue
-
-          if len(_filters[prop]) == 1:  # single-filters
-
-            # extract info
-            _operator = [operator for operator, value in _directives][0]
-            _value = float([value for operator, value in _directives][0])
-            _, prop = prop
-
-            if _operator is query.EQUALS:
-
-              # static value query over sorted index
+              # range value query over sorted index
+              greater, lesser = max(_values), min(_values)
               _data_frame.append(cls.execute(*(
                 cls.Operations.SORTED_RANGE_BY_SCORE,
                 None,
                 prop,
-                _value,
-                _value,
+                lesser,
+                greater,
                 options.offset,
                 options.limit)))
 
               continue
 
-          ## @TODO(sgammon): build this query branch
-          raise RuntimeError("Specified query is not yet supported.")
+        if len(_filters[prop]) == 1:  # single-filters
 
-      if unsorted_indexes:
+          # extract info
+          _operator = [operator for operator, value in _directives][0]
+          _value = float([value for operator, value in _directives][0])
+          _, prop = prop
 
-        _intersections = set()
-        for prop, _directives in unsorted_indexes.iteritems():
+          if _operator is query.EQUALS:
 
-          _operator, _value, chain = _directives[0]
+            # static value query over sorted index
+            _data_frame.append(cls.execute(*(
+              cls.Operations.SORTED_RANGE_BY_SCORE,
+              None,
+              prop,
+              _value,
+              _value,
+              options.offset,
+              options.limit)))
 
-          if chain:
-            for subquery in chain:
-              if subquery.sub_operator is query.AND:
-                _and_filters.append(subquery)
-              if subquery.sub_operator is query.OR:
-                _or_filters.append(subquery)
+            continue
 
-          _flag, index = prop
-          _intersections.add(index)
+        ## @TODO(sgammon): build this query branch
+        raise RuntimeError("Specified query is not yet supported.")
 
-        # special case: only one unsorted set - pull content instead
-        # of an intersection merge
-        if _intersections and len(_intersections) == 1:
-          _data_frame.append(cls.execute(*(
-            cls.Operations.SET_MEMBERS,
-            None,
-            _intersections.pop())))
+    if unsorted_indexes:
 
-        # more than one intersection: do an `SINTER` call instead of `SMEMBERS`
-        if _intersections and len(_intersections) > 1:
-          _data_frame.append(cls.execute(*(
-            cls.Operations.SET_INTERSECT,
-            None,
-            _intersections)))
+      _intersections = set()
+      for prop, _directives in unsorted_indexes.iteritems():
 
-      if _data_frame:  # there were results, start merging
-        _result_window = set()
-        for frame in _data_frame:
+        _operator, _value, chain = _directives[0]
 
-          if not len(_result_window):
-            _result_window = set(frame)
-            continue  # initial frame: fill background
+        if chain:
+          for subquery in chain:
+            if subquery.sub_operator is query.AND:
+              _and_filters.append(subquery)
+            if subquery.sub_operator is query.OR:
+              _or_filters.append(subquery)
 
-          _result_window = (_result_window & set(frame))
-        matching_keys = [k for k in _result_window]
-      else:
-        matching_keys = []
+        _flag, index = prop
+        _intersections.add(index)
 
+      # special case: only one unsorted set - pull content instead
+      # of an intersection merge
+      if _intersections and len(_intersections) == 1:
+        _data_frame.append(cls.execute(*(
+          cls.Operations.SET_MEMBERS,
+          None,
+          _intersections.pop())))
+
+      # more than one intersection: do an `SINTER` call instead of `SMEMBERS`
+      if _intersections and len(_intersections) > 1:
+        _data_frame.append(cls.execute(*(
+          cls.Operations.SET_INTERSECT,
+          None,
+          _intersections)))
+
+    if _data_frame:  # there were results, start merging
+      _result_window = set()
+      for frame in _data_frame:
+
+        if not len(_result_window):
+          _result_window = set(frame)
+          continue  # initial frame: fill background
+
+        _result_window = (_result_window & set(frame))
+      matching_keys = [k for k in _result_window]
     else:
-      if not sorts:
+      matching_keys = []
 
-        # pull all entities for this kind
-        kind_index_name = None
-        encoded, indexes, property_map = (
-          cls.generate_indexes(model.Key(kind, 0), None, None))
-        for bundle in indexes:
-          if len(bundle) == 2:
-            metakey, metaprefix = bundle
-            if metakey == cls._kind_prefix:
-              matching_keys = cls.execute(*(cls.Operations.SET_MEMBERS,
-                                            kind.kind(),
-                                            cls._magic_separator.join(bundle)))
+    # if we're doing keys only, we're done
+    if options.keys_only and not (_and_filters or _or_filters):
 
-          else:
-            continue  # only interested in meta indexes for kinds
-
-        # if we're doing keys only, we're done
-        if options.keys_only and not (_and_filters or _or_filters):
-
-          results = []
-          for k in matching_keys:
-            # @TODO(sgammon): unambiguous key classes
-            vanilla = model.Key.from_urlsafe(k, _persisted=True)
-            if vanilla.kind != _base_kind.kind():
-              _base_kind = cls.registry.get(vanilla.kind, _base_kind)
-              results.append(
-                _base_kind.__keyclass__.from_urlsafe(k, _persisted=True))
-            else:
-              results.append(vanilla)
-          return results
+      results = []
+      for k in matching_keys:
+        # @TODO(sgammon): unambiguous key classes
+        vanilla = model.Key.from_urlsafe(k, _persisted=True)
+        if vanilla.kind != _base_kind.kind():
+          _base_kind = cls.registry.get(vanilla.kind, _base_kind)
+          results.append(
+            _base_kind.__keyclass__.from_urlsafe(k, _persisted=True))
+        else:
+          results.append(vanilla)
+      return results
 
     result_entities = []  # otherwise, build entities and return
 

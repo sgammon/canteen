@@ -194,6 +194,7 @@ class AdaptedModel(ModelMixin):
       return query.Query(cls,
                          filters=filters,
                          sorts=sorts,
+                         adapter=kwargs.get('adapter'),
                          options=(
                           kwargs['options'] if 'options' in kwargs else (
                             query.QueryOptions(**kwargs))))

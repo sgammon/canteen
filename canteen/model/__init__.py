@@ -370,11 +370,10 @@ class AbstractKey(object):
           identical to ``self``, otherwise ``False``. """
 
     if (not self and not other) or (self and other):
-      if isinstance(other, self.__class__):  # class check
-        if self.__schema__ == other.__schema__:
-            # last resort: check each data property
-            return all((i for i in map(lambda x: (
-                getattr(other, x) == getattr(self, x)), self.__schema__)))
+      if self.__schema__ == other.__schema__:
+          # last resort: check each data property
+          return all((i for i in map(lambda x: (
+              getattr(other, x) == getattr(self, x)), self.__schema__)))
     # didn't pass one of our tests
     return False  # pragma: no cover
 

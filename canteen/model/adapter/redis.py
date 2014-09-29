@@ -16,6 +16,7 @@
 # stdlib
 import json
 import datetime
+import itertools
 import collections
 
 # adapter API
@@ -167,6 +168,10 @@ class RedisAdapter(DirectedGraphAdapter):
     TTL = 'TTL'
     TYPE = 'TYPE'
     SCAN = 'SCAN'
+
+    ## Multi-Operations
+    MULTI_GET = 'MGET'
+    MULTI_SET = 'MSET'
 
     ## Counter Operations
     INCREMENT = 'INCR'
@@ -615,6 +620,137 @@ class RedisAdapter(DirectedGraphAdapter):
     if isinstance(result, basestring):
       return cls.inflate(result)
     return result
+
+  @classmethod
+  def get_multi(cls, keys):
+    """ Retrieve a set of entity by Key from Redis, all in one go.
+
+        :param keys: Target iterable of :py:class:`model.Key` instances to
+          retrieve from storage.
+
+        :returns: The deserialized and decompressed entity associated with the
+          target ``key``. """
+
+    from canteen import model
+
+    if keys:
+      requested_keys = keys
+      results, calls, bundles, handler = {}, [], [], {
+          RedisMode.toplevel_blob: cls.Operations.MULTI_GET,
+          RedisMode.hashkind_blob: cls.Operations.HASH_MULTI_GET,
+          RedisMode.hashkey_blob: cls.Operations.HASH_MULTI_GET,
+          RedisMode.hashkey_hash: cls.Operations.HASH_GET_ALL
+        }.get(cls.EngineConfig.mode)
+
+      # # plan reads
+      for _k in keys:
+        encoded, flattened = _k
+
+        if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+          bundles.append((flattened[1], encoded, _k))
+
+        elif cls.EngineConfig.mode == RedisMode.hashkind_blob:
+          # @TODO(sgammon): access to structured keys in adapters
+          joined, _ = model.Key.from_urlsafe(encoded).flatten(True)
+
+          # generate kinded key and trim tail
+          j_kinded, f_kinded = model.Key(flattened[1]).flatten(True)
+          tail = joined.replace(j_kinded, '')
+
+          # encode
+          encoded_root, encoded_tail = (
+            cls.encode_key(j_kinded, f_kinded),
+            cls.encode_key(tail, flattened))
+
+          bundles.append((flattened[1], encoded_root, encoded_tail, _k))
+
+        elif cls.EngineConfig.mode == RedisMode.hashkey_blob:
+          # @TODO(sgammon): access to structured keys in adapters
+          joined, _target = model.Key.from_urlsafe(encoded).flatten(True)
+
+          # build key and extract group
+          desired_key = model.Key.from_raw(joined)
+          root = (ancestor for ancestor in desired_key.ancestry).next()
+          tail = (
+            desired_key.flatten(True)[0].replace(root.flatten(True)[0], '') or (
+              '__root__'))
+
+          encoded_root, encoded_tail = (
+            cls.encode_key(*root.flatten(True)),
+            cls.encode_key(tail, flattened))
+
+          bundles.append((flattened[1], encoded_root, encoded_tail, _k))
+
+        elif cls.EngineConfig.mode == RedisMode.hashkey_hash:
+          raise NotImplementedError('Redis mode not implemented:'
+                                    ' "hashkey_hash.')  # pragma: no cover
+
+      ## merge reads
+      kinds, roots, keys, reverse, expected = (
+        set(),
+        collections.defaultdict(set),
+        collections.defaultdict(set),
+        {}, [])
+
+      for read in bundles:
+        if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+          # merge keys, not kinds (no namespacing by kind so MGET works)
+          kind, encoded, _k = read
+          kinds.add(kind)
+          keys[kind].add(encoded)
+          reverse[encoded] = _k
+
+        elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
+              cls.EngineConfig.mode == RedisMode.hashkey_blob):
+          kind, root, tail, _k = read
+          keys[root].add(tail)
+          reverse[(root, tail)] = _k
+
+      # @TODO(sgammon): reads segmented in toplevel by kind, because of routing?
+
+      ## collapse reads
+      if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+        for kind in kinds:
+          calls.append((kind, (i for i in keys[kind])))
+
+      elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
+            cls.EngineConfig.mode == RedisMode.hashkey_blob):
+        for root in keys:
+
+          # stack tail/root pairs for later extraction
+          _folded = []
+          for tail in keys[root]:
+            _folded.append(tail)
+            expected.append((root, tail))
+
+          # combine into a single call
+          calls.append(('__meta__', root, _folded))
+
+      with cls.channel('__meta__').pipeline(transaction=False) as pipe:
+        for call in calls:
+          kind, args = call[0], call[1:]
+
+          # toplevel_blob
+          if len(args) == 1: cls.execute(handler, kind, *args, pipeline=pipe)
+
+          # hash-based
+          else:
+            root, tails = args[0], list(args[1])  # buffer args
+
+            # if there's only one fetch from this hash, do an HGET instead
+            if len(tails) == 1 and cls.EngineConfig.mode in (
+                  RedisMode.hashkey_blob,
+                  RedisMode.hashkind_blob):
+              handler = cls.Operations.HASH_GET
+            cls.execute(handler, kind, root, *tails, target=pipe)
+
+        # execute pipeline and inflate
+        for key, entity in zip(expected, pipe.execute()):
+          if key in reverse: key = reverse[key]  # strip away root/tail pairs
+          if not entity: results[key] = None  # must maintain order
+          if isinstance(entity, basestring): results[key] = cls.inflate(entity)
+
+      for key in requested_keys: yield results.get(key)
 
   def _put(self, entity, **kwargs):  # pragma: no cover
 
@@ -1276,7 +1412,8 @@ class RedisAdapter(DirectedGraphAdapter):
             else:
               # query on kind indexes
               _filter_key = (
-                'S', cls._magic_separator.join((cls._kind_prefix, )))
+                'S', cls._magic_separator.join((
+                  cls._kind_prefix, _filter_kind)))
 
         # -- ancestry filters -- #
         elif _f.kind is query.KeyFilter.ANCESTOR:
@@ -1438,82 +1575,78 @@ class RedisAdapter(DirectedGraphAdapter):
     # if we're doing keys only, we're done
     if options.keys_only and not (_and_filters or _or_filters):
 
-      results = []
+      _seen_results, results = 0, []
       for k in matching_keys:
-        # @TODO(sgammon): unambiguous key classes
-        vanilla = model.Key.from_urlsafe(k, _persisted=True)
-        if vanilla.kind != _base_kind.kind():
-          _base_kind = cls.registry.get(vanilla.kind, _base_kind)
-          results.append(
-            _base_kind.__keyclass__.from_urlsafe(k, _persisted=True))
+
+        if 0 < options.limit <= _seen_results:
+          break
         else:
-          results.append(vanilla)
+          _seen_results += 1
+
+          # @TODO(sgammon): unambiguous key classes
+          vanilla = model.Key.from_urlsafe(k, _persisted=True)
+          if vanilla.kind != _base_kind.kind():
+            _base_kind = cls.registry.get(vanilla.kind, _base_kind)
+            results.append(
+              _base_kind.__keyclass__.from_urlsafe(k, _persisted=True))
+          else:
+            results.append(vanilla)
       return results
 
-    result_entities = []  # otherwise, build entities and return
+    result_entities, bundles = [], []  # otherwise, build entities and return
 
-    # fetch keys
-    with cls.channel(kind.kind()).pipeline(transaction=False) as pipeline:
+    # fill pipeline
+    _seen_results, _queued = 0, collections.deque()
+    for key in matching_keys:
+      if (not (_and_filters or _or_filters)) and (
+              0 < options.limit <= _seen_results):
+        break
+      _seen_results += 1
 
-      # fill pipeline
-      _seen_results, _queued = 0, collections.deque()
-      for key in matching_keys:
-        if (not (_and_filters or _or_filters)) and (
-                0 < options.limit <= _seen_results):
-          break
-        _seen_results += 1
+      decoded_k, _base_kind = (
+        model.Key.from_urlsafe(key, _persisted=True), None)
+      if not decoded_k.kind == kind.kind():
+        _base_kind = cls.registry.get(kind.kind())
+      if decoded_k.kind == kind.kind() or not _base_kind:
+        _base_kind = kind
 
-        decoded_k, _base_kind = (
-          model.Key.from_urlsafe(key, _persisted=True), None)
-        if not decoded_k.kind == kind.kind():
-          _base_kind = cls.registry.get(kind.kind())
-        if decoded_k.kind == kind.kind() or not _base_kind:
-          _base_kind = kind
+      if not _base_kind:  # pragma: no cover
+        raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
 
-        if not _base_kind:  # pragma: no cover
-          raise TypeError('Unknown model kind: "%s".' % decoded_k.kind)
+      # @TODO(sgammon): make vertex/edge keys unambiguous
+      decoded_k = _base_kind.__keyclass__.from_urlsafe(key)
 
-        # @TODO(sgammon): make vertex/edge keys unambiguous
-        decoded_k = _base_kind.__keyclass__.from_urlsafe(key)
+      # queue fetch of key
+      _queued.append(decoded_k)
 
-        # queue fetch of key
-        _queued.append(decoded_k)
+      joined, flattened = decoded_k.flatten(True)
+      bundles.append((cls.encode_key(joined, flattened), flattened))
 
-        joined, flattened = decoded_k.flatten(True)
-        pipeline = cls.get((cls.encode_key(joined, flattened), flattened),
-                           pipeline=pipeline)
+      if (options.limit > 0) and _seen_results >= options.limit:
+        break  # break early to avoid pulling junk entities
 
-        if (options.limit > 0) and _seen_results >= options.limit:
-          break  # break early to avoid pulling junk entities
+    # execute pipeline, zip keys and build results
+    for key, entity in zip(_queued, cls.get_multi(bundles)):
+      if not entity: continue  # skip entities that couldn't be found
+      entity['key'] = key  # set key
 
-      _blob_results = pipeline.execute()
+      if _and_filters or _or_filters:
+        if _and_filters and not all((
+                (_filter.match(entity) for _filter in _and_filters))):
+          continue  # doesn't match one of the filters
 
-      # execute pipeline, zip keys and build results
-      for key, entity in zip(_queued, _blob_results):
-        if not entity: continue  # skip entities that couldn't be found
+        if _or_filters and not any((
+                (_filter.match(entity) for _filter in _or_filters))):
+          continue  # doesn't match any of the `or` filters
 
-        # decode raw entity + attach key
-        decoded = cls.get(key=None, _entity=entity)
+      # if key kind doesn't match base, find suitable impl class
+      if key.kind != _base_kind.kind():
+        _base_kind = cls.registry.get(key.kind, _base_kind)
+        entity['key'] = (
+          _base_kind.__keyclass__.from_urlsafe(entity['key'].urlsafe()))
 
-        decoded['key'] = key
-
-        if _and_filters or _or_filters:
-          if _and_filters and not all((
-                  (_filter.match(decoded) for _filter in _and_filters))):
-            continue  # doesn't match one of the filters
-
-          if _or_filters and not any((
-                  (_filter.match(decoded) for _filter in _or_filters))):
-            continue  # doesn't match any of the `or` filters
-
-        # if key kind doesn't match base, find suitable impl class
-        if key.kind != _base_kind.kind():
-          _base_kind = cls.registry.get(key.kind, _base_kind)
-          decoded['key'] = (
-            _base_kind.__keyclass__.from_urlsafe(decoded['key'].urlsafe()))
-
-        # inflate and get ready to return
-        _inflated = _base_kind(_persisted=True, **decoded)
-        result_entities.append(_inflated.key if options.keys_only else (
-                               _inflated))
+      # inflate and get ready to return
+      _inflated = _base_kind(_persisted=True, **entity)
+      result_entities.append(_inflated.key if options.keys_only else (
+                             _inflated))
     return result_entities

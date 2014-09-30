@@ -622,11 +622,16 @@ class RedisAdapter(DirectedGraphAdapter):
     return result
 
   @classmethod
-  def get_multi(cls, keys):
+  def get_multi(cls, keys, pipeline=None, **kwargs):
     """ Retrieve a set of entity by Key from Redis, all in one go.
 
         :param keys: Target iterable of :py:class:`model.Key` instances to
           retrieve from storage.
+
+        :param pipeline: Pipeline to execute commands against, if any.
+
+        :param kwargs: Implementation-specific kwargs passed through from the
+          original caller.
 
         :returns: The deserialized and decompressed entity associated with the
           target ``key``. """
@@ -711,6 +716,9 @@ class RedisAdapter(DirectedGraphAdapter):
       ## collapse reads
       if cls.EngineConfig.mode == RedisMode.toplevel_blob:
         for kind in kinds:
+
+          # track expected keys with calls
+          for i in keys[kind]: expected.append(i)
           calls.append((kind, (i for i in keys[kind])))
 
       elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
@@ -726,12 +734,15 @@ class RedisAdapter(DirectedGraphAdapter):
           # combine into a single call
           calls.append(('__meta__', root, _folded))
 
-      with cls.channel('__meta__').pipeline(transaction=False) as pipe:
+      pipeline = pipeline or cls.channel('__meta__').pipeline(transaction=False)
+
+      with pipeline as pipe:
         for call in calls:
           kind, args = call[0], call[1:]
 
           # toplevel_blob
-          if len(args) == 1: cls.execute(handler, kind, *args, pipeline=pipe)
+          if len(args) == 1:
+            cls.execute(handler, kind, *args, target=pipe)
 
           # hash-based
           else:
@@ -744,11 +755,16 @@ class RedisAdapter(DirectedGraphAdapter):
               handler = cls.Operations.HASH_GET
             cls.execute(handler, kind, root, *tails, target=pipe)
 
-        # execute pipeline and inflate
-        for key, entity in zip(expected, pipe.execute()):
-          if key in reverse: key = reverse[key]  # strip away root/tail pairs
-          if not entity: results[key] = None  # must maintain order
-          if isinstance(entity, basestring): results[key] = cls.inflate(entity)
+        resultset = pipe.execute()  # execute pipeline and inflate
+
+        for item in resultset:
+          if not isinstance(item, (tuple, list)):
+            item = (item,)
+
+          for entity in item:
+            key = expected.pop()
+            results[reverse.get(key, key)] = (
+              cls.inflate(entity) if isinstance(entity, basestring) else entity)
 
       for key in requested_keys: yield results.get(key)
 

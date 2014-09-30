@@ -41,11 +41,12 @@ class AdaptedKey(KeyMixin):
       return adapter._get(self)
     return self.__adapter__._get(self)
 
-  def delete(self):
+  def delete(self, adapter=None):
 
     """ Delete a previously-constructed key from available persistence
         mechanisms. """
 
+    if adapter: return adapter._delete(self)  # overridden adapter
     if self.__owner__:
       # if possible, delegate to owner model
       return self.__owner__.__adapter__._delete(self)

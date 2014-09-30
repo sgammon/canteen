@@ -637,7 +637,6 @@ class ProtoRPCAdaptedKeyTest(test.FrameworkTest):
     assert key.parent.parent.kind == 'Hola'
 
 
-
 class ProtoRPCAdaptedModelTests(test.FrameworkTest):
 
   """ Tests for the ProtoRPC `Model` mixin """
@@ -647,7 +646,7 @@ class ProtoRPCAdaptedModelTests(test.FrameworkTest):
     """ Test converting a `Model` to a `Message` """
 
 
-    class SampleModel(model.Model):
+    class TestProtoRPCModel(model.Model):
 
       """ sample model """
 
@@ -656,14 +655,15 @@ class ProtoRPCAdaptedModelTests(test.FrameworkTest):
       dt = datetime.datetime
 
     now = datetime.datetime.now()
-    s = SampleModel(string='hi', number=5, dt=now)
+    s = TestProtoRPCModel(string='hi', number=5, dt=now)
     m = s.to_message()
 
     assert m.string == 'hi'
     assert m.number == 5
     assert m.dt == now.isoformat()
 
-    s2 = SampleModel(key=model.Key(SampleModel, 'sup'), string='hi', number=5, dt=now)
+    s2 = TestProtoRPCModel(key=model.Key(TestProtoRPCModel, 'sup'),
+                           string='hi', number=5, dt=now)
     m2 = s2.to_message()
 
     assert m2.string == 'hi'

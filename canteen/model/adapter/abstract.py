@@ -496,7 +496,7 @@ class IndexedModelAdapter(ModelAdapter):
             the index. """
 
       # convert to ISO format, return date with magic
-      return cls._magic['date'], int(time.mktime(_date.timetuple()))
+      return cls._magic['date'], float(time.mktime(_date.timetuple()))
 
     @classmethod
     def convert_time(cls, _time):
@@ -522,7 +522,7 @@ class IndexedModelAdapter(ModelAdapter):
             suitable for addition to the index. """
 
       # convert to integer, return datetime with magic
-      return cls._magic['datetime'], int(time.mktime(_datetime.timetuple()))
+      return cls._magic['datetime'], float(time.mktime(_datetime.timetuple()))
 
   @decorators.classproperty
   def _index_basetypes(cls):

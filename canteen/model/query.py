@@ -425,8 +425,6 @@ class Query(AbstractQuery):
         :param sorts: Array of ``Sort`` objects to add to the newly-prepared
           ``Query`` object. ``Sort``s can also be added via ``Query.sort``.
 
-        L:=
-
         :param **kwargs: Additional options to pass to ``QueryOptions``. If an
           item exists at ``kwargs['options']``, it is used *in place* of
           generated query options. """
@@ -574,7 +572,7 @@ class Query(AbstractQuery):
 
     options['limit'] = 1  # always has a limit of 1
     result = self._execute(QueryOptions(**options), adapter)
-    return result[0] if result else result
+    return result[0] if result else None
 
   def fetch(self, adapter=None, **options):
 

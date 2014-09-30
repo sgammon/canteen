@@ -366,380 +366,406 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
     # interrogate converted date
     assert isinstance(converted, tuple)
 
-'''
   def test_equality_query(self):
-    """ Test equality queries with `InMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3])]
+    """ Test equality queries with `IndexedMemoryAdapter` """
 
-    for _m in m: _m.put()
+    if not self.__abstract__:
 
-    # single get
-    q = InMemoryModel.query().filter(InMemoryModel.string == "soop")
-    result = q.get()
-    assert result.string == "soop"
+      # make some models
+      m = [
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3])]
 
-    # submit query
-    q = InMemoryModel.query().filter(InMemoryModel.string == "soop")
-    result = q.fetch(limit=50)
+      for _m in m: _m.put(adapter=self._construct())
 
-    for r in result:
-      assert r.string == "soop"
+      # single get
+      q = SampleModel.query().filter(SampleModel.string == "soop")
+      result = q.get(adapter=self._construct())
+      assert result.string == "soop"
+
+      # submit query
+      q = SampleModel.query().filter(SampleModel.string == "soop")
+      result = q.fetch(limit=50, adapter=self._construct())
+
+      for r in result:
+        assert r.string == "soop"
 
   def test_inequality_query(self):
-    """ Test inequality queries with `InMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="soop", integer=[1, 2, 3]),
-      InMemoryModel(string="sploop", integer=[1, 2])]
+    """ Test inequality queries with `IndexedMemoryAdapter` """
 
-    for _m in m: _m.put()
+    if not self.__abstract__:
+      # make some models
+      m = [
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="sploop", integer=[1, 2])]
 
-    # submit query
-    q = InMemoryModel.query().filter(InMemoryModel.string != "sploop")
-    result = q.fetch(limit=50)
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) > 0, (
-      "got no results for inequality query"
-      " (got '%s' from adapter '%s')" % (result, self.subject))
+      # submit query
+      q = SampleModel.query().filter(SampleModel.string != "sploop")
+      result = q.fetch(limit=50, adapter=self._construct())
 
-    for r in result:
-      assert r.string != "sploop"
+      assert len(result) > 0, (
+        "got no results for inequality query"
+        " (got '%s' from adapter '%s')" % (result, self.subject))
+
+      for r in result:
+        assert r.string != "sploop"
 
   def test_range_query(self):
-    """ Test range queries with `InMemoryAdapter` """
 
-    now = datetime.datetime.now()
+    """ Test range queries with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(string="soop", date=now + datetime.timedelta(days=1)),
-      InMemoryModel(string="soop", date=now + datetime.timedelta(days=2)),
-      InMemoryModel(string="soop", date=now + datetime.timedelta(days=3))]
+    if not self.__abstract__:
+      now = datetime.datetime.now()
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(string="soop", date=now + datetime.timedelta(days=1)),
+        SampleModel(string="soop", date=now + datetime.timedelta(days=2)),
+        SampleModel(string="soop", date=now + datetime.timedelta(days=3))]
 
-    # submit query
-    q = InMemoryModel.query().filter(InMemoryModel.date > now)
-    result = q.fetch(limit=50)
+      for _m in m: _m.put(adapter=self._construct())
 
-    for result_i in result:
-      assert result_i.date > now
+      # submit query
+      q = SampleModel.query().filter(SampleModel.date > now)
+      result = q.fetch(limit=50, adapter=self._construct())
+
+      for result_i in result:
+        assert result_i.date > now
 
   def test_ancestry_query(self):
-    """ Test ancestry queries with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'heyo')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child')
-    child2 = _key('child2')
+    """ Test ancestry queries with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=root, string='soop'),
-      InMemoryModel(key=child1, string='soop'),
-      InMemoryModel(key=child2, string='soop')]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'heyo')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child')
+      child2 = _key('child2')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=root, string='soop'),
+        SampleModel(key=child1, string='soop'),
+        SampleModel(key=child2, string='soop')]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 2
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 2
 
   def test_compound_query(self):
-    """ Test compound queries with `InMemoryAdapter` """
 
-    now = datetime.datetime.now()
-    root = model.Key(InMemoryModel, 'hi')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
+    """ Test compound queries with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=root,
-                    string="hithere",
-                    date=now + datetime.timedelta(days=1)),
-      InMemoryModel(key=child1,
-                    string="hithere",
-                    date=now + datetime.timedelta(days=2)),
-      InMemoryModel(key=child2,
-                    string="hithere",
-                    date=now + datetime.timedelta(days=3)),
-      InMemoryModel(key=child3,
-                    string="noway",
-                    date=now + datetime.timedelta(days=4))]
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      root = model.Key(SampleModel, 'hi')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=root,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=1)),
+        SampleModel(key=child1,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=2)),
+        SampleModel(key=child2,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=3)),
+        SampleModel(key=child3,
+                      string="noway",
+                      date=now + datetime.timedelta(days=4))]
 
-    # submit query
-    q = InMemoryModel.query(limit=50)
-    q.filter(InMemoryModel.string == "hithere")
-    q.filter(InMemoryModel.date > now)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 3
+      # submit query
+      q = SampleModel.query(limit=50)
+      q.filter(SampleModel.string == "hithere")
+      q.filter(SampleModel.date > now)
+      result = q.fetch(adapter=self._construct())
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50)
-    q.filter(InMemoryModel.date > now)
-    result = q.fetch()
+      assert len(result) == 3
 
-    assert len(result) == 3
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      q.filter(SampleModel.date > now)
+      result = q.fetch(adapter=self._construct())
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50)
-    q.filter(InMemoryModel.date > now)
-    q.filter(InMemoryModel.string == "hithere")
-    result = q.fetch()
+      assert len(result) == 3
 
-    assert len(result) == 2
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      q.filter(SampleModel.date > now)
+      q.filter(SampleModel.string == "hithere")
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 2
 
   def test_ascending_sort_string(self):
-    """ Test an ASC sort on a string property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-string')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test an ASC sort on a string property with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark"),
-      InMemoryModel(key=child2, string="blasphemy"),
-      InMemoryModel(key=child3, string="xylophone"),
-      InMemoryModel(key=child4, string="yompin")]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-string')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark"),
+        SampleModel(key=child2, string="blasphemy"),
+        SampleModel(key=child3, string="xylophone"),
+        SampleModel(key=child4, string="yompin")]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(+InMemoryModel.string)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.string)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, reversed(("aardvark",
-                                      "blasphemy",
-                                      "xylophone",
-                                      "yompin"))):
-      assert l.string == r
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed(("aardvark",
+                                        "blasphemy",
+                                        "xylophone",
+                                        "yompin"))):
+        assert l.string == r
 
   def test_descending_sort_string(self):
-    """ Test a DSC sort on a string property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-string-2')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test a DSC sort on a string property with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark"),
-      InMemoryModel(key=child2, string="blasphemy"),
-      InMemoryModel(key=child3, string="xylophone"),
-      InMemoryModel(key=child4, string="yompin")]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-string-2')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark"),
+        SampleModel(key=child2, string="blasphemy"),
+        SampleModel(key=child3, string="xylophone"),
+        SampleModel(key=child4, string="yompin")]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(-InMemoryModel.string)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.string)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, ("aardvark", "blasphemy", "xylophone", "yompin")):
-      assert l.string == r
+      assert len(result) == 4
+
+      for l, r in zip(result, ("aardvark", "blasphemy", "xylophone", "yompin")):
+        assert l.string == r
 
   def test_ascending_sort_integer(self):
-    """ Test an ASC sort on an integer property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-int')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test an ASC sort on an integer property with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", number=5),
-      InMemoryModel(key=child2, string="blasphemy", number=6),
-      InMemoryModel(key=child3, string="xylophone", number=7),
-      InMemoryModel(key=child4, string="yompin", number=8)]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-int')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", number=5),
+        SampleModel(key=child2, string="blasphemy", number=6),
+        SampleModel(key=child3, string="xylophone", number=7),
+        SampleModel(key=child4, string="yompin", number=8)]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(+InMemoryModel.number)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.number)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, (5, 6, 7, 8)):
-      assert l.number == r
+      assert len(result) == 4
+
+      for l, r in zip(result, (5, 6, 7, 8)):
+        assert l.number == r
 
   def test_descending_sort_integer(self):
-    """ Test a DSC sort on an integer property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-int-2')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test a DSC sort on an integer property with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", number=5),
-      InMemoryModel(key=child2, string="blasphemy", number=6),
-      InMemoryModel(key=child3, string="xylophone", number=7),
-      InMemoryModel(key=child4, string="yompin", number=8)]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-int-2')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", number=5),
+        SampleModel(key=child2, string="blasphemy", number=6),
+        SampleModel(key=child3, string="xylophone", number=7),
+        SampleModel(key=child4, string="yompin", number=8)]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(-InMemoryModel.number)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.number)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, reversed((5, 6, 7, 8))):
-      assert l.number == r
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((5, 6, 7, 8))):
+        assert l.number == r
 
   def test_ascending_sort_float(self):
-    """ Test an ASC sort on a float property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-float')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test an ASC sort on a float property with `IndexedMemoryAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", floating=5.5),
-      InMemoryModel(key=child2, string="blasphemy", floating=6.5),
-      InMemoryModel(key=child3, string="xylophone", floating=7.5),
-      InMemoryModel(key=child4, string="yompin", floating=8.5)]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-float')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", floating=5.5),
+        SampleModel(key=child2, string="blasphemy", floating=6.5),
+        SampleModel(key=child3, string="xylophone", floating=7.5),
+        SampleModel(key=child4, string="yompin", floating=8.5)]
 
-    # submit query
-    q = (
-      InMemoryModel.query(ancestor=root, limit=50).sort(
-        +InMemoryModel.floating))
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = (
+        SampleModel.query(ancestor=root, limit=50).sort(
+          +SampleModel.floating))
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, (5.5, 6.5, 7.5, 8.5)):
-      assert l.floating == r
+      assert len(result) == 4
+
+      for l, r in zip(result, (5.5, 6.5, 7.5, 8.5)):
+        assert l.floating == r
 
   def test_descending_sort_float(self):
-    """ Test a DSC sort on a float property with `InMemoryAdapter` """
 
-    root = model.Key(InMemoryModel, 'sorted-float')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test a DSC sort on a float property with `IndexedModelAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", floating=5.5),
-      InMemoryModel(key=child2, string="blasphemy", floating=6.5),
-      InMemoryModel(key=child3, string="xylophone", floating=7.5),
-      InMemoryModel(key=child4, string="yompin", floating=8.5)]
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-float')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", floating=5.5),
+        SampleModel(key=child2, string="blasphemy", floating=6.5),
+        SampleModel(key=child3, string="xylophone", floating=7.5),
+        SampleModel(key=child4, string="yompin", floating=8.5)]
 
-    # submit query
-    q = (
-      InMemoryModel.query(ancestor=root, limit=50).sort(
-        -InMemoryModel.floating))
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = (
+        SampleModel.query(ancestor=root, limit=50).sort(
+          -SampleModel.floating))
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, reversed((5.5, 6.5, 7.5, 8.5))):
-      assert l.floating == r
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((5.5, 6.5, 7.5, 8.5))):
+        assert l.floating == r
 
   def test_ascending_sort_datetime(self):
-    """ Test an ASC sort on a `datetime` property with `InMemoryAdapter` """
 
-    now = datetime.datetime.now()
-    later = lambda n: now + datetime.timedelta(days=n)
-    root = model.Key(InMemoryModel, 'sorted-datetime')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test an ASC sort on a `datetime` property with `IndexedModelAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", date=later(1)),
-      InMemoryModel(key=child2, string="blasphemy", date=later(2)),
-      InMemoryModel(key=child3, string="xylophone", date=later(3)),
-      InMemoryModel(key=child4, string="yompin", date=later(4))]
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      later = lambda n: now + datetime.timedelta(days=n)
+      root = model.Key(SampleModel, 'sorted-datetime')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", date=later(1)),
+        SampleModel(key=child2, string="blasphemy", date=later(2)),
+        SampleModel(key=child3, string="xylophone", date=later(3)),
+        SampleModel(key=child4, string="yompin", date=later(4))]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(+InMemoryModel.date)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.date)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, (later(1), later(2), later(3), later(4))):
-      assert l.date == r
+      assert len(result) == 4
+
+      for l, r in zip(result, (later(1), later(2), later(3), later(4))):
+        assert l.date == r
 
   def test_descending_sort_datetime(self):
-    """ Test a DSC sort on a `datetime` property with `InMemoryAdapter` """
 
-    now = datetime.datetime.now()
-    later = lambda n: now + datetime.timedelta(days=n)
-    root = model.Key(InMemoryModel, 'sorted-datetime')
-    _key = lambda x: model.Key(InMemoryModel, x, parent=root)
-    child1 = _key('child1')
-    child2 = _key('child2')
-    child3 = _key('child3')
-    child4 = _key('child4')
+    """ Test a DSC sort on a `datetime` property with `IndexedModelAdapter` """
 
-    # make some models
-    m = [
-      InMemoryModel(key=child1, string="aardvark", date=later(1)),
-      InMemoryModel(key=child2, string="blasphemy", date=later(2)),
-      InMemoryModel(key=child3, string="xylophone", date=later(3)),
-      InMemoryModel(key=child4, string="yompin", date=later(4))]
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      later = lambda n: now + datetime.timedelta(days=n)
+      root = model.Key(SampleModel, 'sorted-datetime')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
 
-    for _m in m: _m.put()
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", date=later(1)),
+        SampleModel(key=child2, string="blasphemy", date=later(2)),
+        SampleModel(key=child3, string="xylophone", date=later(3)),
+        SampleModel(key=child4, string="yompin", date=later(4))]
 
-    # submit query
-    q = InMemoryModel.query(ancestor=root, limit=50).sort(-InMemoryModel.date)
-    result = q.fetch()
+      for _m in m: _m.put(adapter=self._construct())
 
-    assert len(result) == 4
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.date)
+      result = q.fetch(adapter=self._construct())
 
-    for l, r in zip(result, reversed((later(1), later(2), later(3), later(4)))):
-      assert l.date == r
-  '''
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((
+            later(1), later(2), later(3), later(4)))):
+        assert l.date == r
 
 
 class GraphModelAdapterTests(IndexedModelAdapterTests):

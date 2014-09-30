@@ -21,7 +21,7 @@ from canteen.model import query
 from canteen.test import FrameworkTest
 
 # inmemory adapter
-from canteen_tests.test_adapters import test_inmemory as inmemory
+from canteen_tests.test_adapters import test_abstract as abstract
 
 
 ## QueryTests
@@ -186,14 +186,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a (default-direction) `Sort` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.sort(-inmemory.InMemoryModel.string)
+    q.sort(-abstract.SampleModel.string)
 
     assert len(q.sorts) == 1
     assert q.sorts[0].operator == query.DESCENDING
@@ -202,14 +202,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying an ascending `Sort` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.sort(+inmemory.InMemoryModel.string)
+    q.sort(+abstract.SampleModel.string)
 
     assert len(q.sorts) == 1
     assert q.sorts[0].operator == query.ASCENDING
@@ -218,14 +218,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a descending `Sort` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.sort(-inmemory.InMemoryModel.string)
+    q.sort(-abstract.SampleModel.string)
 
     assert len(q.sorts) == 1
     assert q.sorts[0].operator == query.DESCENDING
@@ -234,14 +234,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying an equality `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.string == 'sup')
+    q.filter(abstract.SampleModel.string == 'sup')
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.EQUALS
@@ -250,14 +250,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying an inequality `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.string != 'sup')
+    q.filter(abstract.SampleModel.string != 'sup')
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.NOT_EQUALS
@@ -266,14 +266,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a greater-than `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.integer > 5)
+    q.filter(abstract.SampleModel.integer > 5)
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.GREATER_THAN
@@ -282,14 +282,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a less-than `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.integer < 5)
+    q.filter(abstract.SampleModel.integer < 5)
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN
@@ -298,14 +298,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a greater-than-equal-to `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.integer >= 5)
+    q.filter(abstract.SampleModel.integer >= 5)
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.GREATER_THAN_EQUAL_TO
@@ -314,14 +314,14 @@ class QueryTests(FrameworkTest):
 
     """ Test specifying a less-than-equal-to `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.number <= 5)
+    q.filter(abstract.SampleModel.number <= 5)
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
@@ -330,31 +330,31 @@ class QueryTests(FrameworkTest):
 
     """ Test manually matching against a `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.number <= 5)
-    matching_model = inmemory.InMemoryModel(number=1, string='womp')
-
-    assert len(q.filters) == 1
-    assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
-    assert q.filters[0].match(matching_model)
-
-    q = inmemory.InMemoryModel.query(options=options)
-    q.filter((inmemory.InMemoryModel.number <= 5).AND((
-        inmemory.InMemoryModel.string == 'womp')))
+    q.filter(abstract.SampleModel.number <= 5)
+    matching_model = abstract.SampleModel(number=1, string='womp')
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
     assert q.filters[0].match(matching_model)
 
-    q = inmemory.InMemoryModel.query(options=options)
-    q.filter((inmemory.InMemoryModel.number <= 5).OR((
-        inmemory.InMemoryModel.string == 'womp')))
+    q = abstract.SampleModel.query(options=options)
+    q.filter((abstract.SampleModel.number <= 5).AND((
+        abstract.SampleModel.string == 'womp')))
+
+    assert len(q.filters) == 1
+    assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
+    assert q.filters[0].match(matching_model)
+
+    q = abstract.SampleModel.query(options=options)
+    q.filter((abstract.SampleModel.number <= 5).OR((
+        abstract.SampleModel.string == 'womp')))
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
@@ -364,15 +364,15 @@ class QueryTests(FrameworkTest):
 
     """ Test manually matching a raw value against a `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.number <= 5)
-    matching_model = inmemory.InMemoryModel(number=1, string='womp')
+    q.filter(abstract.SampleModel.number <= 5)
+    matching_model = abstract.SampleModel(number=1, string='womp')
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
@@ -382,15 +382,15 @@ class QueryTests(FrameworkTest):
 
     """ Test manually matching a raw entity against a `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.number <= 5)
-    matching_model = inmemory.InMemoryModel(number=1, string='womp')
+    q.filter(abstract.SampleModel.number <= 5)
+    matching_model = abstract.SampleModel(number=1, string='womp')
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
@@ -400,14 +400,14 @@ class QueryTests(FrameworkTest):
 
     """ Test the string representation for a `Sort` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.sort(-inmemory.InMemoryModel.string)
+    q.sort(-abstract.SampleModel.string)
 
     assert len(q.sorts) == 1
     assert q.sorts[0].operator == query.DESCENDING
@@ -420,15 +420,15 @@ class QueryTests(FrameworkTest):
 
     """ Test the string representation for a `Filter` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    q = inmemory.InMemoryModel.query(options=options)
+    q = abstract.SampleModel.query(options=options)
 
     assert q.options.limit == 50
-    assert q.options.ancestor == model.Key(inmemory.InMemoryModel, 'hi')
+    assert q.options.ancestor == model.Key(abstract.SampleModel, 'hi')
 
-    q.filter(inmemory.InMemoryModel.integer <= 5)
-    matching_model = inmemory.InMemoryModel(integer=1)
+    q.filter(abstract.SampleModel.integer <= 5)
+    matching_model = abstract.SampleModel(integer=1)
 
     assert len(q.filters) == 1
     assert q.filters[0].operator == query.LESS_THAN_EQUAL_TO
@@ -442,7 +442,7 @@ class QueryTests(FrameworkTest):
 
     """ Test the string representation for a `QueryOptions` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
     result = options.__repr__()
 
@@ -454,11 +454,11 @@ class QueryTests(FrameworkTest):
 
     """ Test the string representation for a `Query` """
 
-    _ancestor = model.Key(inmemory.InMemoryModel, 'hi')
+    _ancestor = model.Key(abstract.SampleModel, 'hi')
     options = query.QueryOptions(limit=50, ancestor=_ancestor)
-    _q = inmemory.InMemoryModel.query(options=options)
-    _q.filter(inmemory.InMemoryModel.integer <= 5)
-    _q.sort(+inmemory.InMemoryModel.string)
+    _q = abstract.SampleModel.query(options=options)
+    _q.filter(abstract.SampleModel.integer <= 5)
+    _q.sort(+abstract.SampleModel.string)
 
     result = _q.__repr__()
 

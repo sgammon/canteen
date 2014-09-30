@@ -212,7 +212,7 @@ class ModelAdapter(object):
       # grab getter method
       getter = getattr(self.__class__, 'get_multi')
 
-    bundles = []
+    bundles, pairs = [], []
     for key in keys:
 
       # get key from model, if needed
@@ -229,11 +229,13 @@ class ModelAdapter(object):
         # otherwise, use regular base64 via `AbstractKey`
         encoded = key.urlsafe(joined)
 
+      pairs.append(key)
       bundles.append((encoded, flattened))  # append to bundles
 
     # pass off to delegated `get_multi`
     try:
-      for key, entity in zip(bundles, getter(bundles, **kwargs)):
+      for key, entity in zip(zip(pairs, bundles), getter(bundles, **kwargs)):
+        key, _ = key
         if isinstance(entity, dict):  # inflate dict
           entity['key'] = key
           entity = self.registry[kind](_persisted=True, **entity)

@@ -212,7 +212,7 @@ class ModelAdapter(object):
       # grab getter method
       getter = getattr(self.__class__, 'get_multi')
 
-    bundles, pairs = [], []
+    bundles = []
     for key in keys:
 
       # get key from model, if needed
@@ -220,7 +220,6 @@ class ModelAdapter(object):
 
       # flatten key into stringified repr
       joined, flattened = key.flatten(True)
-      parent, kind, id = flattened
 
       # optionally allow adapter to encode key
       encoded = self.encode_key(joined, flattened)
@@ -229,19 +228,11 @@ class ModelAdapter(object):
         # otherwise, use regular base64 via `AbstractKey`
         encoded = key.urlsafe(joined)
 
-      pairs.append(key)
       bundles.append((encoded, flattened))  # append to bundles
 
     # pass off to delegated `get_multi`
     try:
-      for key, entity in zip(zip(pairs, bundles), getter(bundles, **kwargs)):
-        key, _ = key
-        if isinstance(entity, dict):  # inflate dict
-          entity['key'] = key
-          entity = self.registry[kind](_persisted=True, **entity)
-
-          # inflate key + model and return
-          key.__persisted__ = True
+      for entity in getter(bundles, **kwargs):
         yield entity
 
     except NotImplementedError:  # pragma: no cover

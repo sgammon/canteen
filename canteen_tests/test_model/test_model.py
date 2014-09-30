@@ -243,33 +243,31 @@ class ModelTests(FrameworkTest):
     ## test simple construction
     self.assertIsInstance(TestPerson(), TestPerson)
 
-    ## SampleModel
-    # Test parent model class.
-    class SampleModel(model.Model):
+
+    class SampleTestModel(model.Model):
 
       """ Test parent model class. """
 
       parent = basestring
 
-    ## SampleSubModel
-    # Test child model class.
-    class SampleSubModel(SampleModel):
+
+    class SampleSubModel(SampleTestModel):
 
       """ Test child model class. """
 
       child = basestring
 
     ## test properties
-    self.assertTrue(hasattr(SampleModel, 'parent'))
-    self.assertTrue((not hasattr(SampleModel, 'child')))
+    self.assertTrue(hasattr(SampleTestModel, 'parent'))
+    self.assertTrue((not hasattr(SampleTestModel, 'child')))
 
     ## test submodel properties
     self.assertTrue(hasattr(SampleSubModel, 'child'))
     self.assertTrue(hasattr(SampleSubModel, 'parent'))
 
     ## test recursive subclassing
-    self.assertIsInstance(SampleModel(), model.Model)
-    self.assertIsInstance(SampleSubModel(), SampleModel)
+    self.assertIsInstance(SampleTestModel(), model.Model)
+    self.assertIsInstance(SampleSubModel(), SampleTestModel)
     self.assertIsInstance(SampleSubModel(), model.Model)
 
   def test_model_to_dict(self, method='to_dict'):

@@ -20,7 +20,7 @@
 import datetime
 
 # canteen test
-from canteen.test import FrameworkTest
+from canteen import test
 
 # canteen model API
 from canteen import model
@@ -63,7 +63,7 @@ class TestGraphGift(TestGraphPerson >> TestGraphPerson):
   price = float, {'indexed': True}
 
 
-class AbstractModelAdapterTests(FrameworkTest):
+class AbstractModelAdapterTests(test.FrameworkTest):
 
   """ Tests `model.adapter.abstract.ModelAdapter` """
 
@@ -382,6 +382,7 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
       # single get
       q = SampleModel.query().filter(SampleModel.string == "soop")
+
       result = q.get(adapter=self._construct())
       assert result.string == "soop"
 

@@ -16,7 +16,6 @@
 # stdlib
 import json
 import datetime
-import itertools
 import collections
 
 # adapter API
@@ -752,8 +751,10 @@ class RedisAdapter(DirectedGraphAdapter):
             if len(tails) == 1 and cls.EngineConfig.mode in (
                   RedisMode.hashkey_blob,
                   RedisMode.hashkind_blob):
-              handler = cls.Operations.HASH_GET
-            cls.execute(handler, kind, root, *tails, target=pipe)
+              _target_handler = cls.Operations.HASH_GET
+            else:
+              _target_handler = handler
+            cls.execute(_target_handler, kind, root, *tails, target=pipe)
 
         resultset = pipe.execute()  # execute pipeline and inflate
 
@@ -1202,8 +1203,7 @@ class RedisAdapter(DirectedGraphAdapter):
           converter, write = element
 
           # basestring is not allowed to be instantiated
-          if converter is basestring:
-            converter = cls.serializer.dumps
+          if converter is basestring: converter = cls.serializer.dumps
 
         ## Unpack index write
         if len(write) > 3:  # qualified value-key-mapping index
@@ -1226,7 +1226,6 @@ class RedisAdapter(DirectedGraphAdapter):
 
           # extract write, inflate
           index, value = write
-          path = None
           hash_c.append(index)
           hash_value = True  # do not add hashed value later
 
@@ -1247,6 +1246,13 @@ class RedisAdapter(DirectedGraphAdapter):
             raise RuntimeError('Illegal non-string value passed in'
                                ' for a `meta` index value.'
                                ' Write bundle: "%s".' % write)
+
+          # convert things over to floats
+          converter = lambda x: x
+          if isinstance(value, (datetime.date, datetime.datetime)):
+            converter = cls._index_basetypes[type(value)]
+          elif isinstance(value, (int, long)):
+            converter = float
 
           # time-based or number-like values are stored in sorted sets
           handler = cls.Operations.SORTED_ADD
@@ -1353,6 +1359,10 @@ class RedisAdapter(DirectedGraphAdapter):
     _and_filters, _or_filters, kinded_key = (
       [], [], model.Key(kind, parent=ancestry_parent))
 
+    if ancestry_parent:
+      filters.insert(0, query.KeyFilter(ancestry_parent,
+                                     _type=query.KeyFilter.ANCESTOR))
+
     if not kind and not filters:  # it's a kindless query to start
       filters.append(query.KeyFilter(None))
 
@@ -1442,7 +1452,8 @@ class RedisAdapter(DirectedGraphAdapter):
           ## ancestored queries
           else:
             # query on keygroups
-            _filter_key = ('S', cls._group_prefix, _f.value)
+            _filter_key = ('S', cls._magic_separator.join((cls._group_prefix,
+                                                           _f.value.data)))
 
         # append key index merge
         if _filter_key not in _filter_i_lookup:
@@ -1522,8 +1533,9 @@ class RedisAdapter(DirectedGraphAdapter):
         if len(_filters[prop]) == 1:  # single-filters
 
           # extract info
-          _operator = [operator for operator, value in _directives][0]
-          _value = float([value for operator, value in _directives][0])
+          _operator, _value = (
+            ((operator, value) for (
+                                 operator, value, chain) in _directives).next())
           _, prop = prop
 
           if _operator is query.EQUALS:
@@ -1534,9 +1546,32 @@ class RedisAdapter(DirectedGraphAdapter):
               None,
               prop,
               _value,
-              _value,
-              options.offset,
-              options.limit)))
+              _value)))
+
+            continue
+
+          elif _operator is query.LESS_THAN:
+
+            # no lower bound
+            _data_frame.append(cls.execute(
+              cls.Operations.SORTED_RANGE_BY_SCORE,
+              None,
+              prop,
+              '-inf',
+              float(_value) if not (
+                isinstance(_value, float)) else _value))
+
+            continue
+
+          elif _operator is query.GREATER_THAN:
+            # no lower bound
+            _data_frame.append(cls.execute(
+              cls.Operations.SORTED_RANGE_BY_SCORE,
+              None,
+              prop,
+              float(_value) if not (
+                isinstance(_value, float)) else _value,
+              '+inf'))
 
             continue
 
@@ -1558,7 +1593,21 @@ class RedisAdapter(DirectedGraphAdapter):
               _or_filters.append(subquery)
 
         _flag, index = prop
-        _intersections.add(index)
+
+        if _operator in (query.EQUALS, query.CONTAINS):
+          _intersections.add(index)
+        elif _operator is query.NOT_EQUALS:
+          _and_filters.append(_f)
+        else:
+          # @TODO(sgammon): support this query branch
+          raise RuntimeError('Specified query is not yet supported.')
+
+      if (_or_filters or _and_filters) and not _data_frame:
+        # couldn't resolve backing indexes - query is naked with and/or
+        # (chained or not, doesn't matter, gotta start with all of that kind)
+        _kinded_index_key = cls._magic_separator.join((cls._kind_prefix,
+            (kind if isinstance(kind, basestring) else kind.kind())))
+        _intersections.add(_kinded_index_key)
 
       # special case: only one unsorted set - pull content instead
       # of an intersection merge
@@ -1569,7 +1618,7 @@ class RedisAdapter(DirectedGraphAdapter):
           _intersections.pop())))
 
       # more than one intersection: do an `SINTER` call instead of `SMEMBERS`
-      if _intersections and len(_intersections) > 1:
+      elif _intersections and len(_intersections) > 1:
         _data_frame.append(cls.execute(*(
           cls.Operations.SET_INTERSECT,
           None,
@@ -1583,8 +1632,8 @@ class RedisAdapter(DirectedGraphAdapter):
           _result_window = set(frame)
           continue  # initial frame: fill background
 
-        _result_window = (_result_window & set(frame))
-      matching_keys = [k for k in _result_window]
+        _result_window &= (set(frame) if not isinstance(frame, set) else frame)
+      matching_keys = (k for k in _result_window)
     else:
       matching_keys = []
 
@@ -1612,12 +1661,8 @@ class RedisAdapter(DirectedGraphAdapter):
     result_entities, bundles = [], []  # otherwise, build entities and return
 
     # fill pipeline
-    _seen_results, _queued = 0, collections.deque()
+    _queued = collections.deque()
     for key in matching_keys:
-      if (not (_and_filters or _or_filters)) and (
-              0 < options.limit <= _seen_results):
-        break
-      _seen_results += 1
 
       decoded_k, _base_kind = (
         model.Key.from_urlsafe(key, _persisted=True), None)
@@ -1637,9 +1682,6 @@ class RedisAdapter(DirectedGraphAdapter):
 
       joined, flattened = decoded_k.flatten(True)
       bundles.append((cls.encode_key(joined, flattened), flattened))
-
-      if (options.limit > 0) and _seen_results >= options.limit:
-        break  # break early to avoid pulling junk entities
 
     # execute pipeline, zip keys and build results
     for key, entity in zip(_queued, cls.get_multi(bundles)):

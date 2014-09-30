@@ -169,8 +169,13 @@ class InMemoryAdapter(DirectedGraphAdapter):
     from canteen import model
 
     for key in keys:
-      yield cls.get(key if not isinstance(key, model.Key) else (
-        key.flatten(True)))
+      encoded, flattened = key = key if not isinstance(key, model.Key) else (
+        key.flatten(True))
+      obj = cls.get(key)
+
+      # inflate key + model and return
+      obj.key.__persisted__ = True
+      yield obj
 
   @classmethod
   def put(cls, key, entity, model, **kwargs):

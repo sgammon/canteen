@@ -15,8 +15,10 @@
 
 # stdlib
 import json
+import base64
 import datetime
 import collections
+from operator import itemgetter
 
 # adapter API
 from . import abstract
@@ -518,6 +520,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
   @classmethod
   def inflate(cls, result):
+
     """ Small closure that can inflate (and potentially decompress) a resulting
         object for a given storage mode.
 
@@ -622,6 +625,7 @@ class RedisAdapter(DirectedGraphAdapter):
 
   @classmethod
   def get_multi(cls, keys, pipeline=None, **kwargs):
+
     """ Retrieve a set of entity by Key from Redis, all in one go.
 
         :param keys: Target iterable of :py:class:`model.Key` instances to
@@ -690,62 +694,49 @@ class RedisAdapter(DirectedGraphAdapter):
                                     ' "hashkey_hash.')  # pragma: no cover
 
       ## merge reads
-      kinds, roots, keys, reverse, expected = (
-        set(),
-        collections.defaultdict(set),
-        collections.defaultdict(set),
-        {}, [])
+      kinds, keys, expected, requested = (
+        set(), collections.OrderedDict(), [], collections.OrderedDict())
 
       for read in bundles:
         if cls.EngineConfig.mode == RedisMode.toplevel_blob:
           # merge keys, not kinds (no namespacing by kind so MGET works)
           kind, encoded, _k = read
           kinds.add(kind)
-          keys[kind].add(encoded)
-          reverse[encoded] = _k
+
+          if kind not in keys:
+            keys[kind], requested[kind] = [], []
+          keys[kind].append(encoded)
+          requested[kind].append(_k)
 
         elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
               cls.EngineConfig.mode == RedisMode.hashkey_blob):
           kind, root, tail, _k = read
-          keys[root].add(tail)
-          reverse[(root, tail)] = _k
+
+          if root not in keys:
+            keys[root], requested[root] = [], []
+          keys[root].append(tail)
+          requested[root].append(_k)
 
       # @TODO(sgammon): reads segmented in toplevel by kind, because of routing?
-
-      ## collapse reads
-      if cls.EngineConfig.mode == RedisMode.toplevel_blob:
-        for kind in kinds:
-
-          # track expected keys with calls
-          for i in keys[kind]: expected.append(i)
-          calls.append((kind, (i for i in keys[kind])))
-
-      elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
-            cls.EngineConfig.mode == RedisMode.hashkey_blob):
-        for root in keys:
-
-          # stack tail/root pairs for later extraction
-          _folded = []
-          for tail in keys[root]:
-            _folded.append(tail)
-            expected.append((root, tail))
-
-          # combine into a single call
-          calls.append(('__meta__', root, _folded))
-
       pipeline = pipeline or cls.channel('__meta__').pipeline(transaction=False)
-
       with pipeline as pipe:
-        for call in calls:
-          kind, args = call[0], call[1:]
 
-          # toplevel_blob
-          if len(args) == 1:
-            cls.execute(handler, kind, *args, target=pipe)
+        ## collapse reads
+        if cls.EngineConfig.mode == RedisMode.toplevel_blob:
+          for kind in kinds:
 
-          # hash-based
-          else:
-            root, tails = args[0], list(args[1])  # buffer args
+            # track expected keys with calls
+            expected.append([i for i in requested[kind]])
+            cls.execute(handler, kind, *[i for i in keys[kind]], target=pipe)
+
+        elif cls.EngineConfig.mode == RedisMode.hashkind_blob or (
+              cls.EngineConfig.mode == RedisMode.hashkey_blob):
+          for root in keys:
+
+            _expected, tails = (
+              [r for r in requested[root]], [tail for tail in keys[root]])
+
+            expected.append(_expected)  # combine into a single call
 
             # if there's only one fetch from this hash, do an HGET instead
             if len(tails) == 1 and cls.EngineConfig.mode in (
@@ -754,20 +745,34 @@ class RedisAdapter(DirectedGraphAdapter):
               _target_handler = cls.Operations.HASH_GET
             else:
               _target_handler = handler
-            cls.execute(_target_handler, kind, root, *tails, target=pipe)
+            cls.execute(_target_handler, '__meta__', root, *tails, target=pipe)
 
         resultset = pipe.execute()  # execute pipeline and inflate
 
-        for item in resultset:
+        for keygroup, item in zip(expected, resultset):
           if not isinstance(item, (tuple, list)):
             item = (item,)
 
-          for entity in item:
-            key = expected.pop()
-            results[reverse.get(key, key)] = (
+          for key, entity in zip(keygroup, item):
+            results[key] = (
               cls.inflate(entity) if isinstance(entity, basestring) else entity)
 
-      for key in requested_keys: yield results.get(key)
+        inflated_results = []
+        for key in requested_keys:
+          entity = results.get(key)
+
+          if not entity:
+            inflated_results.append(None)
+          else:
+            encoded, flattened = key
+            entity['key'] = (
+              cls.registry[flattened[1]].__keyclass__.from_raw(
+                base64.b64decode(encoded)))
+
+            inflated_results.append(
+              cls.registry[flattened[1]](_persisted=True, **entity))
+
+      return inflated_results
 
   def _put(self, entity, **kwargs):  # pragma: no cover
 
@@ -1638,7 +1643,7 @@ class RedisAdapter(DirectedGraphAdapter):
       matching_keys = []
 
     # if we're doing keys only, we're done
-    if options.keys_only and not (_and_filters or _or_filters):
+    if options.keys_only and not (_and_filters or _or_filters or sorts):
 
       _seen_results, results = 0, []
       for k in matching_keys:
@@ -1684,9 +1689,9 @@ class RedisAdapter(DirectedGraphAdapter):
       bundles.append((cls.encode_key(joined, flattened), flattened))
 
     # execute pipeline, zip keys and build results
-    for key, entity in zip(_queued, cls.get_multi(bundles)):
+    _seen_results = 0
+    for entity in cls.get_multi(bundles):
       if not entity: continue  # skip entities that couldn't be found
-      entity['key'] = key  # set key
 
       if _and_filters or _or_filters:
         if _and_filters and not all((
@@ -1697,14 +1702,33 @@ class RedisAdapter(DirectedGraphAdapter):
                 (_filter.match(entity) for _filter in _or_filters))):
           continue  # doesn't match any of the `or` filters
 
-      # if key kind doesn't match base, find suitable impl class
-      if key.kind != _base_kind.kind():
-        _base_kind = cls.registry.get(key.kind, _base_kind)
-        entity['key'] = (
-          _base_kind.__keyclass__.from_urlsafe(entity['key'].urlsafe()))
+      result_entities.append(entity.key if options.keys_only else (
+                             entity))
 
-      # inflate and get ready to return
-      _inflated = _base_kind(_persisted=True, **entity)
-      result_entities.append(_inflated.key if options.keys_only else (
-                             _inflated))
+      _seen_results += 1
+      if 0 < options.limit <= _seen_results:
+        break
+
+    # prepare and collapse sort chain, if needed
+    if sorts:
+      if len(sorts) == 1:
+
+        sorted_results, sort_chain, sort = [], sorted(
+          result_entities, key=itemgetter(sorts[0].target.name)), sorts[0]
+
+        # apply descending, but be careful about asc/dsc string sorts
+        if ((sort.target.basetype in (basestring, unicode, str)) and (
+              sort.operator is sort.ASCENDING) or (
+              sort.operator is sort.DESCENDING) and (
+              sort.target.basetype not in (basestring, unicode, str))):
+          sort_chain = reversed(sort_chain)
+
+        for entity in sort_chain:
+          sorted_results.append(entity)
+        return sorted_results
+
+      else:
+        # dammit, i guess collapse and apply
+        raise RuntimeError('faggot')
+
     return result_entities

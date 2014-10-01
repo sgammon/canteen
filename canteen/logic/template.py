@@ -526,7 +526,13 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         try:
           module = importlib.import_module(module)
         except ImportError:
+          # @TODO(sgammon): log if not found
           if strict: raise
+          raise jinja2.TemplateNotFound('Failed to locate compiled template'
+                                        ' %s. %s' % (module, (
+                                        'Strict mode was active.' if (
+                                        strict) else (
+                                          'Strict mode was not active.'))))
 
       self.cache, self.module = (
         Caching.spawn('tpl_%s' % module if (
@@ -775,7 +781,10 @@ class Templates(logic.Logic):
           else:
             choices = []
             if isinstance(_path, dict) and 'compiled' in _path:
-              choices.append(ModuleLoader(_path['compiled']))
+              try:
+                choices.append(ModuleLoader(_path['compiled']))
+              except jinja2.TemplateNotFound:
+                pass  # no compiled template root at all
 
             if (isinstance(_path, dict) and 'source' in _path or (
                   isinstance(_path, basestring))):
@@ -784,6 +793,7 @@ class Templates(logic.Logic):
 
             if not choices:  # pragma: no cover
               raise RuntimeError('No template path configured.')
+
             jinja2_cfg['loader'] = jinja2.ChoiceLoader(choices)
 
         else:
@@ -914,6 +924,8 @@ class Templates(logic.Logic):
         :returns: inner ``generator`` made by :py:meth`TemplateAPI.sanitize``,
          if ``_direct`` was falsy, otherwise a ``list`` of chunked template
          content entries. """
+
+    # @TODO(sgammon): template streaming w/jinja2.environment.TemplateStream
 
     # render template & return content iterato)
     content = (

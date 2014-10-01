@@ -569,18 +569,17 @@ class AbstractModel(object):
       assert isinstance(bases, tuple), "class bases must be a tuple of types"
       assert isinstance(properties, dict), "class map must be a valid dict"
 
-      property_map = {}
-      _nondata_map = {}
+      property_map, _nondata_map = {}, {}
 
       # core classes eval before being defined - must use string name :(
-      if name not in frozenset(['AbstractModel', 'Model']):
+      if name not in frozenset(('AbstractModel', 'Model')):
 
         modelclass = {}
 
         # parse spec (`name=<basetype>` or `name=<basetype>,<options>`)
         # also, model properties that start with '_' are ignored
         for prop, spec in (
-            filter(mcs._get_prop_filter(), properties.iteritems())):
+              filter(mcs._get_prop_filter(), properties.iteritems())):
 
           if any((char not in string.lowercase for char in prop[1:])) and (
               isinstance(spec, type) and (
@@ -1030,7 +1029,7 @@ class AbstractModel(object):
 
       # inflate ISO-formatted datetimes
       if prop.basetype in (datetime.date, datetime.datetime) and not (
-          isinstance(value, (datetime.date, datetime.datetime))):
+            isinstance(value, (datetime.date, datetime.datetime))):
         if isinstance(value, basestring):  # pragma: no cover
           # try to inflate from ISO
           value = dtparser.parse(value)
@@ -1041,7 +1040,26 @@ class AbstractModel(object):
           # try to inflate from timestamp
           value = datetime.datetime.fromtimestamp(value) if (
             prop.basetype is datetime.datetime) else (
-            datetime.date.fromtimestamp(value))
+              datetime.date.fromtimestamp(value))
+
+      elif isinstance(prop.basetype, type) and (
+            issubclass(prop.basetype, Model)):
+
+        # embedded entities
+        if prop.options.get('embedded'):
+          if isinstance(value, dict):
+            # expand from raw, if needed
+            value = prop.basetype(_persisted=self.__persisted__, **value)
+
+        elif not prop.options.get('embedded'):
+          if prop.options.get('embedded', EMPTY) is EMPTY:
+            # let empty embeddedness continue
+            pass
+          else:
+            if not getattr(value, 'key', None):
+              raise TypeError('Cannot set non-embedded entity to object without'
+                              ' a key. Got: "%s".' % value)
+            value = value.key
 
       # if it's a valid property, create a namedtuple value placeholder
       self.__data__[name] = self.__class__._PropertyValue(value, _dirty)

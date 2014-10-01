@@ -42,14 +42,6 @@ with Library('protorpc', strict=True) as (library, protorpc):
     integer = messages.IntegerField(2)
 
 
-  class SampleModel(model.Model):
-
-    """ Sample Canteen model. """
-
-    string = basestring
-    integer = int
-
-
   class BaseRPCTests(FrameworkTest):
 
     """ Tests basic `canteen.rpc` functionality """

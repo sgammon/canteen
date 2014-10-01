@@ -147,8 +147,35 @@ class InMemoryAdapter(DirectedGraphAdapter):
     if entity is None: return  # not found
 
     _metadata['ops']['get'] += 1
-
     return entity  # construct + inflate entity
+
+  @classmethod
+  def get_multi(cls, keys, **kwargs):
+
+    """ Retrieve multiple entities in one go by Key from Python RAM.
+
+        :param keys: Iterable of :py:class:`model.Key` objects (or
+          ``(encoded, flattened)`` tuple pairs produced from
+          ``key.flatten(True)`` to fetch from Python RAM, if they are found to
+          be available in underlying storage.
+
+        :param kwargs: Keyword arguments to pass along to the underlying
+          driver.
+
+        :returns: Iterable of results for each :py:class:`Key` instance in
+          ``keys``, or ``None`` in the place of a result if no matching object
+          could be found. """
+
+    from canteen import model
+
+    for key in keys:
+      encoded, flattened = key = key if not isinstance(key, model.Key) else (
+        key.flatten(True))
+      obj = cls.get(key)
+
+      # inflate key + model and return
+      obj.key.__persisted__ = True
+      yield obj
 
   @classmethod
   def put(cls, key, entity, model, **kwargs):

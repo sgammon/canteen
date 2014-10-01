@@ -20,11 +20,26 @@
 import datetime
 
 # canteen test
-from canteen.test import FrameworkTest
+from canteen import test
 
 # canteen model API
 from canteen import model
 from canteen.model.adapter import abstract
+
+
+## Globals
+_target = lambda k: k.flatten(True)[1]
+
+
+class SampleModel(model.Model):
+
+  """ Test model. """
+
+  string = basestring, {'required': True}
+  integer = int, {'repeated': True}
+  number = int, {'repeated': False}
+  floating = float, {'required': False}
+  date = datetime.datetime
 
 
 class TestGraphPerson(model.Vertex):
@@ -48,7 +63,7 @@ class TestGraphGift(TestGraphPerson >> TestGraphPerson):
   price = float, {'indexed': True}
 
 
-class AbstractModelAdapterTests(FrameworkTest):
+class AbstractModelAdapterTests(test.FrameworkTest):
 
   """ Tests `model.adapter.abstract.ModelAdapter` """
 
@@ -91,10 +106,188 @@ class AbstractModelAdapterTests(FrameworkTest):
     """ Test base `ModelAdapter` interface compliance """
 
     assert hasattr(self.subject, 'get')
+    assert hasattr(self.subject, 'get_multi')
     assert hasattr(self.subject, 'put')
     assert hasattr(self.subject, 'delete')
     assert hasattr(self.subject, 'allocate_ids')
     assert hasattr(self.subject, 'encode_key')
+
+  def test_construct(self):
+
+    """ Test basic `ModelAdapter` construction """
+
+    if self.__abstract__:
+      with self.assertRaises(TypeError):
+        self._construct()
+    else:
+      x = self._construct()
+      assert x
+      assert isinstance(x, self.subject)
+
+  def test_invalid_get(self):
+
+    """ Test fetching a key that doesn't exist """
+
+    if not self.__abstract__:
+      # get missing entity
+      model_key = model.Key("Sample", "_____")
+      entity = model_key.get(adapter=self._construct())
+      assert entity is None
+
+  def test_named_entity_get_put(self):
+
+    """ Test putting and getting an entity with a named key """
+
+    if not self.__abstract__:
+      # put entity
+      m = SampleModel(
+        key=model.Key(SampleModel.kind(), "NamedEntity"),
+        string="suphomies",
+        integer=[4, 5, 6, 7])
+      m_k = m.put(adapter=self._construct())
+
+      entities = []
+
+      # simulate getting entity at key level
+      explicit_key = model.Key(SampleModel.kind(), "NamedEntity")
+      entity = explicit_key.get()
+      entities.append(entity)
+
+      # simulate getting entity at model level
+      explicit_entity = SampleModel.get(name="NamedEntity")
+      entities.append(explicit_entity)
+
+      # test urlsafe-d key model-level get()
+      urlsafed_entity = SampleModel.get(key=explicit_key.urlsafe())
+      entities.append(urlsafed_entity)
+
+      # test raw-d key model-level get()
+      flattened = explicit_key.flatten(False)
+      rawd_entity = SampleModel.get(key=flattened[1:])
+      entities.append(rawd_entity)
+
+      for entity in entities:
+        # make sure things match on key level
+        assert entity.string == "suphomies"
+        assert len(entity.integer) == 4
+        assert entity.key.id == "NamedEntity"
+        assert entity.key.kind == SampleModel.kind()
+
+  def test_id_entity_get_put(self):
+
+    """ Test putting and getting an entity with an ID'd key """
+
+    if not self.__abstract__:
+      # put entity
+      m = SampleModel(string="hello", integer=[1, 2, 3])
+      m_k = m.put(adapter=self._construct())
+
+      # make sure flags match
+      assert m_k == m.key
+      assert m_k.__persisted__
+      assert m.__persisted__
+      assert (not m.__dirty__)
+
+      # simulate getting entity via urlsafe
+      entity = SampleModel.get(m_k, adapter=self._construct())
+
+      # make sure things match
+      assert entity.string == "hello"
+      assert len(entity.integer) == 3
+      assert entity.key.kind == SampleModel.kind()
+
+  def test_entity_multiget(self):
+
+    """ Test retrieving multiple entities at once via `get_multi` """
+
+    if not self.__abstract__:
+      # put some entities
+      entities = [
+        SampleModel(string='hi', integer=[1, 2, 3]),
+        SampleModel(string='sup', integer=[4, 5, 6]),
+        SampleModel(string='hola', integer=[7, 8, 9])]
+
+      keys = []
+      for entity in entities:
+        keys.append(entity.put(adapter=self._construct()))
+
+      # retrieve entities in bulk
+      _results = []
+      for key, entity in zip(keys,
+                      SampleModel.get_multi(keys, adapter=self._construct())):
+        assert key.kind == SampleModel.kind()
+        assert entity, (
+          "failed to retrieve entity with adapter '%s'" % self._construct())
+        assert entity.string in ('hi', 'sup', 'hola')
+        assert len(entity.integer) == 3
+        _results.append(entity)
+      assert len(_results) == 3
+
+  def test_delete_existing_entity_via_key(self):
+
+    """ Test deleting an existing entity via `Key.delete()` """
+
+    if not self.__abstract__:
+      # put entity
+      m = SampleModel(string="hello", integer=[1, 2, 3])
+      m_k = m.put(adapter=self._construct())
+
+      # delete it
+      res = m_k.delete(adapter=self._construct())
+
+      # make sure it's unknown and gone
+      assert res
+      assert not SampleModel.get(m_k, adapter=self._construct())
+
+  def test_delete_existing_entity_via_model(self):
+
+    """ Test deleting an existing entity via `Model.delete()` """
+
+    if not self.__abstract__:
+      # put entity
+      m = SampleModel(string="hello", integer=[1, 2, 3])
+      m_k = m.put(adapter=self._construct())
+
+      # delete it
+      res = m.delete(adapter=self._construct())
+
+      # make sure it's unknown and gone
+      assert res
+      assert not SampleModel.get(m_k, adapter=self._construct())
+
+  def test_delete_invalid_entity(self):
+
+    """ Test deleting an invalid entity """
+
+    if not self.__abstract__:
+      # manufacture a key that shouldn't exist...
+      m_k = model.Key("SampleKind", "____InvalidKey____")
+
+      # make sure it's unknown
+      assert not SampleModel.get(m_k, adapter=self._construct())
+
+      # delete it
+      res = m_k.delete(adapter=self._construct())
+
+      # make sure it's unknown, and we couldn't delete it
+      assert (not res)
+      assert not SampleModel.get(m_k, adapter=self._construct())
+
+  def test_allocate_ids(self):
+
+    """ Test allocating one and numerous ID's """
+
+    if not self.__abstract__:
+      # try allocating one ID
+      next = self._construct().allocate_ids(model.Key, "SampleModel", 1)
+      assert isinstance(next, int)
+
+      # try allocating 10 ID's
+      next_range = [i for i in self._construct().allocate_ids(*(
+        model.Key, "Sample", 10))()]
+      assert len(next_range) == 10
+      for i in next_range:
+        assert isinstance(i, int)
 
 
 class IndexedModelAdapterTests(AbstractModelAdapterTests):
@@ -172,6 +365,408 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
 
     # interrogate converted date
     assert isinstance(converted, tuple)
+
+  def test_equality_query(self):
+
+    """ Test equality queries with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+
+      # make some models
+      m = [
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3])]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # single get
+      q = SampleModel.query().filter(SampleModel.string == "soop")
+
+      result = q.get(adapter=self._construct())
+      assert result.string == "soop"
+
+      # submit query
+      q = SampleModel.query().filter(SampleModel.string == "soop")
+      result = q.fetch(limit=50, adapter=self._construct())
+
+      for r in result:
+        assert r.string == "soop"
+
+  def test_inequality_query(self):
+
+    """ Test inequality queries with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      # make some models
+      m = [
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="soop", integer=[1, 2, 3]),
+        SampleModel(string="sploop", integer=[1, 2])]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query().filter(SampleModel.string != "sploop")
+      result = q.fetch(limit=50, adapter=self._construct())
+
+      assert len(result) > 0, (
+        "got no results for inequality query"
+        " (got '%s' from adapter '%s')" % (result, self.subject))
+
+      for r in result:
+        assert r.string != "sploop"
+
+  def test_range_query(self):
+
+    """ Test range queries with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+
+      # make some models
+      m = [
+        SampleModel(string="soop", date=now + datetime.timedelta(days=1)),
+        SampleModel(string="soop", date=now + datetime.timedelta(days=2)),
+        SampleModel(string="soop", date=now + datetime.timedelta(days=3))]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query().filter(SampleModel.date > now)
+      result = q.fetch(limit=50, adapter=self._construct())
+
+      for result_i in result:
+        assert result_i.date > now
+
+  def test_ancestry_query(self):
+
+    """ Test ancestry queries with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'heyo')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child')
+      child2 = _key('child2')
+
+      # make some models
+      m = [
+        SampleModel(key=root, string='soop'),
+        SampleModel(key=child1, string='soop'),
+        SampleModel(key=child2, string='soop')]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 2
+
+  def test_compound_query(self):
+
+    """ Test compound queries with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      root = model.Key(SampleModel, 'hi')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+
+      # make some models
+      m = [
+        SampleModel(key=root,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=1)),
+        SampleModel(key=child1,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=2)),
+        SampleModel(key=child2,
+                      string="hithere",
+                      date=now + datetime.timedelta(days=3)),
+        SampleModel(key=child3,
+                      string="noway",
+                      date=now + datetime.timedelta(days=4))]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(limit=50)
+      q.filter(SampleModel.string == "hithere")
+      q.filter(SampleModel.date > now)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 3
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      q.filter(SampleModel.date > now)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 3
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50)
+      q.filter(SampleModel.date > now)
+      q.filter(SampleModel.string == "hithere")
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 2
+
+  def test_ascending_sort_string(self):
+
+    """ Test an ASC sort on a string property with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-string')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark"),
+        SampleModel(key=child2, string="blasphemy"),
+        SampleModel(key=child3, string="xylophone"),
+        SampleModel(key=child4, string="yompin")]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.string)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed(("aardvark",
+                                        "blasphemy",
+                                        "xylophone",
+                                        "yompin"))):
+        assert l.string == r
+
+  def test_descending_sort_string(self):
+
+    """ Test a DSC sort on a string property with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-string-2')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark"),
+        SampleModel(key=child2, string="blasphemy"),
+        SampleModel(key=child3, string="xylophone"),
+        SampleModel(key=child4, string="yompin")]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.string)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, ("aardvark", "blasphemy", "xylophone", "yompin")):
+        assert l.string == r
+
+  def test_ascending_sort_integer(self):
+
+    """ Test an ASC sort on an integer property with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-int')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", number=5),
+        SampleModel(key=child2, string="blasphemy", number=6),
+        SampleModel(key=child3, string="xylophone", number=7),
+        SampleModel(key=child4, string="yompin", number=8)]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.number)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, (5, 6, 7, 8)):
+        assert l.number == r
+
+  def test_descending_sort_integer(self):
+
+    """ Test a DSC sort on an integer property with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-int-2')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", number=5),
+        SampleModel(key=child2, string="blasphemy", number=6),
+        SampleModel(key=child3, string="xylophone", number=7),
+        SampleModel(key=child4, string="yompin", number=8)]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.number)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((5, 6, 7, 8))):
+        assert l.number == r
+
+  def test_ascending_sort_float(self):
+
+    """ Test an ASC sort on a float property with `IndexedMemoryAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-float')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", floating=5.5),
+        SampleModel(key=child2, string="blasphemy", floating=6.5),
+        SampleModel(key=child3, string="xylophone", floating=7.5),
+        SampleModel(key=child4, string="yompin", floating=8.5)]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = (
+        SampleModel.query(ancestor=root, limit=50).sort(
+          +SampleModel.floating))
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, (5.5, 6.5, 7.5, 8.5)):
+        assert l.floating == r
+
+  def test_descending_sort_float(self):
+
+    """ Test a DSC sort on a float property with `IndexedModelAdapter` """
+
+    if not self.__abstract__:
+      root = model.Key(SampleModel, 'sorted-float')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", floating=5.5),
+        SampleModel(key=child2, string="blasphemy", floating=6.5),
+        SampleModel(key=child3, string="xylophone", floating=7.5),
+        SampleModel(key=child4, string="yompin", floating=8.5)]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = (
+        SampleModel.query(ancestor=root, limit=50).sort(
+          -SampleModel.floating))
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((5.5, 6.5, 7.5, 8.5))):
+        assert l.floating == r
+
+  def test_ascending_sort_datetime(self):
+
+    """ Test an ASC sort on a `datetime` property with `IndexedModelAdapter` """
+
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      later = lambda n: now + datetime.timedelta(days=n)
+      root = model.Key(SampleModel, 'sorted-datetime')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", date=later(1)),
+        SampleModel(key=child2, string="blasphemy", date=later(2)),
+        SampleModel(key=child3, string="xylophone", date=later(3)),
+        SampleModel(key=child4, string="yompin", date=later(4))]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(+SampleModel.date)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, (later(1), later(2), later(3), later(4))):
+        assert l.date == r
+
+  def test_descending_sort_datetime(self):
+
+    """ Test a DSC sort on a `datetime` property with `IndexedModelAdapter` """
+
+    if not self.__abstract__:
+      now = datetime.datetime.now()
+      later = lambda n: now + datetime.timedelta(days=n)
+      root = model.Key(SampleModel, 'sorted-datetime')
+      _key = lambda x: model.Key(SampleModel, x, parent=root)
+      child1 = _key('child1')
+      child2 = _key('child2')
+      child3 = _key('child3')
+      child4 = _key('child4')
+
+      # make some models
+      m = [
+        SampleModel(key=child1, string="aardvark", date=later(1)),
+        SampleModel(key=child2, string="blasphemy", date=later(2)),
+        SampleModel(key=child3, string="xylophone", date=later(3)),
+        SampleModel(key=child4, string="yompin", date=later(4))]
+
+      for _m in m: _m.put(adapter=self._construct())
+
+      # submit query
+      q = SampleModel.query(ancestor=root, limit=50).sort(-SampleModel.date)
+      result = q.fetch(adapter=self._construct())
+
+      assert len(result) == 4
+
+      for l, r in zip(result, reversed((
+            later(1), later(2), later(3), later(4)))):
+        assert l.date == r
 
 
 class GraphModelAdapterTests(IndexedModelAdapterTests):

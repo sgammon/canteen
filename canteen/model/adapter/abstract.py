@@ -178,6 +178,70 @@ class ModelAdapter(object):
       key.__persisted__ = True
       return entity
 
+  def _get_multi(self, keys, **kwargs):
+
+    """ Low-level method for retrieving a set of entities via an iterable of
+        keys, all in one go.
+
+        :param keys: Iterable of :py:class:`model.Key` instances to retrieve
+          from storage.
+
+        :param kwargs: Keyword arguments to pass to the delegated adapter
+          method (implementation-specific).
+
+        :raises RuntimeError: If the target :py:class:`adapter.ModelAdapter`
+          does not implement ``get_multi()``, which is an ABC-enforced child
+          class method. :py:exc:`RuntimeError` and descendents are also
+          re-raised from the concrete adapter.
+
+        :returns: Inflated :py:class:`model.Model` instance, corresponding to
+            ``key``, or ``None`` if no such entity could be found. """
+
+    from canteen import model
+
+    if self.config.get('debug', False):  # pragma: no cover
+      self.logging.info("Retrieving entity bundle with %s keys." % len(keys))
+
+    # immediately fail with no overriden `get`
+    if not hasattr(self.__class__, 'get_multi') and (
+          self.__class__ != ModelAdapter):  # pragma: no cover
+      ctx = self.__class__.__name__
+      raise RuntimeError("ModelAdapter `%s` does not implement `get_multi`,"
+                         " and thus cannot be used for bulk reads." % ctx)
+    else:
+      # grab getter method
+      getter = getattr(self.__class__, 'get_multi')
+
+    bundles = []
+    for key in keys:
+
+      # get key from model, if needed
+      if isinstance(key, model.Model): key = key.key
+
+      # flatten key into stringified repr
+      joined, flattened = key.flatten(True)
+
+      # optionally allow adapter to encode key
+      encoded = self.encode_key(joined, flattened)
+
+      if not encoded:  # pragma: no cover
+        # otherwise, use regular base64 via `AbstractKey`
+        encoded = key.urlsafe(joined)
+
+      bundles.append((encoded, flattened))  # append to bundles
+
+    # pass off to delegated `get_multi`
+    try:
+      for entity in getter(bundles, **kwargs):
+        yield entity
+
+    except NotImplementedError:  # pragma: no cover
+      ctx = self.__class__.__name__
+      raise RuntimeError("ModelAdapter `%s` does not implement `get`,"
+                         " and thus cannot be used for reads." % ctx)
+    except RuntimeError:  # pragma: no cover
+      raise
+
   def _put(self, entity, **kwargs):
 
     """ Low-level method for persisting an Entity. Collapses and serializes the
@@ -275,6 +339,28 @@ class ModelAdapter(object):
         :py:class:`ModelAdapter`.
 
         :param key: Target :py:class:`model.Key` to retrieve.
+        :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
+
+    raise NotImplementedError('`ModelAdapter.get`'
+                              ' is abstract and may not be'
+                              ' called directly.')  # pragma: no cover
+
+  @abc.abstractmethod
+  def get_multi(cls, keys, **kwargs):  # pragma: no cover
+
+    """ Retrieve multiple entities by :py:class:`model.Key` in one go. Accepts
+        an iterable of ``keys``, where each entry is either an instance of
+        :py:class:`model.Key` or a tupled pair of ``(encoded, flattened)``,
+        produced by the utility method ``key.flatten(True)``.
+
+        :param keys: Iterable of ``keys`` to fetch from underlying storage,
+          where each entry is either an instance of :py:class:`model.Key` or
+          a tupled pair of ``(encoded, flattened)``, as produced by the utility
+          method ``key.flatten(True)``.
+
+        :param kwargs: Keyword arguments (implementation-specific) to pass to
+          the underlying driver.
+
         :raises: :py:exc:`NotImplementedError`, as this method is abstract. """
 
     raise NotImplementedError('`ModelAdapter.get`'
@@ -401,7 +487,7 @@ class IndexedModelAdapter(ModelAdapter):
             the index. """
 
       # convert to ISO format, return date with magic
-      return cls._magic['date'], int(time.mktime(_date.timetuple()))
+      return cls._magic['date'], float(time.mktime(_date.timetuple()))
 
     @classmethod
     def convert_time(cls, _time):
@@ -427,7 +513,7 @@ class IndexedModelAdapter(ModelAdapter):
             suitable for addition to the index. """
 
       # convert to integer, return datetime with magic
-      return cls._magic['datetime'], int(time.mktime(_datetime.timetuple()))
+      return cls._magic['datetime'], float(time.mktime(_datetime.timetuple()))
 
   @decorators.classproperty
   def _index_basetypes(cls):

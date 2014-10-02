@@ -1689,46 +1689,47 @@ class RedisAdapter(DirectedGraphAdapter):
       bundles.append((cls.encode_key(joined, flattened), flattened))
 
     # execute pipeline, zip keys and build results
-    _seen_results = 0
-    for entity in cls.get_multi(bundles):
-      if not entity: continue  # skip entities that couldn't be found
+    if bundles:
+      _seen_results = 0
+      for entity in cls.get_multi(bundles):
+        if not entity: continue  # skip entities that couldn't be found
 
-      if _and_filters or _or_filters:
-        if _and_filters and not all((
-                (_filter.match(entity) for _filter in _and_filters))):
-          continue  # doesn't match one of the filters
+        if _and_filters or _or_filters:
+          if _and_filters and not all((
+                  (_filter.match(entity) for _filter in _and_filters))):
+            continue  # doesn't match one of the filters
 
-        if _or_filters and not any((
-                (_filter.match(entity) for _filter in _or_filters))):
-          continue  # doesn't match any of the `or` filters
+          if _or_filters and not any((
+                  (_filter.match(entity) for _filter in _or_filters))):
+            continue  # doesn't match any of the `or` filters
 
-      result_entities.append(entity.key if options.keys_only else (
-                             entity))
+        result_entities.append(entity.key if options.keys_only else (
+                               entity))
 
-      _seen_results += 1
-      if 0 < options.limit <= _seen_results:
-        break
+        _seen_results += 1
+        if 0 < options.limit <= _seen_results:
+          break
 
-    # prepare and collapse sort chain, if needed
-    if sorts:
-      if len(sorts) == 1:
+      # prepare and collapse sort chain, if needed
+      if sorts:
+        if len(sorts) == 1:
 
-        sorted_results, sort_chain, sort = [], sorted(
-          result_entities, key=itemgetter(sorts[0].target.name)), sorts[0]
+          sorted_results, sort_chain, sort = [], sorted(
+            result_entities, key=itemgetter(sorts[0].target.name)), sorts[0]
 
-        # apply descending, but be careful about asc/dsc string sorts
-        if ((sort.target.basetype in (basestring, unicode, str)) and (
-              sort.operator is sort.ASCENDING) or (
-              sort.operator is sort.DESCENDING) and (
-              sort.target.basetype not in (basestring, unicode, str))):
-          sort_chain = reversed(sort_chain)
+          # apply descending, but be careful about asc/dsc string sorts
+          if ((sort.target.basetype in (basestring, unicode, str)) and (
+                sort.operator is sort.ASCENDING) or (
+                sort.operator is sort.DESCENDING) and (
+                sort.target.basetype not in (basestring, unicode, str))):
+            sort_chain = reversed(sort_chain)
 
-        for entity in sort_chain:
-          sorted_results.append(entity)
-        return sorted_results
+          for entity in sort_chain:
+            sorted_results.append(entity)
+          return sorted_results
 
-      else:
-        # dammit, i guess collapse and apply
-        raise RuntimeError('faggot')
+        else:
+          # dammit, i guess collapse and apply
+          raise RuntimeError('too many sorts :(')
 
     return result_entities

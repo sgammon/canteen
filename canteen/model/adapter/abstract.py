@@ -199,9 +199,6 @@ class ModelAdapter(object):
 
     from canteen import model
 
-    if self.config.get('debug', False):  # pragma: no cover
-      self.logging.info("Retrieving entity bundle with %s keys." % len(keys))
-
     # immediately fail with no overriden `get`
     if not hasattr(self.__class__, 'get_multi') and (
           self.__class__ != ModelAdapter):  # pragma: no cover

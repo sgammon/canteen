@@ -136,6 +136,24 @@ class QueryTests(FrameworkTest):
     assert filter_one in q.filters
     assert filter_two in q.filters
 
+  def test_sort_pack(self):
+
+    """ Test packing a `Sort` object into an opaque string """
+
+    q = query.Sort(abstract.SampleModel.string)
+    string = q.pack()
+
+    assert ":" not in string
+
+  def test_sort_pack_struct(self):
+
+    """ Test packing a `Sort` object into a structure describing it """
+
+    q = query.Sort(abstract.SampleModel.string)
+    struct = q.pack(False)
+
+    assert isinstance(struct, tuple)
+
   def test_interface_primitive_sort_objects(self):
 
     """ Test using primitive `query.Sort` objects in a `model.Query` """
@@ -438,6 +456,24 @@ class QueryTests(FrameworkTest):
     assert 'Filter' in result
     assert 'integer' in result
 
+  def test_filter_pack(self):
+
+    """ Test packing a `Filter` object into an opaque string """
+
+    q = query.Filter(abstract.SampleModel.string, "hithere")
+    string = q.pack()
+
+    assert ":" not in string
+
+  def test_filter_pack_struct(self):
+
+    """ Test packing a `Filter` object into a structure describing it """
+
+    q = query.Filter(abstract.SampleModel.string, "hithere")
+    struct = q.pack(False)
+
+    assert isinstance(struct, tuple)
+
   def test_options_string_repr(self):
 
     """ Test the string representation for a `QueryOptions` """
@@ -465,6 +501,26 @@ class QueryTests(FrameworkTest):
 
     o = query.QueryOptions(limit=50, offset=10, keys_only=True)
     struct = o.pack(False)
+
+    assert isinstance(struct, tuple)
+
+  def test_query_pack(self):
+
+    """ Test packing a `Query` object into an opaque string """
+
+    o = query.QueryOptions(limit=50, offset=10, keys_only=True)
+    q = query.Query(options=o)
+    string = q.pack()
+
+    assert ":" not in string
+
+  def test_query_pack_struct(self):
+
+    """ Test packing a `Query` object into a structure describing it """
+
+    o = query.QueryOptions(limit=50, offset=10, keys_only=True)
+    q = query.Query(options=o)
+    struct = q.pack(False)
 
     assert isinstance(struct, tuple)
 

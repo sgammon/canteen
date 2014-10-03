@@ -82,6 +82,8 @@ class QueryOptions(object):
 
   """ Holds a re-usable set of options for a :py:class:`Query`. """
 
+  magic_symbol = 0x0
+
   # == Options == #
   options = frozenset((
     '_keys_only',
@@ -281,7 +283,7 @@ class QueryOptions(object):
 
     from canteen import model
 
-    items = []
+    items = [self.magic_symbol]
     for key in sorted(self.options):
       value = getattr(self, key[1:], self._defaults[key])
 
@@ -403,8 +405,11 @@ class AbstractQuery(object):
 
 
 class GraphQueryOptions(QueryOptions):
+
   """ Specifies Graph-related query options in addition to standard ``Query``
       properties. """
+
+  magic_symbol = 0x1
 
   # == Options == #
   options = QueryOptions.options | frozenset((
@@ -650,13 +655,52 @@ class QueryComponent(object):
   KEY_KIND = KEY_KIND
   KEY_ANCESTOR = KEY_ANCESTOR
 
+  def pack(self, encode=True):
+
+    """ Pack a ``QueryComponent`` object into a structure uniquely describing
+        the operation it specifies, that can optionally later be used to
+        reproduce another ``QueryComponent`` object just like it.
+
+        :param encode: ``bool`` flag indicating whether to encode the structure
+          as ``base64`` before returning.
+
+        :return: ``tuple`` structure descrbing this ``QueryComponent`` (if
+          ``encode`` is ``False``), otherwise ``unicode`` instance of
+          ``base64``-encoded string. """
+
+    from canteen import model
+
+    items = [self.magic_symbol]
+    for item in self.items:
+      value = getattr(self, item, None)
+
+      if value is None:
+        items.append('')
+
+      elif isinstance(value, model.Key):
+        items.append(value.urlsafe())
+
+      elif isinstance(value, model.Property):
+        items.append(value.name)
+
+      else:
+        items.append(value)
+    items = tuple(items)
+
+    return items if not encode else base64.b64encode(
+      ':'.join(map(unicode, items)))
 
 class Filter(QueryComponent):
 
   """ Query component specification parent for a generic filter, used to
       traverse indexes and find entities to return that match. """
 
+  magic_symbol = 0x2
   generic_name = 'Property'
+  items = (
+    'kind',
+    'operator',
+    'value')
 
   ## == Filter State == ##
   value = None  # value to match
@@ -817,6 +861,12 @@ class KeyFilter(Filter):
   """ Expresses a filter that applies to an entity's associated
       :py:class:`model.Key`, or one of the member components thereof. """
 
+  magic_symbol = 0x3
+  items = (
+    'kind',
+    'operator',
+    'value')
+
   # == Constants == #
   KIND = KEY_KIND
   ANCESTOR = KEY_ANCESTOR
@@ -875,6 +925,13 @@ class EdgeFilter(Filter):
   """ Expresses a filter that applies to a ``Vertex`` objects' undirected or
       directed ``Edge`` objects. """
 
+  magic_symbol = 0x4
+  items = (
+    'kind',
+    'operator',
+    'tails',
+    'value')
+
   # == Constants == #
   EDGES = EDGES
   NEIGHBORS = NEIGHBORS
@@ -919,11 +976,16 @@ class EdgeFilter(Filter):
     return 'Edges' if self.kind is self.EDGES else 'Neighbors'
 
 
-
 class Sort(QueryComponent):
 
   """ Expresses a directive to sort resulting entities by a property in a given
       direction. """
+
+  magic_symbol = 0x5
+  items = (
+    'kind',
+    'operator',
+    'target')
 
   ## == Sort Orders == ##
   ASC = ASCENDING = ASC

@@ -450,6 +450,24 @@ class QueryTests(FrameworkTest):
     assert 'limit' in result
     assert 'ancestor' in result
 
+  def test_options_pack(self):
+
+    """ Test packing a `QueryOptions` object into an opaque string """
+
+    o = query.QueryOptions(limit=50, offset=10, keys_only=True)
+    string = o.pack()
+
+    assert ":" not in string
+
+  def test_options_pack_struct(self):
+
+    """ Test packing a `QueryOptions` object into a structure describing it """
+
+    o = query.QueryOptions(limit=50, offset=10, keys_only=True)
+    struct = o.pack(False)
+
+    assert isinstance(struct, tuple)
+
   def test_query_string_repr(self):
 
     """ Test the string representation for a `Query` """

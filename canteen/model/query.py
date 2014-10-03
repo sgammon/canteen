@@ -19,6 +19,7 @@ __version__ = 'v5'
 
 # stdlib
 import abc
+import base64
 import operator
 
 # datastructures
@@ -267,6 +268,32 @@ class QueryOptions(object):
               self._set_option(option, value)
     return self
 
+  def pack(self, encode=True):
+
+    """ Pack this set of ``QueryOptions`` into a string describing the
+        constituent settings it contains.
+
+        :param encode: Obfuscate/encode in ``base64`` before returning.
+
+        :return: ``unicode`` string that can be translated back into a full
+         ``QueryOptions`` instance and represents (uniquely) that set of
+         query option values. """
+
+    from canteen import model
+
+    items = []
+    for key in sorted(self.options):
+      value = getattr(self, key[1:], self._defaults[key])
+
+      if isinstance(value, bool): items.append(int(value))
+      elif isinstance(value, model.Key): items.append(value.urlsafe())
+      elif isinstance(value, (int, long, float)): items.append(value)
+      elif value is None: items.append('')
+      else: items.append(value)  # pragma: no cover
+    items = tuple(items)
+
+    return (
+      base64.b64encode(":".join(map(unicode, items))) if encode else items)
 
   ## == Public Properties == ##
 

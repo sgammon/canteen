@@ -1055,7 +1055,7 @@ class AbstractModel(object):
           if prop.options.get('embedded', EMPTY) is EMPTY:
             # let empty embeddedness continue
             pass
-          else:
+          else:  # pragma: no cover
             if not getattr(value, 'key', None):
               raise TypeError('Cannot set non-embedded entity to object without'
                               ' a key. Got: "%s".' % value)

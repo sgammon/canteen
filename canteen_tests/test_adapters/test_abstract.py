@@ -459,8 +459,8 @@ class IndexedModelAdapterTests(AbstractModelAdapterTests):
       for _m in m: _m.put(adapter=self._construct())
 
       # submit query
-      q = SampleModel.query(ancestor=root, limit=50)
-      result = q.fetch(adapter=self._construct())
+      q = SampleModel.query(ancestor=root, limit=50, adapter=self._construct())
+      result = q.fetch()
 
       assert len(result) == 2
 

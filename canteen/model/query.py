@@ -19,6 +19,7 @@ __version__ = 'v5'
 
 # stdlib
 import abc
+import base64
 import operator
 
 # datastructures
@@ -80,6 +81,8 @@ _operator_strings = {
 class QueryOptions(object):
 
   """ Holds a re-usable set of options for a :py:class:`Query`. """
+
+  magic_symbol = 0x0
 
   # == Options == #
   options = frozenset((
@@ -267,6 +270,32 @@ class QueryOptions(object):
               self._set_option(option, value)
     return self
 
+  def pack(self, encode=True):
+
+    """ Pack this set of ``QueryOptions`` into a string describing the
+        constituent settings it contains.
+
+        :param encode: Obfuscate/encode in ``base64`` before returning.
+
+        :return: ``unicode`` string that can be translated back into a full
+         ``QueryOptions`` instance and represents (uniquely) that set of
+         query option values. """
+
+    from canteen import model
+
+    items = [self.magic_symbol]
+    for key in sorted(self.options):
+      value = getattr(self, key[1:], self._defaults[key])
+
+      if isinstance(value, bool): items.append(int(value))
+      elif isinstance(value, model.Key): items.append(value.urlsafe())
+      elif isinstance(value, (int, long, float)): items.append(value)
+      elif value is None: items.append('')
+      else: items.append(value)  # pragma: no cover
+    items = tuple(items)
+
+    return (
+      base64.b64encode(":".join(map(unicode, items))) if encode else items)
 
   ## == Public Properties == ##
 
@@ -376,8 +405,11 @@ class AbstractQuery(object):
 
 
 class GraphQueryOptions(QueryOptions):
+
   """ Specifies Graph-related query options in addition to standard ``Query``
       properties. """
+
+  magic_symbol = 0x1
 
   # == Options == #
   options = QueryOptions.options | frozenset((
@@ -604,6 +636,31 @@ class Query(AbstractQuery):
     raise NotImplementedError('Query method `fetch_page`'
                               ' is currently stubbed.')  # pragma: no cover
 
+  def pack(self, encode=True):
+
+    """ Pack this ``Query`` instance into a structure uniquely describing it,
+        with the ability to optionally expand that into a ``Query`` object
+        representing the same operations.
+
+        :param encode: ``bool`` flag, indicates whether to encode the packed
+          output in ``base64`` by default. Defaults to ``True``, which *does*
+          encode on the way out.
+
+        :return: ``tuple`` instance describing the structure of this query if
+          ``encode`` is ``False``, otherwise a ``unicode`` string (encoded in
+          ``base64``) describing this query's structure. """
+
+    bundles = []
+    for group in ((self.options,), self.filters, self.sorts):
+      for constituent in group:
+        if encode:
+          bundles.append(':'.join(map(unicode, constituent.pack(False))))
+        else:
+          bundles.append(constituent.pack(False))
+    bundles = tuple(bundles)
+
+    return base64.b64encode(",".join(bundles)) if encode else bundles
+
 
 class QueryComponent(object):
 
@@ -623,13 +680,55 @@ class QueryComponent(object):
   KEY_KIND = KEY_KIND
   KEY_ANCESTOR = KEY_ANCESTOR
 
+  def pack(self, encode=True):
+
+    """ Pack a ``QueryComponent`` object into a structure uniquely describing
+        the operation it specifies, that can optionally later be used to
+        reproduce another ``QueryComponent`` object just like it.
+
+        :param encode: ``bool`` flag indicating whether to encode the structure
+          as ``base64`` before returning.
+
+        :return: ``tuple`` structure descrbing this ``QueryComponent`` (if
+          ``encode`` is ``False``), otherwise ``unicode`` instance of
+          ``base64``-encoded string. """
+
+    from canteen import model
+
+    items = [self.magic_symbol]
+    for item in self.items:
+      value = getattr(self, item, None)
+
+      if isinstance(value, model.Model._PropertyValue):
+        value = value.data
+
+      if value is None:
+        items.append('')
+
+      elif isinstance(value, model.Key):
+        items.append(value.urlsafe())
+
+      elif isinstance(value, model.Property):
+        items.append(value.name)
+
+      else:
+        items.append(value)
+    items = tuple(items)
+
+    return items if not encode else base64.b64encode(
+      ':'.join(map(unicode, items)))
 
 class Filter(QueryComponent):
 
   """ Query component specification parent for a generic filter, used to
       traverse indexes and find entities to return that match. """
 
+  magic_symbol = 0x2
   generic_name = 'Property'
+  items = (
+    'kind',
+    'operator',
+    'value')
 
   ## == Filter State == ##
   value = None  # value to match
@@ -790,6 +889,12 @@ class KeyFilter(Filter):
   """ Expresses a filter that applies to an entity's associated
       :py:class:`model.Key`, or one of the member components thereof. """
 
+  magic_symbol = 0x3
+  items = (
+    'kind',
+    'operator',
+    'value')
+
   # == Constants == #
   KIND = KEY_KIND
   ANCESTOR = KEY_ANCESTOR
@@ -848,6 +953,13 @@ class EdgeFilter(Filter):
   """ Expresses a filter that applies to a ``Vertex`` objects' undirected or
       directed ``Edge`` objects. """
 
+  magic_symbol = 0x4
+  items = (
+    'kind',
+    'operator',
+    'tails',
+    'value')
+
   # == Constants == #
   EDGES = EDGES
   NEIGHBORS = NEIGHBORS
@@ -892,11 +1004,16 @@ class EdgeFilter(Filter):
     return 'Edges' if self.kind is self.EDGES else 'Neighbors'
 
 
-
 class Sort(QueryComponent):
 
   """ Expresses a directive to sort resulting entities by a property in a given
       direction. """
+
+  magic_symbol = 0x5
+  items = (
+    'kind',
+    'operator',
+    'target')
 
   ## == Sort Orders == ##
   ASC = ASCENDING = ASC

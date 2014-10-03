@@ -47,10 +47,10 @@ class AdaptedKey(KeyMixin):
         mechanisms. """
 
     if adapter: return adapter._delete(self)  # overridden adapter
-    if self.__owner__:
+    if self.__owner__:  # pragma: no cover
       # if possible, delegate to owner model
       return self.__owner__.__adapter__._delete(self)
-    return self.__class__.__adapter__._delete(self)
+    return self.__class__.__adapter__._delete(self)  # pragma: no cover
 
   def flatten(self, join=False):
 

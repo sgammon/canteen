@@ -189,7 +189,7 @@ else:
         issubclass(prop.basetype, model.AbstractModel)):
 
         # shortcut: `model.Model` for `VariantField`s
-        if prop._basetype is model.Model:
+        if prop.basetype is model.Model:
 
           ## general, top-level `Model` means a variant field
           _field_i += 1
@@ -203,6 +203,16 @@ else:
 
         # factory
         _model_message[name] = pmessages.MessageField(*_pargs, **_pkwargs)
+        continue
+
+      # handle int/str combination fields
+      elif isinstance(prop.basetype, tuple) and (
+            prop.basetype in ((int, str), (str, int))):
+
+        # build field and advance
+        _field_i += 1
+        _pargs.append(_field_i)
+        _model_message[name] = rpc.StringOrIntegerField(*_pargs, **_pkwargs)
         continue
 
       # check for keys (implemented with `basestring` for now)
@@ -242,6 +252,9 @@ else:
         # build field and advance
         _field_i += 1
         _pargs.append(_field_i)
+        if 'default' in _pkwargs and prop.basetype in (
+              datetime.datetime, datetime.date):
+          del _pkwargs['default']  # no support for defaults on date types
         _model_message[name] = (
           _field_basetype_map[prop.basetype](*_pargs, **_pkwargs))
         continue

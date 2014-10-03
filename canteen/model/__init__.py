@@ -1242,6 +1242,16 @@ class Key(AbstractKey):
         raise exceptions.InvalidKeyAttributeWrite('overwrite', name, self)
     return super(AbstractKey, self).__setattr__(name, value)
 
+  def __hash__(self):
+
+    """ Return a hashable value for this object such that it may be used in
+        place of it to ensure immutability.
+
+        :returns: Tupled "raw" key, suitable for use as a hashable value. """
+
+    # @TODO(sgammon): this is horrible
+    return long(''.join(map(unicode, map(ord, self.flatten(True)[0]))))
+
 
 class VertexKey(Key):
 

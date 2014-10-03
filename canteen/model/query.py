@@ -657,6 +657,7 @@ class Query(AbstractQuery):
           bundles.append(':'.join(map(unicode, constituent.pack(False))))
         else:
           bundles.append(constituent.pack(False))
+    bundles = tuple(bundles)
 
     return base64.b64encode(",".join(bundles)) if encode else bundles
 

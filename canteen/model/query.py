@@ -636,6 +636,30 @@ class Query(AbstractQuery):
     raise NotImplementedError('Query method `fetch_page`'
                               ' is currently stubbed.')  # pragma: no cover
 
+  def pack(self, encode=True):
+
+    """ Pack this ``Query`` instance into a structure uniquely describing it,
+        with the ability to optionally expand that into a ``Query`` object
+        representing the same operations.
+
+        :param encode: ``bool`` flag, indicates whether to encode the packed
+          output in ``base64`` by default. Defaults to ``True``, which *does*
+          encode on the way out.
+
+        :return: ``tuple`` instance describing the structure of this query if
+          ``encode`` is ``False``, otherwise a ``unicode`` string (encoded in
+          ``base64``) describing this query's structure. """
+
+    bundles = []
+    for group in ((self.options,), self.filters, self.sorts):
+      for constituent in group:
+        if encode:
+          bundles.append(':'.join(map(unicode, constituent.pack(False))))
+        else:
+          bundles.append(constituent.pack(False))
+
+    return base64.b64encode(",".join(bundles)) if encode else bundles
+
 
 class QueryComponent(object):
 
@@ -673,6 +697,9 @@ class QueryComponent(object):
     items = [self.magic_symbol]
     for item in self.items:
       value = getattr(self, item, None)
+
+      if isinstance(value, model.Model._PropertyValue):
+        value = value.data
 
       if value is None:
         items.append('')

@@ -783,7 +783,7 @@ class Templates(logic.Logic):
             if isinstance(_path, dict) and 'compiled' in _path:
               try:
                 choices.append(ModuleLoader(_path['compiled']))
-              except jinja2.TemplateNotFound:
+              except jinja2.TemplateNotFound:  # pragma: no cover
                 pass  # no compiled template root at all
 
             if (isinstance(_path, dict) and 'source' in _path or (

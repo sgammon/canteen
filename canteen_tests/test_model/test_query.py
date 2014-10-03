@@ -456,11 +456,35 @@ class QueryTests(FrameworkTest):
     assert 'Filter' in result
     assert 'integer' in result
 
+  def test_key_filter_invalid(self):
+
+    """ Test `KeyFilter` with invalid values """
+
+    with self.assertRaises(ValueError):
+      query.KeyFilter(123)
+
   def test_filter_pack(self):
 
     """ Test packing a `Filter` object into an opaque string """
 
+    from canteen import model
+
     q = query.Filter(abstract.SampleModel.string, "hithere")
+    string = q.pack()
+
+    assert ":" not in string
+
+    q = query.Filter(abstract.SampleModel.string, None)
+    string = q.pack()
+
+    assert ":" not in string
+
+    q = query.KeyFilter(model.Key("Hi", "sup"))
+    string = q.pack()
+
+    assert ":" not in string
+
+    q = query.Filter(abstract.SampleModel.string, model.Key("Hi", "sup"))
     string = q.pack()
 
     assert ":" not in string

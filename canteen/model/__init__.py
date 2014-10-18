@@ -1616,11 +1616,16 @@ class Vertex(Model):
           connecting ``self`` to ``other``. """
 
     # classes only plz
-    for target in targets:
-      if not issubclass(target, Vertex):  # pragma: no cover
-        raise TypeError("Vertices can only point to other Vertices."
-                        " An Edge from `%s` to `%s` was requested, but `%s` is"
-                        " not a Vertex." % (cls, target, target))
+    for spec in targets:
+
+      if not isinstance(spec, (list, tuple)):
+        spec = (spec,)
+
+      for target in spec:
+        if not issubclass(target, Vertex):  # pragma: no cover
+          raise TypeError("Vertices can only point to other Vertices."
+                          " An Edge from `%s` to `%s` was requested, but `%s` is"
+                          " not a Vertex." % (cls, target, target))
 
     return Edge.__spec_class__(cls, targets, options.get('directed', False))
 

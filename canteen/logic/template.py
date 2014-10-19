@@ -40,6 +40,7 @@ from ..util import decorators
 
 
 ## Constants
+_RENDER_BUFFER = 7
 _DEFAULT_MODULE_PREFIX = 'templates'
 _DEFAULT_TEMPLATE_PATTERN = re.compile(
   r'^.*\.(html|js|haml|svg|css|sass|less|scss|coffee)$')
@@ -637,6 +638,8 @@ class Templates(logic.Logic):
 
     ## == Attributes == ##
     engine = jinja2  # we're using jinja :)
+    env = library.load('environment')  # load environment tools
+    render_buffer_size = _RENDER_BUFFER  # render statements to buffer at a time
     default_extensions = property(lambda self: DEFAULT_EXTENSIONS)
     default_config = property(lambda self: {
       'optimized': True, 'autoescape': True})
@@ -820,8 +823,8 @@ class Templates(logic.Logic):
       # add-in filters
       return j2env.filters.update(self.base_filters) or j2env
 
-  @staticmethod
-  def sanitize(content, _iter=True):
+  @classmethod
+  def sanitize(cls, content, _iter=True):
 
     """ Clean yielded template content of preceding and trailing whitespace,
         ensure correct encoding, and chunk/yield efficiently.
@@ -836,7 +839,7 @@ class Templates(logic.Logic):
 
     # content should be a list of content blocks
     content = [content] if not (
-      isinstance(content, (tuple, list))) else content
+      isinstance(content, (tuple, list, cls.env.TemplateStream))) else content
 
     def sanitize():
 
@@ -925,14 +928,15 @@ class Templates(logic.Logic):
          if ``_direct`` was falsy, otherwise a ``list`` of chunked template
          content entries. """
 
-    # @TODO(sgammon): template streaming w/jinja2.environment.TemplateStream
-
     # render template & return content iterato)
-    content = (
-      self.environment(handler, config).get_template(template).render(**ctx))
+    tpl = (
+      self.environment(handler, config).get_template(template))
 
     # if _direct is requested, sanitize and roll-up buffer immediately
-    if _direct: return self.sanitize(content, _iter=False)
+    if _direct: return self.sanitize(tpl.render(**ctx), _iter=False)
+
+    gen = tpl.stream(**ctx)
+    gen.enable_buffering(size=self.render_buffer_size)
 
     # otherwise, buffer/chain iterators to produce a streaming response
-    return self.sanitize(content)
+    return self.sanitize(gen)

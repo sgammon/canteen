@@ -347,6 +347,7 @@ with runtime.Library('jinja2', strict=True) as (library, jinja2):
         except jinja2.TemplateSyntaxError:  # pragma: no cover
           print("!!! Syntax error in file '%s'. Compilation failed. !!!" % (
             str(source)))
+          exit(1)
 
         target_name, ext = path.splitext(destination)
         if path.isdir(target_name):  # pragma: no cover

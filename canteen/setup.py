@@ -123,7 +123,7 @@ if __debug__:
 
       # == info == #
       name="canteen",
-      version="0.3-alpha",
+      version="0.4-alpha",
       description="Minimally complicated, maximally blasphemous"
                   " approach to Python development",
 
@@ -158,10 +158,9 @@ if __debug__:
                 "canteen_tests.test_util"] if __debug__ else [],
 
       # == dependencies == #
-      install_requires=([
-                          "jinja2",
-                          "werkzeug",
-                          "protorpc"] + dependencies),
+      install_requires=(["jinja2",
+                         "werkzeug",
+                         "protorpc"] + dependencies),
 
       # == test dependencies == #
       tests_require=("nose", "coverage", "fakeredis"),

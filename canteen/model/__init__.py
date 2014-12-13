@@ -1056,10 +1056,12 @@ class AbstractModel(object):
             # let empty embeddedness continue
             pass
           else:  # pragma: no cover
-            if not getattr(value, 'key', None):
-              raise TypeError('Cannot set non-embedded entity to object without'
-                              ' a key. Got: "%s".' % value)
-            value = value.key
+            if not isinstance(value, Key):
+
+              if not getattr(value, 'key', None):
+                raise TypeError('Cannot set non-embedded entity to object without'
+                                ' a key. Got: "%s".' % value)
+              value   = value.key
 
       # if it's a valid property, create a namedtuple value placeholder
       self.__data__[name] = self.__class__._PropertyValue(value, _dirty)

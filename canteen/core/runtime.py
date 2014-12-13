@@ -36,7 +36,14 @@ __runtime__ = threading.local()
 
 class Runtime(object):
 
-  """  """
+  """ Describes a structure that can manage and schedule execution for Canteen
+      applications. When a Canteen app is running, there is always an active
+      ``Runtime`` object behind it.
+
+      One ``Runtime`` is active per thread at-at-time. It is not possible to use
+      different ``Runtime`` classes concurrently (for instance, uWSGI and PyPy),
+      but runtimes can be composed into a compound structure that expresses
+      combined functionality. """
 
   # == Public Properties == #
 
@@ -554,7 +561,10 @@ class Runtime(object):
 
 class Library(object):
 
-  """  """
+  """ Provides a structure that can be used to indicate (and safely handle)
+      external dependencies. Used extensively inside Canteen and usable by app
+      developers to introduce different functionality depending on the packages
+      available. """
 
   name = None  # string name of the library
   strict = False  # whether to hard-fail on ImportError
@@ -566,7 +576,19 @@ class Library(object):
 
   def __init__(self, package, strict=False):
 
-    """  """
+    """ Initialize this ``Library`` with a target Python ``package``, and
+        optionally ``strict`` mode.
+
+        :param package: ``str`` path to a package that should be imported. When
+          ``Library`` is used in a ``with`` block, the library import must be
+          successful to proceed in loading/processing the contents of the
+          block.
+
+        :param strict: ``bool`` flag to indicate that the developer wishes to
+          hard-fail if the given ``package`` is not available. Defaults to
+          ``False``, meaning any ``ImportError`` encountered loading ``package``
+          will simply be ignored. ``True`` causes the exception to bubble to the
+          caller. """
 
     if isinstance(package, basestring):
       self.name = package
@@ -576,7 +598,19 @@ class Library(object):
 
   def load(self, *subpackages):
 
-    """  """
+    """ Load a subpackage from an already-constructed/resolved ``Library``
+        object. This is usually used from the ``library`` element in a ``with``
+        block.
+
+        :param subpackages: Positional arguments are loaded as subpackages/
+          submodules from the original ``package`` passed during construciton.
+          For instance, ``Library('collections').load('defaultdict')`` is
+          essentially equivalent to ``from collections import defaultdict``.
+
+        :raises ImportError: Import issues are directly surfaced from this
+          method, as it is designed to be wrapped in a ``with`` block.
+
+        :returns: Loaded ``module`` object. """
 
     loaded = []
     for package in subpackages:
@@ -587,7 +621,12 @@ class Library(object):
 
   def __enter__(self):
 
-    """  """
+    """ Context entrance method, responsible for triggering a load of the top-
+        level package and propagating exceptions if ``strict`` mode is active.
+
+        :retunrs: ``tuple`` of the form ``(self, package)``, such that it can
+          be unpacked into ``(library, package)`` in a ``with ... as``
+          block. """
 
     if not self.package and (self.supported is None):
       try:

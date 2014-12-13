@@ -603,14 +603,15 @@ class IndexedModelAdapter(ModelAdapter):
       convert_datetime=False)
 
     # grab only properties enabled for indexing
-    is_indexed = lambda x: entity.__class__.__dict__[x[0]]._indexed
+    is_indexed = lambda x: entity.__class__.__dict__[x[0]].indexed
     for k, v in filter(is_indexed, _edict.items()):
       prop = entity.__class__.__dict__[k]
 
-      if isinstance(prop._basetype, type) and (
-              issubclass(prop._basetype, model.Model) and (
-              prop._options.get('embedded'))):  # pragma: no cover
-        _map = IndexedModelAdapter._pluck_indexed(getattr(entity, k), k, _map)
+      if isinstance(prop.basetype, type) and (
+              issubclass(prop.basetype, model.Model) and (
+              prop.options.get('embedded'))):  # pragma: no cover
+        #_map = IndexedModelAdapter._pluck_indexed(getattr(entity, k), k, _map)
+        continue
 
       else:
         # attach property name, property class, value

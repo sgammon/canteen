@@ -1,9 +1,9 @@
-Jinja2
-MarkupSafe
-Werkzeug
-protorpc
-coverage
-msgpack-python
+Jinja2==2.7.3
+MarkupSafe==0.23
+Werkzeug==0.9.6
+protorpc==0.9.1
+coverage==3.7.1
+msgpack-python==0.4.4
 git+https://github.com/sgammon/protobuf.git#egg=protobuf
 git+https://github.com/sgammon/hamlish-jinja.git#egg=hamlish_jinja
-python-dateutil
+python-dateutil==2.4.0

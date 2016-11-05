@@ -1,0 +1,31 @@
+
+#
+# CircleCI - canteen/gust
+#
+
+machine:
+  timezone: America/Los_Angeles
+  python: 2.7.11
+
+dependencies:
+  pre:
+    - virtualenv --version || sudo pip install --upgrade virtualenv
+  override:
+    - make dependencies BUILDBOT=1 DEPS=1
+
+test:
+  pre:
+    - make package BUILDBOT=1 DEPS=0 TESTS=0
+  override:
+    - make test BUILDBOT=1 DEPS=0 TESTS=1
+  post:
+    - cd .develop && tar -czvf ../reports.tar.gz tests coverage
+    - mkdir -p $CIRCLE_TEST_REPORTS/django/ && find . -type f -regex ".develop/tests/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/django/ \;
+    - mkdir -p $CIRCLE_TEST_REPORTS/django/coverage/ && cp -fv .develop/coverage/* $CIRCLE_TEST_REPORTS/django/coverage/;
+
+general:
+  artifacts:
+    - "dist/*.egg"
+    - "dist/*.tar.gz"
+    - "reports.tar.gz"
+

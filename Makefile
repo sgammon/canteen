@@ -168,6 +168,10 @@ else
 endif
 
 ifeq ($(BUILDBOT),1)
+release-package:
+	@echo "Packaging release..."
+	@tar -czvf release.tar.gz dist/*
+
 report-package: reports.tar.gz
 	@echo "Installing test reports..."
 	@mkdir -p $(TEST_REPORTS_TARGET) $(TEST_REPORTS_TARGET)/coverage/

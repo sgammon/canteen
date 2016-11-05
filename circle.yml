@@ -21,11 +21,10 @@ test:
   override:
     - make test BUILDBOT=1 DEPS=0 TESTS=1
   post:
-    - make report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_TEST_REPORTS/django/
+    - make release-package report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_TEST_REPORTS/django/
 
 general:
   artifacts:
-    - "dist/*.egg"
-    - "dist/*.tar.gz"
     - "reports.tar.gz"
+    - "release.tar.gz"
 

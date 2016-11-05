@@ -10,6 +10,7 @@ machine:
 
 dependencies:
   pre:
+    - mkdir -p bin/ && ln -s `which pip` bin/pip
     - virtualenv --version || sudo pip install --upgrade virtualenv
   override:
     - make dependencies BUILDBOT=1 DEPS=1

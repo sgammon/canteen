@@ -175,8 +175,8 @@ release-package:
 report-package: reports.tar.gz
 	@echo "Installing test reports..."
 	@mkdir -p $(TEST_REPORTS_TARGET) $(TEST_REPORTS_TARGET)/coverage/
-	@cp -fv .develop/tests/*.xml $(TEST_REPORTS_TARGET)/
-	@cp -frv .develop/coverage/* $(TEST_REPORTS_TARGET)/coverage/
+	@-cp -frv .develop/tests/* $(TEST_REPORTS_TARGET)/
+	@-cp -frv .develop/coverage/* $(TEST_REPORTS_TARGET)/coverage/
 
 reports.tar.gz:
 	@echo "Building test/coverage report tarball..."

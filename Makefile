@@ -16,10 +16,12 @@ SHELL := /bin/bash
 DEPS?=1
 TESTS?=1
 SHELL?=bash
+BUILDBOT?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 BUILDROOT?=./
 TEST_FLAGS?=
+TEST_REPORTS_TARGET?=dist/test-reports
 BINPATH?=$(BUILDROOT)bin/
 TEST_RESULTS?=$(BUILDROOT).develop/tests/xunit
 COVERAGE_RESULTS?=$(BUILDROOT).develop/coverage/xunit
@@ -164,3 +166,28 @@ else
 .Python:
 	$(call warn,"Skipping virtual environment...")
 endif
+
+ifeq ($(BUILDBOT),1)
+ci-environment:
+	$(call say,"Preparing CI environment...")
+	@mkdir -p bin/ && \
+		ln -s $(shell which pip) bin/pip && \
+		ln -s $(shell which python) bin/python && \
+		ln -s $(shell which nosetests) bin/nosetests;
+	@virtualenv --version || sudo pip install --upgrade virtualenv
+
+release-package:
+	$(call say,"Packaging release...")
+	@tar -czvf release.tar.gz dist/*
+
+report-package: reports.tar.gz
+	$(call say,"Installing test reports...")
+	@mkdir -p $(TEST_REPORTS_TARGET) $(TEST_REPORTS_TARGET)/coverage/
+	@-cp -frv .develop/tests/* $(TEST_REPORTS_TARGET)/
+	@-cp -frv .develop/coverage/* $(TEST_REPORTS_TARGET)/coverage/
+
+reports.tar.gz:
+	$(call say,"Building test/coverage report tarball...")
+	@cd .develop && tar -czvf ../reports.tar.gz tests coverage
+endif
+

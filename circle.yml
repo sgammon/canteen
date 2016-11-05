@@ -1,0 +1,29 @@
+
+#
+# CircleCI - canteen/gust (v1)
+#
+
+machine:
+  timezone: America/Los_Angeles
+  python:
+    version: 2.7.11
+
+dependencies:
+  pre:
+    - make ci-environment BUILDBOT=1 DEPS=0
+  override:
+    - make dependencies BUILDBOT=1 DEPS=1
+
+test:
+  pre:
+    - make package BUILDBOT=1 DEPS=0 TESTS=0
+  override:
+    - make test BUILDBOT=1 DEPS=0 TESTS=1
+  post:
+    - make release-package report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_TEST_REPORTS/django/
+
+general:
+  artifacts:
+    - "reports.tar.gz"
+    - "release.tar.gz"
+

@@ -168,18 +168,26 @@ else
 endif
 
 ifeq ($(BUILDBOT),1)
+ci-environment:
+	$(call say,"Preparing CI environment...")
+	@mkdir -p bin/ && \
+		ln -s $(shell which pip) bin/pip && \
+		ln -s $(shell which python) bin/python && \
+		ln -s $(shell which nosetests) bin/nosetests;
+	@virtualenv --version || sudo pip install --upgrade virtualenv
+
 release-package:
-	@echo "Packaging release..."
+	$(call say,"Packaging release...")
 	@tar -czvf release.tar.gz dist/*
 
 report-package: reports.tar.gz
-	@echo "Installing test reports..."
+	$(call say,"Installing test reports...")
 	@mkdir -p $(TEST_REPORTS_TARGET) $(TEST_REPORTS_TARGET)/coverage/
 	@-cp -frv .develop/tests/* $(TEST_REPORTS_TARGET)/
 	@-cp -frv .develop/coverage/* $(TEST_REPORTS_TARGET)/coverage/
 
 reports.tar.gz:
-	@echo "Building test/coverage report tarball..."
+	$(call say,"Building test/coverage report tarball...")
 	@cd .develop && tar -czvf ../reports.tar.gz tests coverage
 endif
 

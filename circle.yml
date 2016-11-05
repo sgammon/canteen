@@ -10,7 +10,7 @@ machine:
 
 dependencies:
   pre:
-    - mkdir -p bin/ && ln -s `which pip` bin/pip
+    - mkdir -p bin/ && ln -s `which pip` bin/pip && ln -s `which python` bin/python
     - virtualenv --version || sudo pip install --upgrade virtualenv
   override:
     - make dependencies BUILDBOT=1 DEPS=1
@@ -23,7 +23,7 @@ test:
   post:
     - cd .develop && tar -czvf ../reports.tar.gz tests coverage
     - mkdir -p $CIRCLE_TEST_REPORTS/django/ && find . -type f -regex ".develop/tests/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/django/ \;
-    - mkdir -p $CIRCLE_TEST_REPORTS/django/coverage/ && cp -fv .develop/coverage/* $CIRCLE_TEST_REPORTS/django/coverage/;
+    - mkdir -p $CIRCLE_TEST_REPORTS/django/coverage/ && cp -frv .develop/coverage/* $CIRCLE_TEST_REPORTS/django/coverage/;
 
 general:
   artifacts:

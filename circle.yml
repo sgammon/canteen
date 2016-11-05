@@ -21,9 +21,7 @@ test:
   override:
     - make test BUILDBOT=1 DEPS=0 TESTS=1
   post:
-    - cd .develop && tar -czvf ../reports.tar.gz tests coverage
-    - mkdir -p $CIRCLE_TEST_REPORTS/django/ && find . -type f -regex ".develop/tests/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/django/ \;
-    - mkdir -p $CIRCLE_TEST_REPORTS/django/coverage/ && cp -frv .develop/coverage/* $CIRCLE_TEST_REPORTS/django/coverage/;
+    - make report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_TEST_REPORTS/django/
 
 general:
   artifacts:

@@ -16,10 +16,12 @@ SHELL := /bin/bash
 DEPS?=1
 TESTS?=1
 SHELL?=bash
+BUILDBOT?=1
 VIRTUALENV?=1
 DISTRIBUTIONS ?= bdist_egg sdist bdist_dumb
 BUILDROOT?=./
 TEST_FLAGS?=
+TEST_REPORTS_TARGET?=dist/test-reports
 BINPATH?=$(BUILDROOT)bin/
 TEST_RESULTS?=$(BUILDROOT).develop/tests/xunit
 COVERAGE_RESULTS?=$(BUILDROOT).develop/coverage/xunit
@@ -164,3 +166,16 @@ else
 .Python:
 	$(call warn,"Skipping virtual environment...")
 endif
+
+ifeq ($(BUILDBOT),1)
+report-package: reports.tar.gz
+	@echo "Installing test reports..."
+	@mkdir -p $(TEST_REPORTS_TARGET) $(TEST_REPORTS_TARGET)/coverage/
+	@find . -type f -regex ".develop/tests/.*xml" -exec cp {} $(TEST_REPORTS_TARGET)/
+	@cp -frv .develop/coverage/* $(TEST_REPORTS_TARGET)/coverage/
+
+reports.tar.gz:
+	@echo "Building test/coverage report tarball..."
+	@cd .develop && tar -czvf ../reports.tar.gz tests coverage
+endif
+

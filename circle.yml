@@ -5,7 +5,8 @@
 
 machine:
   timezone: America/Los_Angeles
-  python: 2.7.11
+  python:
+  - 2.7.11
 
 dependencies:
   pre:

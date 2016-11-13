@@ -12,10 +12,12 @@ engines:
     enabled: true
   radon:
     enabled: true
+  pep8:
+    enabled: true
 ratings:
   paths:
   - "**.css"
   - "**.js"
   - "**.py"
 exclude_paths:
-- canteen_tests/
+- canteen_tests/**/*

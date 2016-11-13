@@ -77,10 +77,10 @@ ready:
 ifeq ($(TESTS),1)
 test:
 	$(call say,"Running testsuite...")
+	@rm -fv ./.coverage
 	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
 	@-$(BINPATH)nosetests --with-coverage \
 							--cover-package=canteen \
-							--cover-package=canteen_tests \
 							--cover-html \
 							--cover-xml \
 							--with-xunit \
@@ -175,6 +175,9 @@ ci-environment:
 		ln -s $(shell which python) bin/python && \
 		ln -s $(shell which nosetests) bin/nosetests;
 	@virtualenv --version || sudo pip install --upgrade virtualenv
+	@-bin/pip uninstall -y coverage==3.7.1
+	@-bin/pip install -y "coverage>=4.0"
+	@coveralls --help 2> /dev/null || bin/pip install --upgrade coveralls
 
 release-package:
 	$(call say,"Packaging release...")

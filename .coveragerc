@@ -1,5 +1,6 @@
 [run]
 branch = True
+source = canteen
 
 [report]
 # Regexes for lines to exclude from consideration

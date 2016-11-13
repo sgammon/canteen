@@ -22,7 +22,7 @@ test:
   post:
     - make release-package report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_TEST_REPORTS/django/
     - make release-package report-package BUILDBOT=1 TEST_REPORTS_TARGET=$CIRCLE_ARTIFACTS/
-    - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN bin/coveralls --verbose
+    - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN coveralls --verbose
 
 general:
   artifacts:

@@ -175,6 +175,7 @@ ci-environment:
 		ln -s $(shell which python) bin/python && \
 		ln -s $(shell which nosetests) bin/nosetests;
 	@virtualenv --version || sudo pip install --upgrade virtualenv
+	@coveralls --help 2> /dev/null || sudo pip install --upgrade coveralls
 
 release-package:
 	$(call say,"Packaging release...")

@@ -81,7 +81,6 @@ test:
 	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
 	@-$(BINPATH)nosetests --with-coverage \
 							--cover-package=canteen \
-							--cover-package=canteen_tests \
 							--cover-html \
 							--cover-xml \
 							--with-xunit \

@@ -115,7 +115,7 @@ class Tool(object):
       klass = super(mcs, mcs).__new__(mcs, name, bases, properties)
 
       # add to registered parsers
-      mcs.parsers[name] = {
+      mcs.parsers[".".join((properties['__module__'], name))] = {
         'name': (properties['name'] if 'name' in properties else name).lower(),
         'description': textwrap.dedent(properties['__doc__']) if (
           '__doc__' in properties) else None,
@@ -150,7 +150,8 @@ class Tool(object):
     self.autorun, self.safe = autorun, safe
 
     # lookup local config
-    config = self.__metaclass__.parsers[self.__class__.__name__]
+    config = self.__metaclass__.parsers[
+      ".".join((self.__class__.__module__, self.__class__.__name__))]
 
     if not parser:
       # start top-level argument parser

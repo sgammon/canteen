@@ -6,3 +6,5 @@ the little framework that could
 [![CI](https://circleci.com/gh/momentum/canteen.svg?style=svg)](https://circleci.com/gh/momentum/canteen)
 [![Code Climate](https://codeclimate.com/github/sgammon/canteen/badges/gpa.svg)](https://codeclimate.com/github/sgammon/canteen)
 
+*(documentation coming soon)*
+

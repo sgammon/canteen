@@ -77,6 +77,7 @@ ready:
 ifeq ($(TESTS),1)
 test:
 	$(call say,"Running testsuite...")
+	@rm -fv ./.coverage
 	@mkdir -p $(TEST_RESULTS) $(COVERAGE_RESULTS)
 	@-$(BINPATH)nosetests --with-coverage \
 							--cover-package=canteen \

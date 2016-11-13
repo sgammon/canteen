@@ -12,5 +12,5 @@ install:
 script: make all BINROOT=
 
 after_success:
-  coveralls
+  - coveralls --verbose
 

@@ -1,6 +1,6 @@
 Jinja2==2.7.3
 MarkupSafe==0.23
-Werkzeug==0.9.6
+Werkzeug==3.0.1
 protorpc==0.9.1
 coverage==3.7.1
 msgpack-python==0.4.4
